@@ -147,8 +147,78 @@ async function handleFile(filePath, urlPath, stats, res, context) {
  */
 
 async function handleDirectory(filePath, urlPath, stats, res, context) {
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end('Directory handler - TODO');
+  const { createDirectoryTemplate } = require('./templates/directory.js');
+  const { escapeHtml, loadGitignore, shouldIgnoreFile } = require('./utils.js');
+
+  // Check if directory listing is disabled
+  if (context.args.noDirlist) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Directory listing is disabled');
+    return;
+  }
+
+  try {
+    // Read directory contents
+    const files = await fs.readdir(filePath);
+
+    // Load .gitignore rules
+    const ig = loadGitignore(filePath);
+
+    // Process entries
+    const entries = [];
+
+    for (const file of files) {
+      const fullPath = path.join(filePath, file);
+      const fileUrl = path.posix.join(urlPath, file);
+
+      try {
+        const fileStats = await fs.stat(fullPath);
+        const isDirectory = fileStats.isDirectory();
+
+        // Check if file is ignored
+        const ignored = shouldIgnoreFile(fullPath, filePath, ig, isDirectory);
+
+        // Skip ignored files unless --all flag is set
+        if (ignored && !context.args.showAll) {
+          continue;
+        }
+
+        // Detect file type
+        const fileType = await detectFileType(fullPath, fileStats);
+
+        entries.push({
+          name: file,
+          url: fileUrl,
+          isDirectory,
+          size: fileStats.size,
+          mtime: fileStats.mtime,
+          fileType,
+          ignored
+        });
+      } catch (err) {
+        // Skip files we can't stat
+        console.error(`Error reading ${file}: ${err.message}`);
+      }
+    }
+
+    // Get directory name
+    const dirName = path.basename(filePath) || '/';
+
+    // Generate HTML using directory template
+    const html = createDirectoryTemplate({
+      dirName,
+      entries,
+      urlPath,
+      showAll: context.args.showAll || false,
+      escapeHtml
+    });
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Error reading directory: ${err.message}`);
+  }
 }
 
 async function handleMarkdown(filePath, urlPath, stats, res, context) {

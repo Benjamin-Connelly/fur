@@ -1,5 +1,8 @@
 // General utilities
 const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const ignore = require('ignore');
 
 function parseArgs(argv) {
   const args = {};
@@ -117,10 +120,72 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, m => map[m]);
 }
 
+/**
+ * Load .gitignore files from current directory and all parent directories
+ * @param {string} dirPath - Directory path to start from
+ * @returns {Object} ignore object with combined rules
+ */
+function loadGitignore(dirPath) {
+  const ig = ignore();
+
+  // Always ignore .git directory
+  ig.add('.git/');
+
+  let currentDir = path.resolve(dirPath);
+  const root = path.parse(currentDir).root;
+
+  // Walk up the directory tree
+  while (true) {
+    const gitignorePath = path.join(currentDir, '.gitignore');
+
+    try {
+      if (fs.existsSync(gitignorePath)) {
+        const content = fs.readFileSync(gitignorePath, 'utf8');
+        ig.add(content);
+      }
+    } catch (err) {
+      // Silently skip if we can't read the file
+    }
+
+    // Stop at root
+    if (currentDir === root) {
+      break;
+    }
+
+    // Move up one directory
+    currentDir = path.dirname(currentDir);
+  }
+
+  return ig;
+}
+
+/**
+ * Check if a file should be ignored based on .gitignore rules
+ * @param {string} filePath - Absolute path to the file
+ * @param {string} basePath - Base directory path
+ * @param {Object} ig - ignore object
+ * @param {boolean} isDirectory - Whether the path is a directory
+ * @returns {boolean} true if file should be ignored
+ */
+function shouldIgnoreFile(filePath, basePath, ig, isDirectory = false) {
+  // Get relative path from base
+  let relativePath = path.relative(basePath, filePath);
+
+  // For directories, check both with and without trailing slash
+  if (isDirectory) {
+    return ig.ignores(relativePath + '/') || ig.ignores(relativePath);
+  }
+
+  // Check if ignored
+  return ig.ignores(relativePath);
+}
+
 module.exports = {
   parseArgs,
   printHelp,
   printCertInstructions,
   openBrowser,
-  escapeHtml
+  escapeHtml,
+  loadGitignore,
+  shouldIgnoreFile
 };
