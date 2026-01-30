@@ -1,0 +1,20 @@
+{
+  "name": "lookit",
+  "version": "1.0.0",
+  "description": "Beautiful local development server for browsing code, markdown, and files",
+  "author": "Benjamin Connelly",
+  "license": "MIT",
+  "bin": {
+    "lookit": "./bin/lookit.js"
+  },
+  "dependencies": {
+    "markdown-it": "^14.0.0",
+    "markdown-it-highlightjs": "^4.1.0",
+    "highlight.js": "^11.9.0",
+    "isbinaryfile": "^5.0.2",
+    "ignore": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
