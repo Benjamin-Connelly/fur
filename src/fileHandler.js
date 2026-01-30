@@ -157,8 +157,52 @@ async function handleMarkdown(filePath, urlPath, stats, res, context) {
 }
 
 async function handleCode(filePath, urlPath, stats, res, context) {
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end('Code handler - TODO');
+  const { createCodeTemplate, getLanguageFromExtension } = require('./templates/code.js');
+  const { escapeHtml } = require('./utils.js');
+
+  try {
+    // Read the file content
+    const code = await fs.readFile(filePath, 'utf8');
+
+    // Get the file extension and determine language
+    const ext = path.extname(filePath);
+    const fileName = path.basename(filePath);
+    const language = getLanguageFromExtension(ext);
+
+    let highlightedCode;
+
+    // Try to highlight with the detected language
+    if (language) {
+      try {
+        const result = context.hljs.highlight(code, { language });
+        highlightedCode = result.value;
+      } catch (err) {
+        // If language-specific highlighting fails, fall back to auto-detection
+        console.error(`Error highlighting with language ${language}, falling back to auto: ${err.message}`);
+        const result = context.hljs.highlightAuto(code);
+        highlightedCode = result.value;
+      }
+    } else {
+      // No language detected, use auto-detection
+      const result = context.hljs.highlightAuto(code);
+      highlightedCode = result.value;
+    }
+
+    // Generate HTML using the code template
+    const html = createCodeTemplate({
+      fileName,
+      code: highlightedCode,
+      urlPath,
+      language: language || 'plaintext',
+      escapeHtml
+    });
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Error reading file: ${err.message}`);
+  }
 }
 
 async function handleStatic(filePath, urlPath, stats, res, context, fileType) {
