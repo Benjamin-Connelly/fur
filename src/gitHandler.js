@@ -1,4 +1,4 @@
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,7 +12,7 @@ const COMMIT_CACHE_TTL = 30000; // 30 seconds for commit metadata
  */
 function isGitInstalled() {
   try {
-    execSync('git --version', { stdio: 'ignore' });
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
     return true;
   } catch {
     return false;
@@ -95,7 +95,7 @@ function getGitStatus(repoRoot) {
 
   return getCached(cacheKey, () => {
     try {
-      const output = execSync('git status --porcelain', {
+      const output = execFileSync('git', ['status', '--porcelain'], {
         cwd: repoRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore']
@@ -183,7 +183,7 @@ function getCurrentBranch(repoRoot) {
 
   return getCached(cacheKey, () => {
     try {
-      const branch = execSync('git branch --show-current', {
+      const branch = execFileSync('git', ['branch', '--show-current'], {
         cwd: repoRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore']
@@ -191,7 +191,7 @@ function getCurrentBranch(repoRoot) {
 
       // If empty, might be in detached HEAD state
       if (!branch) {
-        const commitHash = execSync('git rev-parse --short HEAD', {
+        const commitHash = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
           cwd: repoRoot,
           encoding: 'utf8',
           stdio: ['pipe', 'pipe', 'ignore']
@@ -223,8 +223,9 @@ function getLastCommit(filePath, repoRoot) {
     try {
       const relativePath = path.relative(repoRoot, filePath);
 
-      const output = execSync(
-        `git log -1 --format="%an | %ar | %s" -- "${relativePath}"`,
+      const output = execFileSync(
+        'git',
+        ['log', '-1', '--format=%an | %ar | %s', '--', relativePath],
         {
           cwd: repoRoot,
           encoding: 'utf8',
@@ -254,15 +255,15 @@ function getRepoStats(repoRoot) {
   return getCached(cacheKey, () => {
     try {
       // Get tracked files count
-      const trackedFiles = execSync('git ls-files | wc -l', {
+      const trackedFilesOutput = execFileSync('git', ['ls-files'], {
         cwd: repoRoot,
         encoding: 'utf8',
-        shell: true,
         stdio: ['pipe', 'pipe', 'ignore']
       }).trim();
+      const trackedFiles = trackedFilesOutput.split('\n').filter(line => line.trim()).length.toString();
 
       // Get status counts
-      const statusOutput = execSync('git status --porcelain', {
+      const statusOutput = execFileSync('git', ['status', '--porcelain'], {
         cwd: repoRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore']
@@ -286,14 +287,14 @@ function getRepoStats(repoRoot) {
       });
 
       // Get total commits
-      const totalCommits = execSync('git rev-list --count HEAD', {
+      const totalCommits = execFileSync('git', ['rev-list', '--count', 'HEAD'], {
         cwd: repoRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore']
       }).trim();
 
       // Get last commit time
-      const lastCommit = execSync('git log -1 --format="%ar"', {
+      const lastCommit = execFileSync('git', ['log', '-1', '--format=%ar'], {
         cwd: repoRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore']
