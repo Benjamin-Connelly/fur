@@ -36,6 +36,10 @@ function parseArgs(argv) {
       args.stopAll = true;
     } else if (arg === '--stop' && argv[i + 1]) {
       args.stop = parseInt(argv[++i], 10);
+    } else if (arg === '--version' || arg === '-v') {
+      const pkg = require('../package.json');
+      console.log(pkg.version);
+      process.exit(0);
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -66,6 +70,7 @@ OPTIONS:
   -l, --list           List all running lookit instances
   --stop <port>        Stop lookit instance on specific port
   --stop-all           Stop all running lookit instances
+  -v, --version        Show version number
   -h, --help           Show this help message
 
 FILE SUPPORT:
