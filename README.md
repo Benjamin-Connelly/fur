@@ -1,375 +1,147 @@
 # lookit
 
-Beautiful local development server for browsing code, markdown, and files.
+**Beautiful local dev server for code, markdown, and files.**
 
-Browse your project files with syntax highlighting, markdown rendering, and directory listings. No configuration needed.
+<!-- Badges: uncomment when published
+[![npm version](https://img.shields.io/npm/v/lookit)](https://www.npmjs.com/package/lookit)
+[![npm downloads](https://img.shields.io/npm/dm/lookit)](https://www.npmjs.com/package/lookit)
+[![license](https://img.shields.io/npm/l/lookit)](LICENSE)
+-->
 
-## Features
+Zero config. Dark theme. Syntax highlighting for 50+ languages. Git-aware directory listings. Runs on lucky port 7777.
 
-**📝 Markdown Rendering**
-- GitHub-style markdown with syntax highlighting
-- Code blocks, tables, task lists, and more
-- Beautiful typography optimized for reading
+<!-- Screenshot: hero image showing directory listing with git badges and dark theme -->
 
-**💻 Code Viewing**
-- Syntax highlighting for 50+ languages
-- JavaScript, TypeScript, Python, Go, Rust, Java, and more
-- Auto-detects language from file extension
-
-**📁 Smart Directory Listings**
-- Emoji file icons for quick recognition
-- Respects .gitignore by default
-- Human-readable sizes and dates
-- Sorted: directories first, alphabetically second
-
-**🔒 Secure by Default**
-- HTTPS with local certificates (optional)
-- Path traversal protection
-- No directory listing outside served directory
-
-**🎨 Modern Dark Theme**
-- Clean, professional interface
-- Responsive mobile-friendly design
-- Breadcrumb navigation
-
-## Installation
-
-### Global Install (Recommended)
-
-```bash
-npm install -g lookit
-```
-
-### Run Without Installing
+## Quick Start
 
 ```bash
 npx lookit
 ```
 
-## Usage
-
-### Basic Usage
+That's it. Open `http://localhost:7777` and browse your project.
 
 ```bash
-# Serve current directory
-lookit
-
-# Serve specific directory
-lookit /path/to/project
-
-# Use custom port
-lookit --port 8080
-
-# Auto-open browser
-lookit --open
+npm install -g lookit    # install globally
+lookit                   # serve current directory
+lookit --open            # serve and open browser
 ```
 
-The server starts on **port 7777** 🍀 by default.
+## Why lookit?
 
-### Command Options
+| Feature | `python -m http.server` | `http-server` | `serve` | **lookit** |
+|---------|:-----------------------:|:-------------:|:-------:|:----------:|
+| Zero config | Yes | Yes | Yes | **Yes** |
+| Syntax highlighting | No | No | No | **50+ languages** |
+| Markdown rendering | No | No | No | **GitHub-style** |
+| Dark theme | No | No | No | **Built-in** |
+| Git status badges | No | No | No | **Per-file** |
+| .gitignore aware | No | No | No | **Yes** |
+| Multi-instance | No | No | No | **Auto port increment** |
+| HTTPS (local certs) | No | Optional | No | **Built-in** |
+| File type icons | No | No | No | **50+ types** |
 
-```
---port <number>      Port to listen on (default: 7777)
---host <address>     Host to bind to (default: 127.0.0.1)
---open               Open browser automatically
---all                Show hidden files (including .gitignore matches)
---no-https           Use HTTP only, skip HTTPS
---https-only         Require HTTPS, fail if certificates not found
---no-dirlist         Disable directory listings
--l, --list           List all running lookit instances
---stop <port>        Stop lookit instance on specific port
---stop-all           Stop all running lookit instances
--h, --help           Show help message
-```
+## Features
 
-### Process Management
+### Markdown Rendering
 
-Lookit automatically finds available ports starting from 7777. Multiple instances can run simultaneously.
+GitHub-style rendering with syntax-highlighted code blocks, tables, task lists, and clean typography.
+
+<!-- Screenshot: markdown rendering view -->
+
+### Code Viewing
+
+Syntax highlighting for 50+ languages. Auto-detects from file extension. Language badges with color coding.
+
+<!-- Screenshot: code viewing with syntax highlighting -->
+
+### Git-Aware Directory Listings
+
+See git status at a glance. Modified, staged, untracked - each file shows its git state. Current branch in the header. Per-file commit info on hover.
+
+<!-- Screenshot: directory listing with git badges -->
+
+### Multi-Instance Management
+
+Run lookit in multiple projects at once. Ports auto-increment from 7777.
 
 ```bash
-# Start multiple instances
-cd ~/project1 && lookit &    # Runs on 7777
-cd ~/project2 && lookit &    # Runs on 7778
-cd ~/project3 && lookit &    # Runs on 7779
+cd ~/project-a && lookit &   # 7777
+cd ~/project-b && lookit &   # 7778
+cd ~/project-c && lookit &   # 7779
 
-# List all running instances
-lookit --list
-
-# Stop specific instance
-lookit --stop 7778
-
-# Stop all instances
-lookit --stop-all
+lookit --list                # see all instances
+lookit --stop 7778           # stop one
+lookit --stop-all            # stop all
 ```
 
-Each instance tracks its port and directory. Stale instances (from crashes) are automatically cleaned up.
+### HTTPS Out of the Box
 
-## File Type Support
-
-| Type | Extensions | Features |
-|------|-----------|----------|
-| **Markdown** | `.md`, `.mdx` | GitHub-style rendering with syntax highlighting |
-| **Code** | `.js`, `.ts`, `.py`, `.go`, `.rs`, `.java`, etc. | Syntax highlighting for 50+ languages |
-| **Images** | `.png`, `.jpg`, `.gif`, `.svg`, `.webp` | Native browser display |
-| **Videos** | `.mp4`, `.webm`, `.mov` | Native browser playback |
-| **Audio** | `.mp3`, `.wav`, `.ogg`, `.flac` | Native browser playback |
-| **PDFs** | `.pdf` | Native browser viewer |
-| **Binary** | All others | Download with preview card |
-
-## HTTPS Setup (Optional)
-
-For local HTTPS with trusted certificates:
-
-### 1. Install mkcert
-
-```bash
-# Ubuntu/Debian
-sudo apt install -y mkcert libnss3-tools
-
-# macOS
-brew install mkcert
-
-# Windows
-choco install mkcert
-```
-
-### 2. Install Local CA
+Drop in mkcert certificates and lookit serves over HTTPS automatically. No flags needed.
 
 ```bash
 mkcert -install
-```
-
-### 3. Generate Certificates
-
-```bash
 mkdir -p ~/.config/lookit
 mkcert -cert-file ~/.config/lookit/localhost.pem \
        -key-file ~/.config/lookit/localhost-key.pem \
        localhost 127.0.0.1 ::1
 ```
 
-### 4. Restart lookit
+## File Support
 
-```bash
-lookit
-```
+| Type | What You Get |
+|------|-------------|
+| **Markdown** `.md` `.mdx` | Rendered HTML with syntax-highlighted code blocks |
+| **Code** `.js` `.ts` `.py` `.go` `.rs` + 45 more | Syntax highlighting with language badges |
+| **Images** `.png` `.jpg` `.gif` `.svg` `.webp` | Native browser display |
+| **Video** `.mp4` `.webm` `.mov` | Native browser playback |
+| **Audio** `.mp3` `.wav` `.ogg` `.flac` | Native browser playback |
+| **PDF** `.pdf` | Native browser viewer |
+| **Binary** everything else | Preview card with download |
 
-Now visit **https://localhost:7777** with no browser warnings.
-
-## Examples
-
-### Browse Project Documentation
-
-```bash
-cd ~/my-project
-lookit docs/
-```
-
-### View Markdown with Code Examples
-
-```bash
-lookit README.md
-```
-
-### Check Configuration Files
-
-```bash
-lookit config/
-```
-
-### Quick File Review
-
-```bash
-# Open browser automatically
-lookit --open
-
-# Show all files including .gitignore matches
-lookit --all
-```
-
-## Use Cases
-
-**📖 Documentation Review**
-- Read project documentation locally
-- Preview markdown before committing
-- View code examples with syntax highlighting
-
-**🔍 Code Browsing**
-- Quickly browse project structure
-- View files without opening editor
-- Share read-only view with team
-
-**📝 Writing & Editing**
-- Live markdown preview while writing
-- Check formatting and code blocks
-- View final rendered output
-
-**🎓 Learning & Teaching**
-- Browse code examples
-- Share code with students
-- View tutorials and guides
-
-## Why lookit?
-
-**Zero Configuration**
-- No setup files
-- No dependencies to install
-- Works out of the box
-
-**Fast & Lightweight**
-- Starts instantly
-- Minimal memory footprint
-- No build process
-
-**Beautiful by Default**
-- Modern dark theme
-- Clean typography
-- Professional appearance
-
-**Respects Your Workflow**
-- Honors .gitignore files
-- Secure path handling
-- Non-intrusive
-
-## Development
-
-### Run from Source
-
-```bash
-git clone https://github.com/yourusername/lookit.git
-cd lookit
-npm install
-node bin/lookit.js
-```
-
-### Run Tests
-
-```bash
-npm test
-```
-
-### Project Structure
+## Options
 
 ```
-lookit/
-├── bin/
-│   └── lookit.js          # CLI entry point
-├── src/
-│   ├── index.js           # Main server
-│   ├── fileHandler.js     # File routing
-│   ├── utils.js           # Utilities
-│   ├── styles.js          # CSS styles
-│   └── templates/         # HTML templates
-│       ├── base.js
-│       ├── code.js
-│       ├── markdown.js
-│       ├── directory.js
-│       └── binary.js
-└── test/
-    └── fixtures/          # Test files
+lookit [OPTIONS]
+
+--port <number>      Port (default: 7777)
+--host <address>     Host (default: 127.0.0.1)
+--open               Open browser on start
+--all                Show .gitignore'd files
+--no-https           Force HTTP
+--https-only         Require HTTPS
+--no-dirlist         Disable directory listings
+--cert <path>        Custom TLS certificate
+--key <path>         Custom TLS private key
+-l, --list           List running instances
+--stop <port>        Stop instance by port
+--stop-all           Stop all instances
+-v, --version        Show version
+-h, --help           Show help
 ```
 
 ## Security
 
-**Path Traversal Protection**
-- Blocks `../` and absolute paths
-- Only serves files within specified directory
-- No access to parent directories
+- Path traversal protection - no access outside served directory
+- Binary files show preview cards, never execute
+- Read-only access to all files
+- HTTPS with locally-trusted certificates
 
-**HTTPS Support**
-- Optional TLS encryption
-- Local trusted certificates
-- No browser warnings with mkcert
-
-**Safe File Handling**
-- Binary files show preview, not content
-- No code execution
-- Read-only access
-
-## Troubleshooting
-
-### Port Already in Use
-
-Lookit automatically finds the next available port starting from 7777.
+## Development
 
 ```bash
-# Starts on 7777 (or next available: 7778, 7779, etc.)
-lookit
-
-# Or specify a different port manually
-lookit --port 8080
-
-# See what ports are in use
-lookit --list
-
-# Stop all instances to free ports
-lookit --stop-all
+git clone https://github.com/Benjamin-Connelly/lookit.git
+cd lookit && npm install
+node bin/lookit.js
 ```
-
-### HTTPS Certificate Warnings
-
-```bash
-# Use HTTP instead
-lookit --no-https
-
-# Or follow HTTPS setup guide above
-```
-
-### Files Not Showing
-
-```bash
-# Show hidden/ignored files
-lookit --all
-```
-
-### Server Won't Start
-
-```bash
-# Check if port is available
-lsof -i :7777
-
-# Kill existing process
-pkill -f lookit
-```
-
-## Configuration
-
-lookit looks for HTTPS certificates in ~/.config/lookit/:
-- `localhost.pem` - Certificate file
-- `localhost-key.pem` - Private key file
-
-You can specify custom certificate paths:
-
-```bash
-lookit --cert /path/to/cert.pem --key /path/to/key.pem
-```
-
-## Roadmap
-
-- [ ] Custom themes
-- [ ] Watch mode with auto-reload
-- [ ] Search within files
-- [ ] File editing (optional)
-- [ ] Multiple directory support
-- [ ] Bookmark favorite paths
 
 ## Contributing
 
-Contributions welcome! Please feel free to submit a Pull Request.
+Contributions welcome. Open an issue or submit a PR.
 
 ## License
 
 MIT © Benjamin Connelly
 
-## Acknowledgments
-
-Built with:
-- [markdown-it](https://github.com/markdown-it/markdown-it) - Markdown parser
-- [highlight.js](https://highlightjs.org/) - Syntax highlighting
-- [ignore](https://github.com/kaelzhang/node-ignore) - .gitignore support
-
 ---
 
-**Made with ❤️ for developers who love clean, simple tools.**
-
-Start browsing: `npx lookit`
+**Start browsing:** `npx lookit`
