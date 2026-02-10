@@ -1,5 +1,5 @@
 // General utilities
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const ignore = require('ignore');
@@ -117,6 +117,62 @@ function printCertInstructions() {
   console.log(`             localhost 127.0.0.1 ::1`);
 }
 
+/**
+ * Check if mkcert is installed and available on PATH.
+ */
+function hasMkcert() {
+  try {
+    execFileSync('mkcert', ['-help'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Auto-generate TLS certificates with mkcert if available.
+ * Returns true if certs exist (or were just created), false otherwise.
+ */
+function ensureCerts(certPath, keyPath, quiet) {
+  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    return true;
+  }
+
+  if (!hasMkcert()) {
+    if (!quiet) {
+      console.warn('⚠️  No TLS certificates found and mkcert is not installed.');
+      printCertInstructions();
+      console.log('');
+    }
+    return false;
+  }
+
+  // mkcert is available - auto-generate certs
+  const certDir = path.dirname(certPath);
+  fs.mkdirSync(certDir, { recursive: true });
+
+  try {
+    // Ensure local CA is installed (safe to run multiple times)
+    execFileSync('mkcert', ['-install'], { stdio: 'pipe' });
+
+    // Generate certificates
+    execFileSync('mkcert', [
+      '-cert-file', certPath,
+      '-key-file', keyPath,
+      'localhost', '127.0.0.1', '::1'
+    ], { stdio: 'pipe' });
+
+    console.log('🔐 Auto-generated HTTPS certificates with mkcert');
+    return true;
+  } catch (err) {
+    if (!quiet) {
+      console.warn(`⚠️  mkcert found but certificate generation failed: ${err.message}`);
+      console.warn('   Falling back to HTTP.\n');
+    }
+    return false;
+  }
+}
+
 function openBrowser(url) {
   const commands = {
     linux: 'xdg-open',
@@ -205,6 +261,7 @@ module.exports = {
   parseArgs,
   printHelp,
   printCertInstructions,
+  ensureCerts,
   openBrowser,
   escapeHtml,
   loadGitignore,

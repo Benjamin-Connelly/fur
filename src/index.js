@@ -6,7 +6,7 @@ const path = require('path');
 const MarkdownIt = require('markdown-it');
 const hljs = require('highlight.js');
 const mdHighlight = require('markdown-it-highlightjs');
-const { parseArgs, printCertInstructions, openBrowser, escapeHtml } = require('./utils');
+const { parseArgs, printCertInstructions, ensureCerts, openBrowser, escapeHtml } = require('./utils');
 const { handleFile } = require('./fileHandler');
 const { registerInstance, unregisterInstance, cleanStaleInstances } = require('./instanceManager');
 const { handleListCommand, handleStopCommand, handleStopAllCommand } = require('./commands');
@@ -46,20 +46,14 @@ const md = new MarkdownIt({
   typographer: true
 }).use(mdHighlight, { hljs });
 
-// Check for TLS certificates
-const hasCerts = fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH);
+// Check for TLS certificates (auto-generate with mkcert if available)
+const hasCerts = args.noHttps ? false : ensureCerts(CERT_PATH, KEY_PATH, args.quiet);
 const useHttps = hasCerts && !args.noHttps;
 
 if (args.httpsOnly && !hasCerts) {
-  console.error('❌ Error: --https-only specified but certificates not found.\n');
+  console.error('❌ Error: --https-only specified but certificates could not be found or generated.\n');
   printCertInstructions();
   process.exit(1);
-}
-
-if (!hasCerts && !args.quiet) {
-  console.warn('⚠️  TLS certificates not found. Falling back to HTTP.\n');
-  printCertInstructions();
-  console.log('');
 }
 
 // Track the port we're running on
