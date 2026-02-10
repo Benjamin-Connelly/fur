@@ -220,6 +220,7 @@ function createMarkdownTemplate({ fileName, html, urlPath, escapeHtml }) {
       padding: 6px 13px;
       border: 1px solid #d0d7de;
       background-color: #f6f8fa;
+      color: #24292f;
     }
 
     .markdown-body table td {
