@@ -3,6 +3,7 @@ artifacts/
 .beads/
 test/
 docs/
+screenshots/
 
 # Project config
 AGENTS.md

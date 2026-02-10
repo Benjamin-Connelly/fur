@@ -10,7 +10,7 @@
 
 Zero config. Dark theme. Syntax highlighting for 50+ languages. Git-aware directory listings. Runs on lucky port 7777.
 
-<!-- Screenshot: hero image showing directory listing with git badges and dark theme -->
+![lookit directory listing with git badges and dark theme](screenshots/hero-directory.png)
 
 ## Quick Start
 
@@ -46,19 +46,19 @@ lookit --open            # serve and open browser
 
 GitHub-style rendering with syntax-highlighted code blocks, tables, task lists, and clean typography.
 
-<!-- Screenshot: markdown rendering view -->
+![GitHub-style markdown rendering](screenshots/markdown-rendering.png)
 
 ### Code Viewing
 
 Syntax highlighting for 50+ languages. Auto-detects from file extension. Language badges with color coding.
 
-<!-- Screenshot: code viewing with syntax highlighting -->
+![Syntax-highlighted code view](screenshots/code-highlighting.png)
 
 ### Git-Aware Directory Listings
 
 See git status at a glance. Modified, staged, untracked - each file shows its git state. Current branch in the header. Per-file commit info on hover.
 
-<!-- Screenshot: directory listing with git badges -->
+![Directory listing with per-file git status](screenshots/git-directory.png)
 
 ### Multi-Instance Management
 
