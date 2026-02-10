@@ -200,7 +200,9 @@ function createMarkdownTemplate({ fileName, html, urlPath, escapeHtml }) {
       padding: 0.2em 0.4em;
       margin: 0;
       font-size: 85%;
+      color: inherit;
       background-color: rgba(175, 184, 193, 0.2);
+      border: none;
       border-radius: 6px;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
     }
