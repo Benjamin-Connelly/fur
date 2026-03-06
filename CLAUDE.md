@@ -1,85 +1,119 @@
 # Lookit
 
-Zero-config local dev server for browsing code, markdown, and files. Dark theme, syntax highlighting (50+ languages), git-aware directory listings, HTTPS via mkcert.
+Dual-mode markdown navigator: TUI (Bubble Tea) and web (stdlib net/http). Inter-document link navigation with history, backlinks, and broken link detection. Syntax highlighting (50+ languages), git-aware, zero-config.
 
-**Port:** 7777 (auto-increments if in use, up to 10 retries)
+**Version:** v0.1.0
 
 ## Tech Stack
 
-- **Runtime:** Node.js >= 18, pure CommonJS (`require`), no transpilation
-- **Dependencies:** markdown-it + markdown-it-highlightjs for markdown rendering, highlight.js for syntax highlighting, isbinaryfile for binary detection, ignore for .gitignore parsing
-- **No framework** -- raw `http`/`https` server, no Express, no build step
-- **CLI entry:** `bin/lookit.js` -> `src/index.js`
+- **Language:** Go (pure, no CGO). Cross-compiles to linux/darwin × amd64/arm64.
+- **Module:** `github.com/Benjamin-Connelly/lookit`
+- **TUI:** charmbracelet/bubbletea + lipgloss + glamour + bubbles
+- **Web:** stdlib `net/http`, yuin/goldmark for markdown, go:embed for static assets
+- **Syntax:** alecthomas/chroma/v2 (terminal256 for TUI, HTML classes for web)
+- **Git:** go-git/go-git/v5 (no shelling out)
+- **CLI:** spf13/cobra + spf13/viper
+- **Config:** `~/.config/lookit/config.yaml`
 
 ## Directory Structure
 
 ```
-bin/lookit.js           # CLI entrypoint (shebang wrapper)
-src/
-  index.js              # Server setup, arg parsing, request routing, port auto-increment
-  fileHandler.js        # Route requests to the right template (dir/code/markdown/binary)
-  gitHandler.js         # Git status, branch info, per-file commit data
-  commands.js           # Management commands: --list, --stop, --stop-all
-  instanceManager.js    # Multi-instance tracking (register/unregister/list/clean)
-  utils.js              # Arg parser, cert helpers, .gitignore filtering, escapeHtml
-  styles.js             # CSS-in-JS for all page templates
-  templates/
-    base.js             # HTML shell (head, styles, layout)
-    directory.js         # Directory listing with git badges, file icons
-    code.js              # Syntax-highlighted source view
-    markdown.js          # GitHub-style rendered markdown
-    binary.js            # Preview card with download link
-test/
-  comprehensive-test.sh # Bash integration tests
-  test-git-features.js  # Git integration tests
-  test-security-fix.js  # Path traversal / security regression tests
-  fixtures/             # Test data
+cmd/lookit/main.go              # CLI entry: Cobra commands (root, serve, cat, export, doctor, version, completion)
+internal/
+  config/config.go              # Viper config loader, validation, watch, defaults
+  index/
+    index.go                    # File walker, .gitignore parsing, in-memory index
+    fuzzy.go                    # Fuzzy search via sahilm/fuzzy
+    links.go                    # Bidirectional link graph, wikilink resolution
+    watcher.go                  # fsnotify with 100ms debounce
+  tui/
+    model.go                    # Root Bubble Tea model, split-pane layout
+    filelist.go                 # File list panel with fuzzy filter
+    preview.go                  # Scrollable preview pane (Glamour + Chroma)
+    statusbar.go                # Mode indicator, path, key hints
+    keys.go                     # Keybinding system (default/vim/emacs)
+    links.go                    # Link navigation with history stack
+    panels.go                   # TOC, backlinks, git info, bookmarks
+    commands.go                 # Command palette (:command mode)
+    images.go                   # Image protocol detection (stub)
+  web/
+    server.go                   # HTTP server, SSE live reload, security headers, ETag
+    handlers.go                 # Route handlers (dir, markdown, code, API)
+    templates/                  # Go HTML templates (go:embed)
+    static/                     # CSS + JS (go:embed), light/dark themes
+  render/
+    markdown.go                 # Glamour wrapper, heading extraction
+    code.go                     # Chroma wrapper (terminal + HTML)
+  git/
+    git.go                      # go-git: repo, status, branches, log, remotes
+    permalink.go                # URL generation (GitHub/GitLab/Bitbucket/Gitea/Codeberg)
+  export/export.go              # Markdown → HTML with Chroma highlighting
+  doctor/doctor.go              # 8 environment checks with colored output
+  plugin/plugin.go              # YAML hook system (prepend/append/replace)
+  tasks/tasks.go                # TODO extraction (priority, tags, due dates)
 ```
 
 ## Architecture
 
-Request flow: `handleRequest()` in index.js validates the path (traversal guard), stats the file, then delegates to `handleFile()` in fileHandler.js. That function decides the template based on file type: directory listing, markdown render, syntax-highlighted code, media passthrough, or binary download card.
+**TUI mode** (default): Bubble Tea app with split-pane layout. Left panel is a fuzzy-searchable file list, right panel is a rendered preview (Glamour for markdown, Chroma terminal256 for code). Side panels for TOC, backlinks, bookmarks, git info. Command palette via `:`. Link navigation with history stack.
 
-All HTML is server-rendered via template functions in `src/templates/`. Styles live in `styles.js` as exported string constants -- no external CSS files.
+**Web mode** (`lookit serve`): stdlib `net/http` server. Goldmark renders markdown to HTML with GFM extensions. Chroma provides syntax highlighting with CSS classes. SSE endpoint (`/__events`) for live reload. API endpoints: `/__api/files` (fuzzy search), `/__api/search` (git grep). Security headers, ETag caching, request logging.
 
-Git integration shells out to `git` CLI (via `execFileSync` / `execFile`) -- no libgit2 or nodegit dependency.
+**Index**: In-memory file tree with `.gitignore` parsing (manual, no external dep). Bidirectional link graph tracks forward links and backlinks between markdown files. Supports standard `[text](target)` and `[[wikilink]]` syntax. fsnotify watcher with 100ms debounce rebuilds index and link graph on changes.
+
+**Config**: Viper reads from `~/.config/lookit/config.yaml`, env vars (`LOOKIT_*`), and CLI flags (flags win). PersistentPreRunE on root command merges all sources. Live reload via `viper.WatchConfig()`.
 
 ## Conventions
 
-- YAGNI -- only build what's needed. No speculative abstractions.
-- Functional, declarative style. Small focused modules.
-- No test framework -- tests are plain Node scripts and bash.
-- Templates return HTML strings, no JSX or template engine.
-- All paths validated against CWD to prevent traversal.
+- Pure Go, no CGO. Must cross-compile cleanly.
+- No external web frameworks. stdlib `net/http` only.
+- All errors handled explicitly. No panics.
+- Idiomatic Go: small interfaces, explicit error returns, table-driven tests.
+- YAGNI -- only build what's needed.
 
 ## Quick Reference
 
 ```bash
-# Run locally (dev)
-node bin/lookit.js                  # serve CWD on :7777
-node bin/lookit.js --port 3000      # custom port
-node bin/lookit.js --open           # serve and open browser
+# Build
+go build -o lookit ./cmd/lookit
 
-# Management
-node bin/lookit.js --list           # show running instances
-node bin/lookit.js --stop 7778      # stop instance on port
-node bin/lookit.js --stop-all       # stop all instances
+# Run TUI (default mode)
+./lookit [path]
 
-# Run as global CLI
-npm install -g .                    # link globally
-lookit                              # then use anywhere
+# Run web server
+./lookit serve [path]
+./lookit serve --port 3000 --open
+
+# Utilities
+./lookit cat README.md              # render markdown to terminal
+./lookit export --format html       # export markdown to HTML
+./lookit doctor                     # environment diagnostics
+./lookit version                    # print version
+
+# Config
+./lookit --theme dark               # override theme
+./lookit --keymap vim               # override keybindings
+./lookit -c /path/to/config.yaml    # custom config file
+
+# Shell completion
+source <(lookit completion bash)
 
 # Test
-bash test/comprehensive-test.sh
-node test/test-git-features.js
-node test/test-security-fix.js
+go test ./...                       # 48 tests across 7 packages
+
+# Cross-compile
+GOOS=linux GOARCH=arm64 go build -o lookit-linux-arm64 ./cmd/lookit
+GOOS=darwin GOARCH=arm64 go build -o lookit-darwin-arm64 ./cmd/lookit
 ```
 
 ## Gotchas
 
-- No `npm test` script defined -- run test files directly (see above).
-- Styles are JS strings in `src/styles.js`, not CSS files. Easy to miss when changing UI.
-- Git operations use `execFileSync` which blocks the event loop. Fine for a personal tool, would need async refactor for concurrent users.
-- HTTPS auto-configures if certs exist at `~/.config/lookit/localhost.pem` and `localhost-key.pem`. No flag needed -- just having the files enables it. Use `--no-https` to force HTTP.
-- Port auto-increment means the server may not be on 7777 if something else claimed it. Check console output.
-- `.gitignore` filtering is on by default; `--all` disables it.
+- `FuzzySearch` uses variadic maxResults: `FuzzySearch(query string, maxResults ...int)`.
+- Web mode uses Goldmark (not Glamour) for markdown → HTML. TUI uses Glamour.
+- go-git repo instances are cached via `sync.Mutex`-guarded map in `git.Open()`.
+- SSE endpoint: `/__events`. File API: `/__api/files`. Search API: `/__api/search`.
+- Templates and static assets use `go:embed` in `internal/web/templates/` and `internal/web/static/`.
+- `.gitignore` parsing is manual (supports `**`, negation, dir-only patterns) -- no external dependency.
+- Permalink generation detects forge style from remote URL (GitHub/GitLab/Bitbucket/Gitea/Codeberg).
+- Plugin hooks loaded from `~/.config/lookit/plugins/*.yaml`.
+- Task extraction recognizes `!high`/`!medium`/`!low` priority, `#tag`, `@due(YYYY-MM-DD)`.
