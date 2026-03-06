@@ -7,6 +7,8 @@ import (
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
 	"github.com/Benjamin-Connelly/lookit/internal/doctor"
+	"github.com/Benjamin-Connelly/lookit/internal/export"
+	"github.com/Benjamin-Connelly/lookit/internal/index"
 	"github.com/spf13/cobra"
 )
 
@@ -65,13 +67,41 @@ var exportCmd = &cobra.Command{
 	Short: "Export markdown files to HTML or PDF",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		format, _ := cmd.Flags().GetString("format")
+		root, err := resolveRoot(args)
+		if err != nil {
+			return err
+		}
+
+		formatStr, _ := cmd.Flags().GetString("format")
 		output, _ := cmd.Flags().GetString("output")
 		if output == "" {
 			output = "lookit-export"
 		}
-		fmt.Printf("exporting to %s at %s\n", format, output)
-		return nil
+
+		var format export.Format
+		switch formatStr {
+		case "html":
+			format = export.FormatHTML
+		case "pdf":
+			format = export.FormatPDF
+		default:
+			return fmt.Errorf("unsupported format: %s", formatStr)
+		}
+
+		idx := index.New(root)
+		if err := idx.Build(); err != nil {
+			return fmt.Errorf("building index: %w", err)
+		}
+
+		opts := export.Options{
+			Format:    format,
+			OutputDir: output,
+			Progress: func(current, total int, file string) {
+				fmt.Printf("[%d/%d] %s\n", current, total, file)
+			},
+		}
+
+		return export.Export(idx, opts)
 	},
 }
 

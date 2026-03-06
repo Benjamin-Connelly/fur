@@ -1,10 +1,18 @@
 package tui
 
+import (
+	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/Benjamin-Connelly/lookit/internal/index"
+)
+
 // CommandEntry represents an entry in the command palette.
 type CommandEntry struct {
 	Name        string
 	Description string
-	Action      func() // executed when selected
+	Action      func() tea.Msg // returns a message to dispatch
 }
 
 // CommandPalette manages the colon-mode command interface.
@@ -19,6 +27,87 @@ type CommandPalette struct {
 // NewCommandPalette creates a command palette with default commands.
 func NewCommandPalette() CommandPalette {
 	return CommandPalette{}
+}
+
+// RegisterCommands sets up the standard command set for the TUI.
+func (p *CommandPalette) RegisterCommands(idx *index.Index, links *index.LinkGraph) {
+	p.RegisterCommand(CommandEntry{
+		Name:        "quit",
+		Description: "Exit lookit",
+		Action: func() tea.Msg {
+			return tea.Quit()
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "theme dark",
+		Description: "Switch to dark theme",
+		Action: func() tea.Msg {
+			return StatusMsg{Text: "Theme: dark (restart to apply)"}
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "theme light",
+		Description: "Switch to light theme",
+		Action: func() tea.Msg {
+			return StatusMsg{Text: "Theme: light (restart to apply)"}
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "keymap vim",
+		Description: "Switch to vim keybindings",
+		Action: func() tea.Msg {
+			return StatusMsg{Text: "Keymap: vim (restart to apply)"}
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "keymap emacs",
+		Description: "Switch to emacs keybindings",
+		Action: func() tea.Msg {
+			return StatusMsg{Text: "Keymap: emacs (restart to apply)"}
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "keymap default",
+		Description: "Switch to default keybindings",
+		Action: func() tea.Msg {
+			return StatusMsg{Text: "Keymap: default (restart to apply)"}
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "links",
+		Description: "Show all links in current file",
+		Action: func() tea.Msg {
+			return commandLinksMsg{}
+		},
+	})
+
+	p.RegisterCommand(CommandEntry{
+		Name:        "broken",
+		Description: "Show all broken links",
+		Action: func() tea.Msg {
+			broken := links.BrokenLinks()
+			if len(broken) == 0 {
+				return StatusMsg{Text: "No broken links found"}
+			}
+			var b strings.Builder
+			b.WriteString("Broken Links\n")
+			b.WriteString(strings.Repeat("=", 40) + "\n\n")
+			for _, link := range broken {
+				b.WriteString("  " + link.Source + " -> " + link.Target)
+				if link.Text != "" {
+					b.WriteString(" [" + link.Text + "]")
+				}
+				b.WriteString("\n")
+			}
+			return PreviewLoadedMsg{Path: "Broken Links", Content: b.String()}
+		},
+	})
 }
 
 // RegisterCommand adds a command to the palette.
@@ -48,7 +137,6 @@ func (p *CommandPalette) IsActive() bool {
 // SetInput updates the filter input.
 func (p *CommandPalette) SetInput(s string) {
 	p.input = s
-	// Simple prefix match for now
 	p.filtered = nil
 	for _, cmd := range p.commands {
 		if len(p.input) == 0 || containsIgnoreCase(cmd.Name, p.input) {
@@ -58,14 +146,45 @@ func (p *CommandPalette) SetInput(s string) {
 	p.cursor = 0
 }
 
-// Execute runs the selected command.
-func (p *CommandPalette) Execute() {
+// MoveUp moves the cursor up in the palette.
+func (p *CommandPalette) MoveUp() {
+	if p.cursor > 0 {
+		p.cursor--
+	}
+}
+
+// MoveDown moves the cursor down in the palette.
+func (p *CommandPalette) MoveDown() {
+	if p.cursor < len(p.filtered)-1 {
+		p.cursor++
+	}
+}
+
+// Execute runs the selected command and returns its message.
+func (p *CommandPalette) Execute() tea.Msg {
 	if p.cursor >= 0 && p.cursor < len(p.filtered) {
 		if p.filtered[p.cursor].Action != nil {
-			p.filtered[p.cursor].Action()
+			msg := p.filtered[p.cursor].Action()
+			p.Close()
+			return msg
 		}
 	}
 	p.Close()
+	return nil
+}
+
+// HandleOpenInput handles the "open" command with fuzzy file matching.
+func (p *CommandPalette) HandleOpenInput(idx *index.Index) tea.Msg {
+	query := strings.TrimSpace(strings.TrimPrefix(p.input, "open "))
+	if query == "" {
+		return StatusMsg{Text: "Usage: open <filename>"}
+	}
+	results := idx.FuzzySearch(query, 1)
+	if len(results) == 0 {
+		return StatusMsg{Text: "No file found matching: " + query}
+	}
+	p.Close()
+	return FileSelectedMsg{Entry: results[0]}
 }
 
 // View renders the command palette overlay.
@@ -84,8 +203,10 @@ func (p CommandPalette) View() string {
 	return s
 }
 
+// commandLinksMsg is an internal message to show links for the current file.
+type commandLinksMsg struct{}
+
 func containsIgnoreCase(s, substr string) bool {
-	// Simple case-insensitive contains
 	sl := len(s)
 	subl := len(substr)
 	if subl > sl {
