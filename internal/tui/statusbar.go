@@ -9,11 +9,12 @@ import (
 
 // StatusBarModel renders the bottom status bar.
 type StatusBarModel struct {
-	filePath string
-	message  string
-	mode     string
-	focus    Panel
-	width    int
+	filePath    string
+	message     string
+	mode        string
+	focus       Panel
+	showingHelp bool
+	width       int
 }
 
 // NewStatusBarModel creates a status bar.
@@ -40,6 +41,9 @@ func (m *StatusBarModel) SetMode(mode string) {
 
 // contextHints returns panel-specific keybinding hints.
 func (m StatusBarModel) contextHints() string {
+	if m.showingHelp {
+		return "esc:close help  ?:close help  q:quit"
+	}
 	switch m.focus {
 	case PanelPreview:
 		return "j/k:scroll  c:copy  e:edit  r:reload  y:link  esc:back"

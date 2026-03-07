@@ -942,6 +942,7 @@ func (m *Model) View() string {
 
 	m.status.width = m.width
 	m.status.focus = m.focus
+	m.status.showingHelp = m.showingHelp
 	return lipgloss.JoinVertical(lipgloss.Left, main, m.status.View())
 }
 

@@ -96,6 +96,10 @@ func Help(km KeyMap) string {
 	b.WriteString("  pgup/pgdn    page up/down (preview)\n")
 	b.WriteString("  ctrl+u/d     half-page up/down\n")
 
+	b.WriteString("\nGeneral\n")
+	b.WriteString(strings.Repeat("-", 40) + "\n")
+	b.WriteString("  esc          close help / back to file list\n")
+
 	b.WriteString("\nFilter Mode\n")
 	b.WriteString(strings.Repeat("-", 40) + "\n")
 	b.WriteString("  type         fuzzy filter files\n")
