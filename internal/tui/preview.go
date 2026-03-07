@@ -71,7 +71,6 @@ func (m *PreviewModel) VisualCursorDown() {
 		m.cursorLine++
 	}
 	m.updateVisualRange()
-	// Auto-scroll if cursor moves below viewport
 	if m.cursorLine >= m.scroll+m.height {
 		m.scroll = m.cursorLine - m.height + 1
 	}
@@ -83,7 +82,6 @@ func (m *PreviewModel) VisualCursorUp() {
 		m.cursorLine--
 	}
 	m.updateVisualRange()
-	// Auto-scroll if cursor moves above viewport
 	if m.cursorLine < m.scroll {
 		m.scroll = m.cursorLine
 	}
@@ -103,7 +101,6 @@ func (m *PreviewModel) updateVisualRange() {
 // For code files (1:1 mapping), this is exact. For markdown, it's approximate.
 func (m *PreviewModel) SelectedSourceLines() (startLine, endLine int) {
 	if !m.visualMode {
-		// Single line at cursor/scroll position
 		line := m.scroll + 1
 		return line, line
 	}
@@ -140,7 +137,20 @@ func (m *PreviewModel) maxScroll() int {
 	return max
 }
 
-// View renders the preview content.
+// gutterWidth returns the character width needed for line numbers.
+func (m PreviewModel) gutterWidth() int {
+	totalLines := len(m.lines)
+	if totalLines < 10 {
+		return 2 // " 1 "
+	}
+	w := 0
+	for n := totalLines; n > 0; n /= 10 {
+		w++
+	}
+	return w + 1 // digits + 1 space separator
+}
+
+// View renders the preview content with line numbers.
 func (m PreviewModel) View() string {
 	if m.content == "" {
 		placeholder := lipgloss.NewStyle().
@@ -168,31 +178,53 @@ func (m PreviewModel) View() string {
 	visible := make([]string, end-start)
 	copy(visible, m.lines[start:end])
 
-	// Highlight visual selection range
-	if m.visualMode {
-		selStyle := lipgloss.NewStyle().
-			Background(lipgloss.Color("24")).
-			Foreground(lipgloss.Color("255"))
-		for i := range visible {
-			lineIdx := start + i
-			if lineIdx >= m.visualStart && lineIdx <= m.visualEnd {
-				visible[i] = selStyle.Render(visible[i])
-			}
+	// Style definitions
+	gutterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("239"))
+	gutterSelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
+	cursorGutterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("226")).Bold(true)
+	selStyle := lipgloss.NewStyle().Background(lipgloss.Color("24"))
+	linkHlStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("236")).
+		Foreground(lipgloss.Color("81"))
+
+	gw := m.gutterWidth()
+	lineNumFmt := fmt.Sprintf("%%%dd ", gw-1) // right-aligned, trailing space
+
+	var b strings.Builder
+	for i, line := range visible {
+		lineIdx := start + i
+		lineNum := lineIdx + 1 // 1-based
+
+		inSelection := m.visualMode && lineIdx >= m.visualStart && lineIdx <= m.visualEnd
+		isCursor := m.visualMode && lineIdx == m.cursorLine
+
+		// Render gutter
+		numStr := fmt.Sprintf(lineNumFmt, lineNum)
+		if isCursor {
+			b.WriteString(cursorGutterStyle.Render(numStr))
+		} else if inSelection {
+			b.WriteString(gutterSelStyle.Render(numStr))
+		} else {
+			b.WriteString(gutterStyle.Render(numStr))
+		}
+
+		// Render content
+		if m.highlightLine == lineIdx {
+			b.WriteString(linkHlStyle.Render("▶ " + line))
+		} else if inSelection {
+			b.WriteString(selStyle.Render(line))
+		} else {
+			b.WriteString(line)
+		}
+
+		if i < len(visible)-1 {
+			b.WriteByte('\n')
 		}
 	}
 
-	// Highlight the line with the active link cursor
-	if m.highlightLine >= start && m.highlightLine < end {
-		idx := m.highlightLine - start
-		hlStyle := lipgloss.NewStyle().
-			Background(lipgloss.Color("236")).
-			Foreground(lipgloss.Color("81"))
-		visible[idx] = hlStyle.Render("▶ " + visible[idx])
-	}
+	result := b.String()
 
-	result := strings.Join(visible, "\n")
-
-	// Scroll position indicator if content exceeds viewport
+	// Scroll position indicator
 	if len(m.lines) > m.height && m.height > 0 {
 		pct := 0
 		maxS := m.maxScroll()
