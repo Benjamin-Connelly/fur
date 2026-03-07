@@ -24,6 +24,10 @@ type KeyMap struct {
 	Command    key.Binding
 	CopyLink   key.Binding
 	GitInfo    key.Binding
+	Copy       key.Binding
+	Reload     key.Binding
+	HalfUp     key.Binding
+	HalfDown   key.Binding
 }
 
 // DefaultKeyMap returns the default keybinding set.
@@ -44,6 +48,10 @@ func DefaultKeyMap() KeyMap {
 		Command:   key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "command")),
 		CopyLink:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy link")),
 		GitInfo:   key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "git info")),
+		Copy:      key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "copy file")),
+		Reload:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reload")),
+		HalfUp:    key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "half-page up")),
+		HalfDown:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "half-page down")),
 	}
 }
 
@@ -74,6 +82,7 @@ func Help(km KeyMap) string {
 		km.Quit, km.Up, km.Down, km.Enter, km.Back,
 		km.Tab, km.Search, km.Help, km.Follow, km.Backlinks,
 		km.TOC, km.Bookmark, km.Command, km.CopyLink, km.GitInfo,
+		km.Copy, km.Reload, km.HalfUp, km.HalfDown,
 	}
 
 	for _, binding := range bindings {

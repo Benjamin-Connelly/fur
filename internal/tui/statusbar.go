@@ -12,6 +12,7 @@ type StatusBarModel struct {
 	filePath string
 	message  string
 	mode     string
+	focus    Panel
 	width    int
 }
 
@@ -35,6 +36,18 @@ func (m *StatusBarModel) SetMessage(msg string) {
 // SetMode sets the current input mode display.
 func (m *StatusBarModel) SetMode(mode string) {
 	m.mode = mode
+}
+
+// contextHints returns panel-specific keybinding hints.
+func (m StatusBarModel) contextHints() string {
+	switch m.focus {
+	case PanelPreview:
+		return "j/k:scroll  c:copy  e:edit  r:reload  y:link  esc:back"
+	case PanelSide:
+		return "j/k:scroll  enter:select  d:delete  esc:back"
+	default: // PanelFileList
+		return "j/k:nav  enter:open  /:filter  e:edit  ?:help  q:quit"
+	}
 }
 
 // View renders the status bar.
@@ -64,7 +77,7 @@ func (m StatusBarModel) View() string {
 	if m.message != "" {
 		right = m.message + " "
 	} else {
-		right = hintStyle.Render("tab:switch  /:filter  ?:help  q:quit ")
+		right = hintStyle.Render(m.contextHints() + " ")
 	}
 
 	// Pad middle to fill available width

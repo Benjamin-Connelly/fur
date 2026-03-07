@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
+	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
 )
@@ -108,6 +110,9 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 
 // Init implements tea.Model.
 func (m *Model) Init() tea.Cmd {
+	if m.cfg.Mouse {
+		return tea.EnableMouseCellMotion
+	}
 	return nil
 }
 
@@ -127,6 +132,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleFilterKey(msg)
 		}
 		return m.handleNormalKey(msg)
+
+	case tea.MouseMsg:
+		if m.cfg.Mouse {
+			switch msg.Type {
+			case tea.MouseWheelUp:
+				m.preview.ScrollUp(3)
+			case tea.MouseWheelDown:
+				m.preview.ScrollDown(3)
+			}
+		}
+		return m, nil
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -205,6 +221,11 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.fileList.ClearFilter()
 			return m, nil
 		}
+		// Return focus to file list from preview/side
+		if m.focus != PanelFileList {
+			m.focus = PanelFileList
+			m.status.SetMode(m.modeString())
+		}
 		return m, nil
 
 	case "/", "ctrl+k":
@@ -263,6 +284,53 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.sidePanel.Toggle(PanelBookmarks)
 		m.recalcLayout()
 		return m, nil
+
+	case "c":
+		if m.preview.filePath == "" {
+			return m, nil
+		}
+		entry := m.idx.Lookup(m.preview.filePath)
+		if entry == nil {
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			data, err := os.ReadFile(entry.Path)
+			if err != nil {
+				return StatusMsg{Text: "Read error: " + err.Error()}
+			}
+			if err := clipboard.WriteAll(string(data)); err != nil {
+				return StatusMsg{Text: "Clipboard unavailable: " + err.Error()}
+			}
+			return StatusMsg{Text: "Copied to clipboard: " + entry.RelPath}
+		}
+
+	case "r":
+		if m.preview.filePath == "" {
+			return m, nil
+		}
+		entry := m.idx.Lookup(m.preview.filePath)
+		if entry == nil {
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			return FileSelectedMsg{Entry: *entry}
+		}
+
+	case "y":
+		if m.preview.filePath == "" {
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			repo, err := gitpkg.Open(m.cfg.Root)
+			if err != nil {
+				return StatusMsg{Text: "Not a git repository"}
+			}
+			link, err := repo.CopyPermalink(m.preview.filePath, 0)
+			if err != nil {
+				return StatusMsg{Text: "Permalink error: " + err.Error()}
+			}
+			return StatusMsg{Text: "Copied: " + link}
+		}
 
 	case "backspace":
 		entry := m.navigator.Back()
@@ -359,6 +427,12 @@ func (m *Model) handlePreviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.preview.ScrollUp(m.preview.height / 2)
 		return m, nil
 	case "pgdown", "ctrl+d":
+		m.preview.ScrollDown(m.preview.height / 2)
+		return m, nil
+	case "u":
+		m.preview.ScrollUp(m.preview.height / 2)
+		return m, nil
+	case "d":
 		m.preview.ScrollDown(m.preview.height / 2)
 		return m, nil
 	case "home", "g":
@@ -844,6 +918,7 @@ func (m *Model) View() string {
 	}
 
 	m.status.width = m.width
+	m.status.focus = m.focus
 	return lipgloss.JoinVertical(lipgloss.Left, main, m.status.View())
 }
 

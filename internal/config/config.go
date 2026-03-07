@@ -30,6 +30,9 @@ type Config struct {
 	// File patterns to ignore (in addition to .gitignore)
 	Ignore []string `mapstructure:"ignore"`
 
+	// Mouse enables mouse wheel scrolling in TUI
+	Mouse bool `mapstructure:"mouse"`
+
 	// Debug enables verbose logging
 	Debug bool `mapstructure:"debug"`
 }
