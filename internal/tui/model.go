@@ -731,11 +731,24 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.fileList.SetFilter(m.fileList.filter[:len(m.fileList.filter)-1])
 		}
 		return m, nil
-	case "up", "ctrl+p":
+	case "up", "ctrl+p", "ctrl+k":
 		m.fileList.MoveUp()
 		return m, nil
-	case "down", "ctrl+n":
+	case "down", "ctrl+n", "ctrl+j":
 		m.fileList.MoveDown()
+		return m, nil
+	case "ctrl+u":
+		m.fileList.SetFilter("")
+		return m, nil
+	case "ctrl+w":
+		// Delete last word
+		input := m.fileList.filter
+		input = strings.TrimRight(input, " ")
+		if i := strings.LastIndex(input, " "); i >= 0 {
+			m.fileList.SetFilter(input[:i+1])
+		} else {
+			m.fileList.SetFilter("")
+		}
 		return m, nil
 	default:
 		ch := msg.String()
@@ -748,13 +761,15 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
+	// In text input mode, only use non-character keys for navigation
+	// (arrows + ctrl combos). Single characters go to input.
+	k := msg.String()
+	switch k {
 	case "esc":
 		m.cmdPalette.Close()
 		m.status.SetMode(m.modeString())
 		return m, nil
 	case "enter":
-		// Check for "open" prefix command
 		if strings.HasPrefix(m.cmdPalette.input, "open ") {
 			result := m.cmdPalette.HandleOpenInput(m.idx)
 			m.status.SetMode(m.modeString())
@@ -769,10 +784,10 @@ func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m, func() tea.Msg { return result }
-	case "up", "ctrl+p":
+	case "up", "ctrl+p", "ctrl+k":
 		m.cmdPalette.MoveUp()
 		return m, nil
-	case "down", "ctrl+n":
+	case "down", "ctrl+n", "ctrl+j":
 		m.cmdPalette.MoveDown()
 		return m, nil
 	case "backspace":
@@ -780,9 +795,27 @@ func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cmdPalette.SetInput(m.cmdPalette.input[:len(m.cmdPalette.input)-1])
 		}
 		return m, nil
+	case "ctrl+a":
+		// Move cursor to start (clear input) — emacs home
+		m.cmdPalette.SetInput("")
+		return m, nil
+	case "ctrl+u":
+		// Kill line — clear input (vim + emacs)
+		m.cmdPalette.SetInput("")
+		return m, nil
+	case "ctrl+w":
+		// Delete last word
+		input := m.cmdPalette.input
+		input = strings.TrimRight(input, " ")
+		if i := strings.LastIndex(input, " "); i >= 0 {
+			m.cmdPalette.SetInput(input[:i+1])
+		} else {
+			m.cmdPalette.SetInput("")
+		}
+		return m, nil
 	default:
-		if len(msg.String()) == 1 {
-			m.cmdPalette.SetInput(m.cmdPalette.input + msg.String())
+		if len(k) == 1 {
+			m.cmdPalette.SetInput(m.cmdPalette.input + k)
 		}
 		return m, nil
 	}
