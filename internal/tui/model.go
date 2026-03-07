@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -770,6 +771,19 @@ func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status.SetMode(m.modeString())
 		return m, nil
 	case "enter":
+		// :N — jump to line number (like vim)
+		if lineNum, err := strconv.Atoi(strings.TrimSpace(m.cmdPalette.input)); err == nil && lineNum > 0 {
+			m.cmdPalette.Close()
+			m.status.SetMode(m.modeString())
+			target := lineNum - 1 // 0-based scroll
+			if target > m.preview.maxScroll() {
+				target = m.preview.maxScroll()
+			}
+			m.preview.scroll = target
+			m.focus = PanelPreview
+			m.status.SetMessage(fmt.Sprintf("Line %d", lineNum))
+			return m, nil
+		}
 		if strings.HasPrefix(m.cmdPalette.input, "open ") {
 			result := m.cmdPalette.HandleOpenInput(m.idx)
 			m.status.SetMode(m.modeString())
