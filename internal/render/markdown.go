@@ -58,6 +58,8 @@ func resolveTheme(theme string) string {
 	switch theme {
 	case "light":
 		return "light"
+	case "ascii":
+		return "notty"
 	case "auto":
 		if lipgloss.HasDarkBackground() {
 			return "dark"

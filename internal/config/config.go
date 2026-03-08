@@ -58,7 +58,7 @@ type GitConfig struct {
 	Remote     string `mapstructure:"remote"`
 }
 
-var validThemes = map[string]bool{"light": true, "dark": true, "auto": true}
+var validThemes = map[string]bool{"light": true, "dark": true, "auto": true, "ascii": true}
 var validKeymaps = map[string]bool{"default": true, "vim": true, "emacs": true}
 
 // Validate checks that config values are within allowed ranges.

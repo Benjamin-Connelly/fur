@@ -383,6 +383,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
 	rootCmd.PersistentFlags().String("theme", "", "color theme (light|dark|auto)")
 	rootCmd.PersistentFlags().Bool("debug", false, "enable verbose logging")
+	rootCmd.PersistentFlags().Bool("no-color", false, "disable colors (ascii theme)")
 
 	rootCmd.Flags().String("keymap", "", "keybinding preset (default|vim|emacs)")
 
@@ -424,6 +425,9 @@ func loadConfig(cmd *cobra.Command, args []string) error {
 
 	if debug, _ := cmd.Flags().GetBool("debug"); debug {
 		cfg.Debug = true
+	}
+	if noColor, _ := cmd.Flags().GetBool("no-color"); noColor {
+		cfg.Theme = "ascii"
 	}
 
 	// Merge serve-specific flags
