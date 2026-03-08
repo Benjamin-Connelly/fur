@@ -359,7 +359,7 @@ func (m PreviewModel) View() string {
 	gutterSelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
 	cursorGutterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("226")).Bold(true)
 	selStyle := lipgloss.NewStyle().Background(lipgloss.Color("24"))
-	readingGuideStyle := lipgloss.NewStyle().Background(lipgloss.Color("236"))
+	readingGuideStyle := lipgloss.NewStyle().Background(lipgloss.Color("238"))
 	linkHlStyle := lipgloss.NewStyle().
 		Background(lipgloss.Color("236")).
 		Foreground(lipgloss.Color("81"))
@@ -389,12 +389,17 @@ func (m PreviewModel) View() string {
 
 		// Render gutter — cursor marker in both normal and visual mode
 		numStr := fmt.Sprintf(lineNumFmt, lineNum)
-		if isVisualCursor || isNormalCursor {
+		if isNormalCursor && m.readingGuide {
+			// Reading guide: gutter gets the guide background too
+			guideGutterStyle := cursorGutterStyle.Background(lipgloss.Color("238"))
+			b.WriteString(guideGutterStyle.Render(numStr))
+		} else if isVisualCursor || isNormalCursor {
 			b.WriteString(cursorGutterStyle.Render(numStr))
 		} else if isCurMatch {
 			b.WriteString(searchCurGutterStyle.Render(numStr))
 		} else if inSelection {
-			b.WriteString(gutterSelStyle.Render(numStr))
+			selGutterStyle := gutterSelStyle.Background(lipgloss.Color("24"))
+			b.WriteString(selGutterStyle.Render(numStr))
 		} else {
 			b.WriteString(gutterStyle.Render(numStr))
 		}
@@ -403,9 +408,20 @@ func (m PreviewModel) View() string {
 		if m.highlightLine == lineIdx {
 			b.WriteString(linkHlStyle.Render("▶ " + line))
 		} else if inSelection {
-			b.WriteString(selStyle.Render(line))
+			plain := ansiStripRe.ReplaceAllString(line, "")
+			contentWidth := m.width - gw
+			if contentWidth > 0 {
+				plain = fmt.Sprintf("%-*s", contentWidth, plain)
+			}
+			b.WriteString(selStyle.Render(plain))
 		} else if isNormalCursor && m.readingGuide {
-			b.WriteString(readingGuideStyle.Render(line))
+			// Strip ANSI so background color applies uniformly across the line
+			plain := ansiStripRe.ReplaceAllString(line, "")
+			contentWidth := m.width - gw
+			if contentWidth > 0 {
+				plain = fmt.Sprintf("%-*s", contentWidth, plain)
+			}
+			b.WriteString(readingGuideStyle.Render(plain))
 		} else if isMatch {
 			b.WriteString(highlightSearchInLine(line, queryLower, searchMatchStyle))
 		} else {
