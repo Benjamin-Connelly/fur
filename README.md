@@ -35,17 +35,18 @@ lookit doctor                   # Environment diagnostics
 
 ## Why lookit?
 
-| Feature | `python -m http.server` | `http-server` | `glow` | **lookit** |
-|---------|:-----------------------:|:-------------:|:------:|:----------:|
-| TUI file browser | No | No | Single file | **Split-pane, tree view, fuzzy + full-text search** |
-| Web server | Yes | Yes | No | **Yes, with SSE live reload** |
-| Inter-document links | No | No | No | **History, backlinks, broken detection** |
-| Syntax highlighting | No | No | Yes | **50+ languages (TUI + web)** |
+| Feature | `glow` | `mdcat` | `frogmouth` | **lookit** |
+|---------|:------:|:-------:|:-----------:|:----------:|
+| TUI file browser | Stash only | No | Single-pane | **Split-pane tree + preview** |
+| Full-text search | No | No | No | **Bleve BM25 index** |
+| Inter-document links | No | No | No | **History, backlinks, `[[wikilinks]]`** |
+| Broken link detection | No | No | No | **Files + `#heading` anchors** |
+| Web server | No | No | No | **SSE live reload, D3 graph** |
+| Syntax highlighting | Markdown | Limited | Markdown | **50+ languages (TUI + web)** |
 | Git integration | No | No | No | **Status, branches, permalinks** |
-| Preview search | No | No | No | **/ search, n/N navigation** |
-| Link cursor | No | No | No | **Tab/Shift-Tab cycle, Enter follow** |
-| Visual line select | No | No | No | **V mode, copy GitHub permalinks** |
-| .gitignore aware | No | No | No | **Yes** |
+| Visual line select | No | No | No | **V mode, GitHub permalinks** |
+| Data files (JSON/CSV) | No | No | No | **Pretty-print + tables** |
+| Keybinding presets | No | No | Vim-like | **Default, vim, emacs** |
 
 ## Features
 
@@ -85,7 +86,7 @@ Lightweight HTTP server with live reload.
 - **Search** — Ctrl+K overlay with fuzzy file search and full-text content search (Bleve)
 - **Live reload** — SSE-based, updates on file save
 - **SSH detection** — prints URL instead of opening browser when connected via SSH
-- **Print stylesheet** — clean print layout via `?print=1`
+- **Print stylesheet** — clean layout when printing (Ctrl+P), hides navigation
 - **Custom CSS** — `--css path/to/custom.css` or `custom_css` in config
 - **Themes** — light/dark toggle, CSS custom properties
 - **Security headers** — CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy
@@ -101,7 +102,7 @@ Lightweight HTTP server with live reload.
 - **Per-project config** — `.lookit.toml` / `.lookit.yaml` discovered by walking up from CWD
 - **Plugin hooks** — YAML-defined hooks for content transformation (prepend/append/replace)
 - **Task extraction** — finds TODOs with priority (`!high`), tags (`#tag`), due dates (`@due(...)`)
-- **Export** — markdown to standalone HTML with embedded CSS and syntax highlighting
+- **Export** — markdown to standalone HTML with embedded CSS and syntax highlighting (PDF planned)
 - **Graph export** — `lookit graph` outputs DOT format for Graphviz visualization
 - **Doctor** — 8 environment checks with colored output
 - **Man pages** — `lookit gen-man` generates troff man pages
@@ -131,14 +132,14 @@ Lightweight HTTP server with live reload.
 | `f` | Any | Follow link (single) or show link picker |
 | `t` | Any | Toggle/focus TOC panel |
 | `b` | Any | Toggle/focus backlinks panel |
-| `m` | Any | Bookmark current file |
+| `m` | File list | Bookmark current file |
+| `m{a-z}` | Preview | Set mark at current position |
+| `'{a-z}` | Preview | Jump to mark |
 | `M` | Any | Toggle/focus bookmarks panel |
 | `i` | Any | Toggle/focus git info panel |
 | `c` | Preview | Copy file to clipboard |
 | `r` | Preview | Reload file |
 | `e` | Any | Open in `$EDITOR` (images: system viewer) |
-| `m{a-z}` | Preview | Set mark at current position |
-| `'{a-z}` | Preview | Jump to mark |
 | `ctrl+g` | Any | Global heading jump (fuzzy picker) |
 | `ctrl+t` | Any | Cycle theme (auto → dark → light) |
 | `ctrl+r` | Search | Toggle regex search mode |
@@ -194,8 +195,8 @@ lookit serve [path]              # Web server
   --no-https                     # Disable HTTPS
   --css <path>                   # Custom CSS file
 lookit cat <file>                # Render markdown or image to terminal
-lookit export [path]             # Export to HTML
-  --format html                  # Output format
+lookit export [path]             # Export markdown to HTML
+  --format html                  # Output format (html only, PDF planned)
   --output, -o <dir>             # Output directory
 lookit graph [path]              # Output link graph in DOT format
 lookit doctor                    # Environment diagnostics

@@ -20,9 +20,10 @@ What you expected to happen.
 
 **Environment**
 - OS: [e.g., Ubuntu 24.04, macOS 15]
-- Terminal: [e.g., kitty, iTerm2, gnome-terminal]
-- Lookit version: [e.g., v0.1.0]
-- Go version: [e.g., 1.23]
+- Terminal: [e.g., Ghostty, kitty, iTerm2, WezTerm, gnome-terminal]
+- Lookit version: [run `lookit -V`]
+- Go version: [e.g., 1.24]
+- Mode: [TUI / Web / CLI (`cat`, `export`, etc.)]
 
 **Screenshots**
 If applicable, add screenshots.

@@ -471,7 +471,7 @@ func init() {
 	rootCmd.Flags().BoolP("version", "V", false, "print version")
 
 	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
-	rootCmd.PersistentFlags().String("theme", "", "color theme (light|dark|auto)")
+	rootCmd.PersistentFlags().String("theme", "", "color theme (light|dark|auto|ascii)")
 	rootCmd.PersistentFlags().Bool("debug", false, "enable verbose logging")
 	rootCmd.PersistentFlags().Bool("no-color", false, "disable colors (ascii theme)")
 
