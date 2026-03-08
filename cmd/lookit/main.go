@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -189,36 +191,170 @@ var versionCmd = &cobra.Command{
 
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
-	Short: "Generate shell completion scripts",
-	Long: `Generate shell completion scripts for lookit.
+	Short: "Set up shell completions for lookit",
+	Long: `Set up shell completions so you get tab-completion for commands, flags, and file paths.
 
-To load completions:
+Run without arguments to auto-detect your shell and install interactively.
+Run with a shell name to output the raw completion script (for custom setups).
 
-Bash:
-  $ source <(lookit completion bash)
-
-Zsh:
-  $ source <(lookit completion zsh)
-
-Fish:
-  $ lookit completion fish | source
-`,
-	Args:      cobra.ExactArgs(1),
+Examples:
+  lookit completion              # Interactive setup (recommended)
+  lookit completion bash         # Print raw bash completion script
+  lookit completion --install    # Auto-detect shell and install without prompts`,
+	Args:      cobra.MaximumNArgs(1),
 	ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		switch args[0] {
-		case "bash":
-			return rootCmd.GenBashCompletion(os.Stdout)
-		case "zsh":
-			return rootCmd.GenZshCompletion(os.Stdout)
-		case "fish":
-			return rootCmd.GenFishCompletion(os.Stdout, true)
-		case "powershell":
-			return rootCmd.GenPowerShellCompletionWithDesc(os.Stdout)
-		default:
-			return fmt.Errorf("unsupported shell: %s", args[0])
+		install, _ := cmd.Flags().GetBool("install")
+
+		// If a shell was specified with no --install, dump raw script (pipe-friendly)
+		if len(args) == 1 && !install {
+			return genCompletion(args[0], os.Stdout)
 		}
+
+		// Interactive / auto-install mode
+		shell := detectShell()
+		if len(args) == 1 {
+			shell = args[0]
+		}
+
+		if shell == "" {
+			fmt.Println("Could not detect your shell.")
+			fmt.Println("Run with a shell name: lookit completion bash")
+			return nil
+		}
+
+		dest, instruction := completionPath(shell)
+
+		if install {
+			return installCompletion(shell, dest, instruction)
+		}
+
+		// Interactive prompt
+		fmt.Printf("Detected shell: %s\n\n", shell)
+		fmt.Printf("This will install completions so you get tab-completion for:\n")
+		fmt.Printf("  • Commands:  lookit <TAB>  →  cat, serve, export, doctor, ...\n")
+		fmt.Printf("  • Flags:     lookit serve --<TAB>  →  --port, --open, ...\n")
+		fmt.Printf("  • Files:     lookit cat <TAB>  →  file/directory completion\n\n")
+
+		if dest != "" {
+			fmt.Printf("Install to: %s\n", dest)
+		} else {
+			fmt.Printf("Setup: %s\n", instruction)
+		}
+
+		fmt.Printf("\nProceed? [Y/n] ")
+		reader := bufio.NewReader(os.Stdin)
+		answer, _ := reader.ReadString('\n')
+		answer = strings.TrimSpace(strings.ToLower(answer))
+		if answer != "" && answer != "y" && answer != "yes" {
+			fmt.Println("Cancelled.")
+			return nil
+		}
+
+		return installCompletion(shell, dest, instruction)
 	},
+}
+
+func detectShell() string {
+	// Check SHELL env var
+	shell := os.Getenv("SHELL")
+	if shell != "" {
+		base := filepath.Base(shell)
+		switch base {
+		case "bash", "zsh", "fish":
+			return base
+		}
+	}
+	// Check $0 or PSModulePath for powershell
+	if os.Getenv("PSModulePath") != "" {
+		return "powershell"
+	}
+	return ""
+}
+
+func completionPath(shell string) (dest, instruction string) {
+	home, _ := os.UserHomeDir()
+	switch shell {
+	case "bash":
+		// Prefer user-level bash-completion dir
+		dir := filepath.Join(home, ".local", "share", "bash-completion", "completions")
+		return filepath.Join(dir, "lookit"), ""
+	case "zsh":
+		// Use ~/.zfunc if it exists, otherwise instruct to source
+		dir := filepath.Join(home, ".zfunc")
+		return filepath.Join(dir, "_lookit"), "Add to .zshrc: fpath=(~/.zfunc $fpath); autoload -Uz compinit && compinit"
+	case "fish":
+		dir := filepath.Join(home, ".config", "fish", "completions")
+		return filepath.Join(dir, "lookit.fish"), ""
+	case "powershell":
+		return "", "Add to $PROFILE: lookit completion powershell | Out-String | Invoke-Expression"
+	}
+	return "", ""
+}
+
+func genCompletion(shell string, w *os.File) error {
+	switch shell {
+	case "bash":
+		return rootCmd.GenBashCompletion(w)
+	case "zsh":
+		return rootCmd.GenZshCompletion(w)
+	case "fish":
+		return rootCmd.GenFishCompletion(w, true)
+	case "powershell":
+		return rootCmd.GenPowerShellCompletionWithDesc(w)
+	default:
+		return fmt.Errorf("unsupported shell: %s (supported: bash, zsh, fish, powershell)", shell)
+	}
+}
+
+func installCompletion(shell, dest, instruction string) error {
+	if dest == "" {
+		// Can't auto-install (powershell) — show manual instructions
+		fmt.Printf("\nAuto-install not supported for %s.\n", shell)
+		fmt.Printf("Manual setup: %s\n", instruction)
+		return nil
+	}
+
+	// Generate completion script to temp file, then copy to destination
+	tmpFile, _ := os.CreateTemp("", "lookit-completion-*")
+	defer os.Remove(tmpFile.Name())
+
+	if err := genCompletion(shell, tmpFile); err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("generating completion: %w", err)
+	}
+	tmpFile.Close()
+
+	data, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		return err
+	}
+	// Ensure destination directory exists
+	dir := filepath.Dir(dest)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("creating directory %s: %w", dir, err)
+	}
+
+	if err := os.WriteFile(dest, data, 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", dest, err)
+	}
+
+	fmt.Printf("\n✓ Completions installed to %s\n", dest)
+
+	switch shell {
+	case "bash":
+		fmt.Println("\nTo activate now:  source " + dest)
+		fmt.Println("It will load automatically in new terminals.")
+	case "zsh":
+		if instruction != "" {
+			fmt.Printf("\nOne-time setup: %s\n", instruction)
+		}
+		fmt.Println("Then restart your shell or run: exec zsh")
+	case "fish":
+		fmt.Println("\nCompletions are active immediately in new Fish sessions.")
+	}
+
+	return nil
 }
 
 func init() {
@@ -234,6 +370,8 @@ func init() {
 
 	exportCmd.Flags().StringP("format", "f", "html", "export format (html|pdf)")
 	exportCmd.Flags().StringP("output", "o", "", "output directory")
+
+	completionCmd.Flags().Bool("install", false, "auto-detect shell and install without prompts")
 
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(catCmd)

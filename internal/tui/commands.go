@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/lookit/internal/index"
 )
@@ -200,6 +201,8 @@ func (p CommandPalette) View() string {
 		}
 		s += cursor + cmd.Name + " - " + cmd.Description + "\n"
 	}
+	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	s += hintStyle.Render("↑/↓:navigate  ctrl+u:clear  ctrl+w:del word  :N jump to line  enter:run  esc:close")
 	return s
 }
 

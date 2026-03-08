@@ -180,6 +180,8 @@ func (m *SidePanelModel) TypeName() string {
 		return "BACKLINKS"
 	case PanelBookmarks:
 		return "BOOKMARKS"
+	case PanelGitInfo:
+		return "GIT"
 	default:
 		return "PANEL"
 	}

@@ -24,6 +24,10 @@ type KeyMap struct {
 	Command    key.Binding
 	CopyLink   key.Binding
 	GitInfo    key.Binding
+	Copy       key.Binding
+	Reload     key.Binding
+	HalfUp     key.Binding
+	HalfDown   key.Binding
 }
 
 // DefaultKeyMap returns the default keybinding set.
@@ -38,12 +42,16 @@ func DefaultKeyMap() KeyMap {
 		Search:    key.NewBinding(key.WithKeys("/", "ctrl+k"), key.WithHelp("/", "search")),
 		Help:      key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 		Follow:    key.NewBinding(key.WithKeys("f", "gf"), key.WithHelp("f", "follow link")),
-		Backlinks: key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "backlinks")),
-		TOC:       key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "table of contents")),
+		Backlinks: key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "backlinks (toggle/focus)")),
+		TOC:       key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "TOC (toggle/focus)")),
 		Bookmark:  key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "bookmark")),
 		Command:   key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "command")),
 		CopyLink:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy link")),
-		GitInfo:   key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "git info")),
+		GitInfo:   key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "git info")),
+		Copy:      key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "copy file")),
+		Reload:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reload")),
+		HalfUp:    key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "half-page up")),
+		HalfDown:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "half-page down")),
 	}
 }
 
@@ -74,6 +82,7 @@ func Help(km KeyMap) string {
 		km.Quit, km.Up, km.Down, km.Enter, km.Back,
 		km.Tab, km.Search, km.Help, km.Follow, km.Backlinks,
 		km.TOC, km.Bookmark, km.Command, km.CopyLink, km.GitInfo,
+		km.Copy, km.Reload, km.HalfUp, km.HalfDown,
 	}
 
 	for _, binding := range bindings {
@@ -86,6 +95,25 @@ func Help(km KeyMap) string {
 	b.WriteString("  g/G          go to top/bottom\n")
 	b.WriteString("  pgup/pgdn    page up/down (preview)\n")
 	b.WriteString("  ctrl+u/d     half-page up/down\n")
+
+	b.WriteString("\nLink Navigation (Preview)\n")
+	b.WriteString(strings.Repeat("-", 40) + "\n")
+	b.WriteString("  tab          jump to next link\n")
+	b.WriteString("  shift+tab    jump to previous link\n")
+	b.WriteString("  enter        follow highlighted link\n")
+	b.WriteString("  esc          clear link highlight\n")
+
+	b.WriteString("\nVisual Mode (Preview)\n")
+	b.WriteString(strings.Repeat("-", 40) + "\n")
+	b.WriteString("  V            enter visual line select\n")
+	b.WriteString("  j/k          extend selection up/down\n")
+	b.WriteString("  y            copy permalink for selection\n")
+	b.WriteString("  g/G          select to top/bottom\n")
+	b.WriteString("  esc          cancel selection\n")
+
+	b.WriteString("\nGeneral\n")
+	b.WriteString(strings.Repeat("-", 40) + "\n")
+	b.WriteString("  esc          close help / back to file list\n")
 
 	b.WriteString("\nFilter Mode\n")
 	b.WriteString(strings.Repeat("-", 40) + "\n")

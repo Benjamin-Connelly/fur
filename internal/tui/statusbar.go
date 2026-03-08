@@ -9,10 +9,16 @@ import (
 
 // StatusBarModel renders the bottom status bar.
 type StatusBarModel struct {
-	filePath string
-	message  string
-	mode     string
-	width    int
+	filePath    string
+	message     string
+	mode        string
+	focus       Panel
+	showingHelp bool
+	linkActive  bool
+	linkText    string
+	visualMode  bool
+	visualRange string
+	width       int
 }
 
 // NewStatusBarModel creates a status bar.
@@ -35,6 +41,35 @@ func (m *StatusBarModel) SetMessage(msg string) {
 // SetMode sets the current input mode display.
 func (m *StatusBarModel) SetMode(mode string) {
 	m.mode = mode
+}
+
+// contextHints returns panel-specific keybinding hints.
+func (m StatusBarModel) contextHints() string {
+	if m.visualMode {
+		hint := "j/k:select lines  y:copy permalink  g/G:top/bottom  esc:cancel"
+		if m.visualRange != "" {
+			hint = m.visualRange + "  " + hint
+		}
+		return hint
+	}
+	if m.showingHelp {
+		return "esc:close help  ?:close help  q:quit"
+	}
+	if m.linkActive {
+		hint := "tab:next link  shift-tab:prev  enter:follow  esc:clear"
+		if m.linkText != "" {
+			hint = m.linkText + "  " + hint
+		}
+		return hint
+	}
+	switch m.focus {
+	case PanelPreview:
+		return "j/k:scroll  tab:next link  enter:follow  c:copy  e:edit  esc:back"
+	case PanelSide:
+		return "j/k:scroll  enter:select  d:delete  esc:back"
+	default: // PanelFileList
+		return "j/k:nav  enter:open  /:filter  e:edit  ?:help  q:quit"
+	}
 }
 
 // View renders the status bar.
@@ -64,7 +99,7 @@ func (m StatusBarModel) View() string {
 	if m.message != "" {
 		right = m.message + " "
 	} else {
-		right = hintStyle.Render("tab:switch  /:filter  ?:help  q:quit ")
+		right = hintStyle.Render(m.contextHints() + " ")
 	}
 
 	// Pad middle to fill available width

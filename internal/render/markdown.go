@@ -3,6 +3,8 @@ package render
 import (
 	"bytes"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -66,6 +68,26 @@ func resolveTheme(theme string) string {
 	}
 }
 
+// wikiLinkRe matches [[target]] and [[target|display]] in rendered output.
+var wikiLinkRe = regexp.MustCompile(`\[\[([^\]]+)\]\]`)
+
+// highlightWikilinks colorizes wikilink syntax in rendered output.
+func highlightWikilinks(rendered string) string {
+	linkStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("81")).
+		Bold(true)
+
+	return wikiLinkRe.ReplaceAllStringFunc(rendered, func(match string) string {
+		inner := match[2 : len(match)-2] // strip [[ and ]]
+		// Show display text for [[target|display]] syntax
+		display := inner
+		if i := strings.Index(inner, "|"); i >= 0 {
+			display = inner[i+1:]
+		}
+		return linkStyle.Render("⟦" + display + "⟧")
+	})
+}
+
 // Render converts markdown to styled terminal output.
 // On error, returns the raw source as fallback.
 func (r *MarkdownRenderer) Render(source string) (string, error) {
@@ -73,6 +95,7 @@ func (r *MarkdownRenderer) Render(source string) (string, error) {
 	if err != nil {
 		return source, nil
 	}
+	out = highlightWikilinks(out)
 	return out, nil
 }
 

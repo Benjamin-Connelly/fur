@@ -5,13 +5,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
+	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
 )
@@ -69,6 +73,22 @@ type Model struct {
 
 	// Track raw markdown source for TOC extraction
 	currentRawSource string
+
+	// Help overlay state
+	showingHelp     bool
+	helpPrevPath    string
+	helpPrevContent string
+
+	// Link cursor in preview (Tab/Shift-Tab navigation)
+	previewLinks   []previewLink
+	previewLinkIdx int // -1 = no link selected
+}
+
+// previewLink maps a link to its position in the rendered preview.
+type previewLink struct {
+	renderedLine int    // line number in the rendered content
+	target       string // link target path
+	text         string // link display text
 }
 
 // New creates a new root TUI model.
@@ -99,15 +119,19 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 		keys:         km,
 		mdRenderer:   mdRenderer,
 		codeRenderer: codeRenderer,
-		navigator:    nav,
-		sidePanel:    panel,
-		cmdPalette:   palette,
-		focus:        PanelFileList,
+		navigator:      nav,
+		sidePanel:      panel,
+		cmdPalette:     palette,
+		focus:          PanelFileList,
+		previewLinkIdx: -1,
 	}
 }
 
 // Init implements tea.Model.
 func (m *Model) Init() tea.Cmd {
+	if m.cfg.Mouse {
+		return tea.EnableMouseCellMotion
+	}
 	return nil
 }
 
@@ -123,10 +147,24 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.navigator.IsShowingLinks() {
 			return m.handleLinkSelectKey(msg)
 		}
+		if m.preview.visualMode {
+			return m.handleVisualKey(msg)
+		}
 		if m.fileList.filtering {
 			return m.handleFilterKey(msg)
 		}
 		return m.handleNormalKey(msg)
+
+	case tea.MouseMsg:
+		if m.cfg.Mouse {
+			switch msg.Type {
+			case tea.MouseWheelUp:
+				m.preview.ScrollUp(3)
+			case tea.MouseWheelDown:
+				m.preview.ScrollDown(3)
+			}
+		}
+		return m, nil
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -135,11 +173,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case FileSelectedMsg:
+		m.showingHelp = false
 		return m.loadPreview(msg.Entry)
 
 	case PreviewLoadedMsg:
 		m.preview.SetContent(msg.Path, msg.Content)
 		m.status.SetFile(msg.Path)
+		m.buildPreviewLinks()
 		return m, nil
 
 	case LinkFollowMsg:
@@ -158,6 +198,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.preview.SetContent(msg.preview.Path, msg.preview.Content)
 		m.status.SetFile(msg.preview.Path)
 		m.currentRawSource = msg.rawSource
+		m.buildPreviewLinks()
 		// Update TOC if panel is open
 		if m.sidePanel.Type() == PanelTOC {
 			m.sidePanel.SetTOCFromMarkdown(msg.rawSource)
@@ -179,6 +220,10 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case "tab":
+		// In preview with links: Tab cycles links instead of switching panels
+		if m.focus == PanelPreview && len(m.previewLinks) > 0 {
+			return m.handlePreviewKey(msg)
+		}
 		if m.sidePanel.Visible() {
 			// Cycle: FileList -> Preview -> Side -> FileList
 			switch m.focus {
@@ -199,11 +244,44 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status.SetMode(m.modeString())
 		return m, nil
 
+	case "shift+tab":
+		// In preview with links: Shift-Tab cycles links backward
+		if m.focus == PanelPreview && len(m.previewLinks) > 0 {
+			return m.handlePreviewKey(msg)
+		}
+		return m, nil
+
 	case "esc":
+		// Clear link highlight first
+		if m.previewLinkIdx >= 0 {
+			m.previewLinkIdx = -1
+			m.preview.highlightLine = -1
+			return m, nil
+		}
+		// Exit help view first
+		if m.showingHelp {
+			m.showingHelp = false
+			m.preview.SetContent(m.helpPrevPath, m.helpPrevContent)
+			m.status.SetFile(m.helpPrevPath)
+			return m, nil
+		}
 		// Clear frozen filter if active
 		if m.fileList.filter != "" {
 			m.fileList.ClearFilter()
 			return m, nil
+		}
+		// From side panel: close panel and return to preview
+		if m.focus == PanelSide {
+			m.sidePanel.Toggle(m.sidePanel.Type())
+			m.focus = PanelPreview
+			m.status.SetMode(m.modeString())
+			m.recalcLayout()
+			return m, nil
+		}
+		// From preview: return to file list
+		if m.focus == PanelPreview {
+			m.focus = PanelFileList
+			m.status.SetMode(m.modeString())
 		}
 		return m, nil
 
@@ -214,6 +292,16 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "?":
+		if m.showingHelp {
+			// Toggle off — restore previous preview
+			m.showingHelp = false
+			m.preview.SetContent(m.helpPrevPath, m.helpPrevContent)
+			m.status.SetFile(m.helpPrevPath)
+			return m, nil
+		}
+		m.helpPrevPath = m.preview.filePath
+		m.helpPrevContent = m.preview.content
+		m.showingHelp = true
 		content := Help(m.keys)
 		m.preview.SetContent("", content)
 		m.status.SetFile("Key Bindings")
@@ -228,19 +316,43 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleFollowLink()
 
 	case "t":
-		m.sidePanel.Toggle(PanelTOC)
-		if m.sidePanel.Type() == PanelTOC && m.currentRawSource != "" {
+		// If already focused on TOC, close it and return to preview
+		if m.sidePanel.Type() == PanelTOC && m.focus == PanelSide {
+			m.sidePanel.Toggle(PanelTOC)
+			m.focus = PanelPreview
+			m.status.SetMode(m.modeString())
+			m.recalcLayout()
+			return m, nil
+		}
+		// Open TOC (or switch to it) and focus it
+		if m.sidePanel.Type() != PanelTOC {
+			m.sidePanel.Toggle(PanelTOC)
+		}
+		if m.currentRawSource != "" {
 			m.sidePanel.SetTOCFromMarkdown(m.currentRawSource)
 		}
+		m.focus = PanelSide
+		m.status.SetMode(m.modeString())
 		m.recalcLayout()
 		return m, nil
 
 	case "b":
-		m.sidePanel.Toggle(PanelBacklinks)
-		if m.sidePanel.Type() == PanelBacklinks {
-			backlinks := m.navigator.BacklinksAt(m.preview.filePath)
-			m.sidePanel.SetBacklinks(backlinks)
+		// If already focused on backlinks, close it and return to preview
+		if m.sidePanel.Type() == PanelBacklinks && m.focus == PanelSide {
+			m.sidePanel.Toggle(PanelBacklinks)
+			m.focus = PanelPreview
+			m.status.SetMode(m.modeString())
+			m.recalcLayout()
+			return m, nil
 		}
+		// Open backlinks (or switch to it) and focus it
+		if m.sidePanel.Type() != PanelBacklinks {
+			m.sidePanel.Toggle(PanelBacklinks)
+		}
+		backlinks := m.navigator.BacklinksAt(m.preview.filePath)
+		m.sidePanel.SetBacklinks(backlinks)
+		m.focus = PanelSide
+		m.status.SetMode(m.modeString())
 		m.recalcLayout()
 		return m, nil
 
@@ -260,9 +372,88 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "M":
-		m.sidePanel.Toggle(PanelBookmarks)
+		// If already focused on bookmarks, close and return to preview
+		if m.sidePanel.Type() == PanelBookmarks && m.focus == PanelSide {
+			m.sidePanel.Toggle(PanelBookmarks)
+			m.focus = PanelPreview
+			m.status.SetMode(m.modeString())
+			m.recalcLayout()
+			return m, nil
+		}
+		if m.sidePanel.Type() != PanelBookmarks {
+			m.sidePanel.Toggle(PanelBookmarks)
+		}
+		m.focus = PanelSide
+		m.status.SetMode(m.modeString())
 		m.recalcLayout()
 		return m, nil
+
+	case "i":
+		// If already focused on git info, close and return to preview
+		if m.sidePanel.Type() == PanelGitInfo && m.focus == PanelSide {
+			m.sidePanel.Toggle(PanelGitInfo)
+			m.focus = PanelPreview
+			m.status.SetMode(m.modeString())
+			m.recalcLayout()
+			return m, nil
+		}
+		if m.sidePanel.Type() != PanelGitInfo {
+			m.sidePanel.Toggle(PanelGitInfo)
+		}
+		m.sidePanel.SetGitInfo(m.cfg.Root, m.preview.filePath)
+		m.focus = PanelSide
+		m.status.SetMode(m.modeString())
+		m.recalcLayout()
+		return m, nil
+
+	case "c":
+		if m.preview.filePath == "" {
+			return m, nil
+		}
+		entry := m.idx.Lookup(m.preview.filePath)
+		if entry == nil {
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			data, err := os.ReadFile(entry.Path)
+			if err != nil {
+				return StatusMsg{Text: "Read error: " + err.Error()}
+			}
+			if err := clipboard.WriteAll(string(data)); err != nil {
+				return StatusMsg{Text: "Clipboard unavailable: " + err.Error()}
+			}
+			return StatusMsg{Text: "Copied to clipboard: " + entry.RelPath}
+		}
+
+	case "r":
+		if m.preview.filePath == "" {
+			return m, nil
+		}
+		entry := m.idx.Lookup(m.preview.filePath)
+		if entry == nil {
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			return FileSelectedMsg{Entry: *entry}
+		}
+
+	case "y":
+		if m.preview.filePath == "" {
+			return m, nil
+		}
+		// Use current scroll position as line reference
+		line := m.preview.scroll + 1
+		return m, func() tea.Msg {
+			repo, err := gitpkg.Open(m.cfg.Root)
+			if err != nil {
+				return StatusMsg{Text: "Not a git repository"}
+			}
+			link, err := repo.CopyPermalink(m.preview.filePath, line)
+			if err != nil {
+				return StatusMsg{Text: "Permalink error: " + err.Error()}
+			}
+			return StatusMsg{Text: fmt.Sprintf("Copied L%d: %s", line, link)}
+		}
 
 	case "backspace":
 		entry := m.navigator.Back()
@@ -361,16 +552,130 @@ func (m *Model) handlePreviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "pgdown", "ctrl+d":
 		m.preview.ScrollDown(m.preview.height / 2)
 		return m, nil
+	case "u":
+		m.preview.ScrollUp(m.preview.height / 2)
+		return m, nil
+	case "d":
+		m.preview.ScrollDown(m.preview.height / 2)
+		return m, nil
 	case "home", "g":
 		m.preview.scroll = 0
 		return m, nil
 	case "end", "G":
 		m.preview.ScrollToBottom()
 		return m, nil
+	case "tab":
+		if len(m.previewLinks) > 0 {
+			m.previewLinkIdx++
+			if m.previewLinkIdx >= len(m.previewLinks) {
+				m.previewLinkIdx = 0 // wrap around
+			}
+			m.scrollToLink()
+		}
+		return m, nil
+	case "shift+tab":
+		if len(m.previewLinks) > 0 {
+			m.previewLinkIdx--
+			if m.previewLinkIdx < 0 {
+				m.previewLinkIdx = len(m.previewLinks) - 1 // wrap around
+			}
+			m.scrollToLink()
+		}
+		return m, nil
+	case "enter":
+		if m.previewLinkIdx >= 0 && m.previewLinkIdx < len(m.previewLinks) {
+			target := m.previewLinks[m.previewLinkIdx].target
+			m.previewLinkIdx = -1
+			m.preview.highlightLine = -1
+			return m, func() tea.Msg {
+				return LinkFollowMsg{Target: target}
+			}
+		}
+		return m, nil
+	case "V":
+		m.preview.EnterVisualMode()
+		m.status.SetMode("VISUAL")
+		return m, nil
 	case "e":
 		return m.openInEditor()
 	}
 	return m, nil
+}
+
+// handleVisualKey handles keys during visual line selection mode.
+func (m *Model) handleVisualKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "j", "down":
+		m.preview.VisualCursorDown()
+		return m, nil
+	case "k", "up":
+		m.preview.VisualCursorUp()
+		return m, nil
+	case "y":
+		// Copy permalink with selected line range
+		startLine, endLine := m.preview.SelectedSourceLines()
+		m.preview.ExitVisualMode()
+		m.status.SetMode(m.modeString())
+		return m, func() tea.Msg {
+			repo, err := gitpkg.Open(m.cfg.Root)
+			if err != nil {
+				return StatusMsg{Text: "Not a git repository"}
+			}
+			var link string
+			if startLine == endLine {
+				link, err = repo.CopyPermalink(m.preview.filePath, startLine)
+			} else {
+				link, err = repo.PermalinkForRange(m.preview.filePath, startLine, endLine)
+				if err == nil {
+					_ = clipboard.WriteAll(link)
+				}
+			}
+			if err != nil {
+				return StatusMsg{Text: "Permalink error: " + err.Error()}
+			}
+			return StatusMsg{Text: fmt.Sprintf("Copied L%d-%d: %s", startLine, endLine, link)}
+		}
+	case "esc", "V":
+		m.preview.ExitVisualMode()
+		m.status.SetMode(m.modeString())
+		return m, nil
+	case "G":
+		// Select to bottom
+		m.preview.cursorLine = len(m.preview.lines) - 1
+		m.preview.updateVisualRange()
+		m.preview.ScrollToBottom()
+		return m, nil
+	case "g":
+		// Select to top
+		m.preview.cursorLine = 0
+		m.preview.updateVisualRange()
+		m.preview.scroll = 0
+		return m, nil
+	}
+	return m, nil
+}
+
+// scrollToLink scrolls the preview to bring the current highlighted link into view.
+func (m *Model) scrollToLink() {
+	if m.previewLinkIdx < 0 || m.previewLinkIdx >= len(m.previewLinks) {
+		m.preview.highlightLine = -1
+		return
+	}
+	line := m.previewLinks[m.previewLinkIdx].renderedLine
+	m.preview.highlightLine = line
+
+	// Scroll so the link is visible, centered if possible
+	if line < m.preview.scroll || line >= m.preview.scroll+m.preview.height {
+		target := line - m.preview.height/3
+		if target < 0 {
+			target = 0
+		}
+		m.preview.scroll = target
+		max := m.preview.maxScroll()
+		if m.preview.scroll > max {
+			m.preview.scroll = max
+		}
+	}
 }
 
 func (m *Model) handleSidePanelKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -427,11 +732,24 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.fileList.SetFilter(m.fileList.filter[:len(m.fileList.filter)-1])
 		}
 		return m, nil
-	case "up", "ctrl+p":
+	case "up", "ctrl+p", "ctrl+k":
 		m.fileList.MoveUp()
 		return m, nil
-	case "down", "ctrl+n":
+	case "down", "ctrl+n", "ctrl+j":
 		m.fileList.MoveDown()
+		return m, nil
+	case "ctrl+u":
+		m.fileList.SetFilter("")
+		return m, nil
+	case "ctrl+w":
+		// Delete last word
+		input := m.fileList.filter
+		input = strings.TrimRight(input, " ")
+		if i := strings.LastIndex(input, " "); i >= 0 {
+			m.fileList.SetFilter(input[:i+1])
+		} else {
+			m.fileList.SetFilter("")
+		}
 		return m, nil
 	default:
 		ch := msg.String()
@@ -444,13 +762,28 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
+	// In text input mode, only use non-character keys for navigation
+	// (arrows + ctrl combos). Single characters go to input.
+	k := msg.String()
+	switch k {
 	case "esc":
 		m.cmdPalette.Close()
 		m.status.SetMode(m.modeString())
 		return m, nil
 	case "enter":
-		// Check for "open" prefix command
+		// :N — jump to line number (like vim)
+		if lineNum, err := strconv.Atoi(strings.TrimSpace(m.cmdPalette.input)); err == nil && lineNum > 0 {
+			m.cmdPalette.Close()
+			m.status.SetMode(m.modeString())
+			target := lineNum - 1 // 0-based scroll
+			if target > m.preview.maxScroll() {
+				target = m.preview.maxScroll()
+			}
+			m.preview.scroll = target
+			m.focus = PanelPreview
+			m.status.SetMessage(fmt.Sprintf("Line %d", lineNum))
+			return m, nil
+		}
 		if strings.HasPrefix(m.cmdPalette.input, "open ") {
 			result := m.cmdPalette.HandleOpenInput(m.idx)
 			m.status.SetMode(m.modeString())
@@ -465,10 +798,10 @@ func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m, func() tea.Msg { return result }
-	case "up", "ctrl+p":
+	case "up", "ctrl+p", "ctrl+k":
 		m.cmdPalette.MoveUp()
 		return m, nil
-	case "down", "ctrl+n":
+	case "down", "ctrl+n", "ctrl+j":
 		m.cmdPalette.MoveDown()
 		return m, nil
 	case "backspace":
@@ -476,9 +809,27 @@ func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cmdPalette.SetInput(m.cmdPalette.input[:len(m.cmdPalette.input)-1])
 		}
 		return m, nil
+	case "ctrl+a":
+		// Move cursor to start (clear input) — emacs home
+		m.cmdPalette.SetInput("")
+		return m, nil
+	case "ctrl+u":
+		// Kill line — clear input (vim + emacs)
+		m.cmdPalette.SetInput("")
+		return m, nil
+	case "ctrl+w":
+		// Delete last word
+		input := m.cmdPalette.input
+		input = strings.TrimRight(input, " ")
+		if i := strings.LastIndex(input, " "); i >= 0 {
+			m.cmdPalette.SetInput(input[:i+1])
+		} else {
+			m.cmdPalette.SetInput("")
+		}
+		return m, nil
 	default:
-		if len(msg.String()) == 1 {
-			m.cmdPalette.SetInput(m.cmdPalette.input + msg.String())
+		if len(k) == 1 {
+			m.cmdPalette.SetInput(m.cmdPalette.input + k)
 		}
 		return m, nil
 	}
@@ -688,6 +1039,52 @@ type previewWithSourceMsg struct {
 	rawSource string
 }
 
+// ansiRe strips ANSI escape sequences for plain-text search.
+var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+
+// buildPreviewLinks finds link positions in the rendered preview content.
+func (m *Model) buildPreviewLinks() {
+	m.previewLinks = nil
+	m.previewLinkIdx = -1
+	m.preview.highlightLine = -1
+
+	if m.preview.filePath == "" {
+		return
+	}
+
+	links := m.navigator.LinksAt(m.preview.filePath)
+	if len(links) == 0 {
+		return
+	}
+
+	// Search rendered lines for each link's text
+	renderedLines := m.preview.lines
+	usedLines := make(map[int]bool) // avoid mapping two links to same line
+
+	for _, link := range links {
+		searchText := strings.ToLower(link.Text)
+		if searchText == "" {
+			searchText = strings.ToLower(link.Target)
+		}
+
+		for i, line := range renderedLines {
+			if usedLines[i] {
+				continue
+			}
+			plain := strings.ToLower(ansiRe.ReplaceAllString(line, ""))
+			if strings.Contains(plain, searchText) {
+				m.previewLinks = append(m.previewLinks, previewLink{
+					renderedLine: i,
+					target:       link.Target,
+					text:         link.Text,
+				})
+				usedLines[i] = true
+				break
+			}
+		}
+	}
+}
+
 func (m *Model) recalcLayout() {
 	borders := 1
 	if m.sidePanel.Visible() {
@@ -844,6 +1241,21 @@ func (m *Model) View() string {
 	}
 
 	m.status.width = m.width
+	m.status.focus = m.focus
+	m.status.showingHelp = m.showingHelp
+	m.status.visualMode = m.preview.visualMode
+	if m.preview.visualMode {
+		s, e := m.preview.SelectedSourceLines()
+		m.status.visualRange = fmt.Sprintf("L%d-L%d", s, e)
+	} else {
+		m.status.visualRange = ""
+	}
+	m.status.linkActive = m.previewLinkIdx >= 0 && m.previewLinkIdx < len(m.previewLinks)
+	if m.status.linkActive {
+		m.status.linkText = m.previewLinks[m.previewLinkIdx].text
+	} else {
+		m.status.linkText = ""
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, main, m.status.View())
 }
 

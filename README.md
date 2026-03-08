@@ -143,6 +143,28 @@ Requires Go 1.24+.
 
 Contributions welcome. Open an issue or submit a PR.
 
+## Acknowledgments
+
+lookit is built on the shoulders of excellent open source projects:
+
+**Inspiration**
+- [Glow](https://github.com/charmbracelet/glow) by Charmbracelet — the terminal markdown viewer that inspired this project
+
+**Core Dependencies**
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea) — terminal UI framework
+- [Lip Gloss](https://github.com/charmbracelet/lipgloss) — terminal styling
+- [Glamour](https://github.com/charmbracelet/glamour) — terminal markdown rendering
+- [Bubbles](https://github.com/charmbracelet/bubbles) — TUI components
+- [Chroma](https://github.com/alecthomas/chroma) — syntax highlighting
+- [Goldmark](https://github.com/yuin/goldmark) — markdown parsing for web mode
+- [go-git](https://github.com/go-git/go-git) — pure Go git implementation
+- [Cobra](https://github.com/spf13/cobra) + [Viper](https://github.com/spf13/viper) — CLI and configuration
+- [fuzzy](https://github.com/sahilm/fuzzy) — fuzzy matching
+- [clipboard](https://github.com/atotto/clipboard) — system clipboard access
+- [fsnotify](https://github.com/fsnotify/fsnotify) — cross-platform file watching
+
+Thank you to all the maintainers and contributors.
+
 ## License
 
 MIT © Benjamin Connelly
