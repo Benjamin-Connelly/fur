@@ -275,6 +275,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status.SetFile(msg.Path)
 		m.status.wordCount = 0
 		m.status.readingTime = 0
+		m.focus = PanelPreview
+		m.status.SetMode(m.modeString())
 		m.buildPreviewLinks()
 		return m, nil
 
@@ -293,6 +295,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case previewWithSourceMsg:
 		m.preview.SetContent(msg.preview.Path, msg.preview.Content)
 		m.status.SetFile(msg.preview.Path)
+		m.focus = PanelPreview
+		m.status.SetMode(m.modeString())
 		m.currentRawSource = msg.rawSource
 		// Word count + reading time (avg 200 wpm)
 		words := len(strings.Fields(msg.rawSource))
