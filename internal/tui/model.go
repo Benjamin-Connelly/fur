@@ -437,6 +437,8 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		content := Help(m.keys)
 		m.preview.SetContent("", content)
 		m.status.SetFile("Key Bindings")
+		m.focus = PanelPreview
+		m.status.SetMode(m.modeString())
 		return m, nil
 
 	case ":":
