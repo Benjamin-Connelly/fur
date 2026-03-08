@@ -59,8 +59,9 @@ type Model struct {
 	status   StatusBarModel
 	keys     KeyMap
 
-	mdRenderer   *render.MarkdownRenderer
-	codeRenderer *render.CodeRenderer
+	mdRenderer    *render.MarkdownRenderer
+	codeRenderer  *render.CodeRenderer
+	imageRenderer *ImageRenderer
 
 	navigator  *LinkNavigator
 	sidePanel  SidePanelModel
@@ -158,9 +159,10 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 		sidePanel:      panel,
 		cmdPalette:     palette,
 		focus:          PanelFileList,
-		previewLinkIdx: -1,
-		recentFiles:    config.LoadRecentFiles(),
-		marks:          make(map[rune]mark),
+		previewLinkIdx:  -1,
+		recentFiles:     config.LoadRecentFiles(),
+		marks:           make(map[rune]mark),
+		imageRenderer:   NewImageRenderer(),
 	}
 }
 
@@ -1201,11 +1203,30 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 	mdRenderer := m.mdRenderer
 	codeRenderer := m.codeRenderer
 
+	imgRenderer := m.imageRenderer
+
 	return m, func() tea.Msg {
 		if entry.IsDir {
 			return PreviewLoadedMsg{
 				Path:    entry.RelPath,
 				Content: "[directory]",
+			}
+		}
+
+		ext := filepath.Ext(entry.RelPath)
+
+		// Image files: use terminal image protocol or text fallback
+		if IsImageFile(ext) {
+			if imgRenderer != nil && imgRenderer.CanRender() {
+				rendered := imgRenderer.Render(entry.Path)
+				return PreviewLoadedMsg{
+					Path:    entry.RelPath,
+					Content: rendered,
+				}
+			}
+			return PreviewLoadedMsg{
+				Path:    entry.RelPath,
+				Content: fmt.Sprintf("[image: %s — no inline image protocol detected]", filepath.Base(entry.RelPath)),
 			}
 		}
 
@@ -1218,22 +1239,54 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 		}
 
 		content := string(data)
+		ext = strings.ToLower(ext)
 
 		if entry.IsMarkdown {
+			rawSource := content
+			var fmCard string
+			if fm, body, ok := extractYAMLFrontmatter(content); ok {
+				fmCard = renderFrontmatterCard(fm)
+				content = body
+			}
 			if mdRenderer != nil {
 				rendered, renderErr := mdRenderer.Render(content)
 				if renderErr == nil {
 					return previewWithSourceMsg{
 						preview: PreviewLoadedMsg{
 							Path:    entry.RelPath,
-							Content: rendered,
+							Content: fmCard + rendered,
 						},
-						rawSource: content,
+						rawSource: rawSource,
 					}
 				}
 			}
+		} else if ext == ".json" {
+			if formatted, ok := formatJSON(content); ok {
+				highlighted, hlErr := codeRenderer.Highlight("data.json", formatted)
+				if hlErr == nil {
+					content = highlighted
+				} else {
+					content = formatted
+				}
+			}
+		} else if ext == ".csv" || ext == ".tsv" {
+			delim := ','
+			if ext == ".tsv" {
+				delim = '\t'
+			}
+			if table, ok := formatCSV(content, delim); ok {
+				if mdRenderer != nil {
+					rendered, renderErr := mdRenderer.Render(table)
+					if renderErr == nil {
+						content = rendered
+					} else {
+						content = table
+					}
+				} else {
+					content = table
+				}
+			}
 		} else {
-			ext := filepath.Ext(entry.RelPath)
 			if isTextFile(ext) {
 				highlighted, hlErr := codeRenderer.Highlight(filepath.Base(entry.RelPath), content)
 				if hlErr == nil {
@@ -1515,6 +1568,7 @@ func isTextFile(ext string) bool {
 		".txt": true, ".cfg": true, ".ini": true, ".conf": true,
 		".mk": true, ".cmake": true, ".dockerfile": true,
 		".gitignore": true, ".env": true, ".mod": true, ".sum": true,
+		".csv": true, ".tsv": true,
 	}
 	return textExts[ext]
 }
