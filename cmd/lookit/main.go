@@ -19,7 +19,7 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/web"
 )
 
-const version = "v0.0.1-alpha"
+var version = "v0.1.0"
 
 var cfg *config.Config
 
