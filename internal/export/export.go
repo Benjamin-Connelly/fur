@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -87,7 +88,7 @@ func exportFile(idx *index.Index, relPath, outputDir string, format Format) erro
 	case FormatHTML:
 		return exportHTML(source, relPath, entry.Path, outputDir)
 	case FormatPDF:
-		return fmt.Errorf("PDF export not yet implemented")
+		return exportPDF(source, relPath, entry.Path, outputDir)
 	default:
 		return fmt.Errorf("unknown format: %d", format)
 	}
@@ -139,6 +140,69 @@ func exportHTML(source []byte, relPath, absPath, outputDir string) error {
 	outName := replaceExt(filepath.Base(relPath), ".html")
 	outPath := filepath.Join(outSubDir, outName)
 	return os.WriteFile(outPath, doc.Bytes(), 0o644)
+}
+
+// detectPDFTool finds a browser or wkhtmltopdf for HTML-to-PDF conversion.
+// Returns the command name and args prefix, or an error if none found.
+func detectPDFTool() (string, []string, error) {
+	// Prefer headless Chrome/Chromium (best rendering fidelity)
+	for _, name := range []string{"chromium-browser", "chromium", "google-chrome", "google-chrome-stable"} {
+		if path, err := exec.LookPath(name); err == nil {
+			return path, []string{"--headless", "--disable-gpu", "--no-sandbox", "--print-to-pdf-no-header"}, nil
+		}
+	}
+	// Fall back to wkhtmltopdf
+	if path, err := exec.LookPath("wkhtmltopdf"); err == nil {
+		return path, nil, nil
+	}
+	return "", nil, fmt.Errorf("PDF export requires chromium, google-chrome, or wkhtmltopdf.\nInstall one of these and try again. Run 'lookit doctor' to check your environment")
+}
+
+func exportPDF(source []byte, relPath, absPath, outputDir string) error {
+	tool, baseArgs, err := detectPDFTool()
+	if err != nil {
+		return err
+	}
+
+	// First render to a temporary HTML file
+	tmpDir, err := os.MkdirTemp("", "lookit-pdf-*")
+	if err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := exportHTML(source, relPath, absPath, tmpDir); err != nil {
+		return fmt.Errorf("rendering HTML for PDF: %w", err)
+	}
+
+	htmlName := replaceExt(filepath.Base(relPath), ".html")
+	htmlPath := filepath.Join(tmpDir, htmlName)
+
+	outSubDir := filepath.Join(outputDir, filepath.Dir(relPath))
+	if err := os.MkdirAll(outSubDir, 0o755); err != nil {
+		return fmt.Errorf("creating output dir: %w", err)
+	}
+
+	pdfName := replaceExt(filepath.Base(relPath), ".pdf")
+	pdfPath := filepath.Join(outSubDir, pdfName)
+
+	// Build command based on detected tool
+	var args []string
+	if len(baseArgs) > 0 {
+		// Chromium: --print-to-pdf=output input
+		args = append(baseArgs, "--print-to-pdf="+pdfPath, htmlPath)
+	} else {
+		// wkhtmltopdf: input output
+		args = []string{htmlPath, pdfPath}
+	}
+
+	cmd := exec.Command(tool, args...)
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("PDF conversion failed (%s): %w", filepath.Base(tool), err)
+	}
+
+	return nil
 }
 
 // highlightCodeBlocks re-renders markdown with chroma syntax highlighting.

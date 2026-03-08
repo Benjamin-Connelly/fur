@@ -42,6 +42,7 @@ func Run() []Check {
 	checks = append(checks, checkConfig())
 	checks = append(checks, checkMarkdownFiles())
 	checks = append(checks, checkLargeFiles())
+	checks = append(checks, checkPDFTool())
 
 	return checks
 }
@@ -310,5 +311,31 @@ func checkLargeFiles() Check {
 		Name:    "Large files",
 		Status:  CheckOK,
 		Message: "no files over 10MB",
+	}
+}
+
+func checkPDFTool() Check {
+	// Check for headless Chrome/Chromium first (best fidelity)
+	for _, name := range []string{"chromium-browser", "chromium", "google-chrome", "google-chrome-stable"} {
+		if path, err := exec.LookPath(name); err == nil {
+			return Check{
+				Name:    "PDF tool",
+				Status:  CheckOK,
+				Message: fmt.Sprintf("found %s", path),
+			}
+		}
+	}
+	// Fall back to wkhtmltopdf
+	if path, err := exec.LookPath("wkhtmltopdf"); err == nil {
+		return Check{
+			Name:    "PDF tool",
+			Status:  CheckOK,
+			Message: fmt.Sprintf("found %s", path),
+		}
+	}
+	return Check{
+		Name:    "PDF tool",
+		Status:  CheckWarn,
+		Message: "no PDF tool found (install chromium, google-chrome, or wkhtmltopdf for PDF export)",
 	}
 }

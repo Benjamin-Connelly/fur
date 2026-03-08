@@ -102,9 +102,9 @@ Lightweight HTTP server with live reload.
 - **Per-project config** — `.lookit.toml` / `.lookit.yaml` discovered by walking up from CWD
 - **Plugin hooks** — YAML-defined hooks for content transformation (prepend/append/replace)
 - **Task extraction** — finds TODOs with priority (`!high`), tags (`#tag`), due dates (`@due(...)`)
-- **Export** — markdown to standalone HTML with embedded CSS and syntax highlighting (PDF planned)
+- **Export** — markdown to standalone HTML or PDF with embedded CSS and syntax highlighting
 - **Graph export** — `lookit graph` outputs DOT format for Graphviz visualization
-- **Doctor** — 8 environment checks with colored output
+- **Doctor** — 9 environment checks with colored output
 - **Man pages** — `lookit gen-man` generates troff man pages
 
 ## Keybindings
@@ -196,7 +196,7 @@ lookit serve [path]              # Web server
   --css <path>                   # Custom CSS file
 lookit cat <file>                # Render markdown or image to terminal
 lookit export [path]             # Export markdown to HTML
-  --format html                  # Output format (html only, PDF planned)
+  --format html|pdf              # Output format (PDF requires chromium or wkhtmltopdf)
   --output, -o <dir>             # Output directory
 lookit graph [path]              # Output link graph in DOT format
 lookit doctor                    # Environment diagnostics
