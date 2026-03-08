@@ -266,38 +266,43 @@ Contributions welcome. Open an issue or submit a PR.
 
 ## Acknowledgments
 
-lookit is built on the shoulders of excellent open source projects:
+Lookit exists because generous people write extraordinary software and give it away. We stand on the shoulders of giants, and we're deeply grateful to every maintainer, contributor, and community member behind these projects.
 
 **Inspiration**
-- [Glow](https://github.com/charmbracelet/glow) by Charmbracelet — the terminal markdown viewer that inspired this project
+- [Glow](https://github.com/charmbracelet/glow) by Charmbracelet — the beautiful terminal markdown viewer that started this whole idea
 
 **TUI Framework**
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea) — terminal UI framework (The Elm Architecture for Go)
-- [Lip Gloss](https://github.com/charmbracelet/lipgloss) — terminal styling and layout
-- [Glamour](https://github.com/charmbracelet/glamour) — terminal markdown rendering
-- [Bubbles](https://github.com/charmbracelet/bubbles) — TUI components library
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea) — the brilliant Elm Architecture for terminals that makes TUI development a joy
+- [Lip Gloss](https://github.com/charmbracelet/lipgloss) — terminal styling so good it feels like cheating
+- [Glamour](https://github.com/charmbracelet/glamour) — gorgeous terminal markdown rendering
+- [Bubbles](https://github.com/charmbracelet/bubbles) — polished, composable TUI components
 
 **Syntax & Markdown**
-- [Chroma](https://github.com/alecthomas/chroma) — syntax highlighting engine (50+ languages)
-- [Goldmark](https://github.com/yuin/goldmark) — CommonMark markdown parser for web mode
-- [goldmark-emoji](https://github.com/yuin/goldmark-emoji) — emoji extension for Goldmark
-
-**Git**
-- [go-git](https://github.com/go-git/go-git) — pure Go git implementation (no shelling out)
-
-**CLI & Config**
-- [Cobra](https://github.com/spf13/cobra) — CLI framework with subcommands and completions
-- [Viper](https://github.com/spf13/viper) — configuration management (YAML, env vars, flags)
+- [Chroma](https://github.com/alecthomas/chroma) — syntax highlighting for 50+ languages, one import away
+- [Goldmark](https://github.com/yuin/goldmark) — rock-solid CommonMark parser that powers our web mode
+- [goldmark-emoji](https://github.com/yuin/goldmark-emoji) — because docs deserve personality
 
 **Search**
-- [Bleve](https://github.com/blevesearch/bleve) — full-text search and indexing (BM25 scoring)
-- [fuzzy](https://github.com/sahilm/fuzzy) — fuzzy string matching
+- [Bleve](https://github.com/blevesearch/bleve) — full-text search and indexing in pure Go, no compromises
+- [fuzzy](https://github.com/sahilm/fuzzy) — fast, intuitive fuzzy matching
+
+**Git**
+- [go-git](https://github.com/go-git/go-git) — a complete Git implementation in pure Go — no shelling out, no CGO, just works
+
+**CLI & Config**
+- [Cobra](https://github.com/spf13/cobra) — the CLI framework that powers kubectl, hugo, and now lookit
+- [Viper](https://github.com/spf13/viper) — effortless config from files, env vars, and flags
+
+**Visualization**
+- [D3.js](https://d3js.org) — the gold standard for data visualization on the web
+- [Mermaid](https://mermaid.js.org) — diagrams from text, rendered beautifully in the browser
 
 **Utilities**
 - [clipboard](https://github.com/atotto/clipboard) — cross-platform clipboard access
 - [fsnotify](https://github.com/fsnotify/fsnotify) — cross-platform file system notifications
+- [x/term](https://pkg.go.dev/golang.org/x/term) — terminal size detection from the Go team
 
-Thank you to all the maintainers and contributors of these projects.
+Open source is a gift economy. If you use and enjoy any of these projects, consider starring their repos, sponsoring their maintainers, or contributing back. The ecosystem thrives when we pay it forward.
 
 ## License
 
