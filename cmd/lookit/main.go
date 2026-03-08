@@ -26,8 +26,9 @@ var version = "v0.1.0"
 var cfg *config.Config
 
 var rootCmd = &cobra.Command{
-	Use:   "lookit [path]",
-	Short: "Dual-mode markdown navigator with inter-document link navigation",
+	Use:     "lookit [path]",
+	Short:   "Dual-mode markdown navigator with inter-document link navigation",
+	Version: version,
 	Long: `Lookit is a dual-mode markdown navigator that provides both TUI and web
 interfaces for browsing code, markdown, and files. Features inter-document
 link navigation with history, backlinks, and broken link detection.`,
@@ -253,13 +254,6 @@ var doctorCmd = &cobra.Command{
 	},
 }
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print version information",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("lookit %s\n", version)
-	},
-}
 
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
@@ -430,6 +424,9 @@ func installCompletion(shell, dest, instruction string) error {
 }
 
 func init() {
+	rootCmd.SetVersionTemplate("lookit {{.Version}}\n")
+	rootCmd.Flags().BoolP("version", "V", false, "print version")
+
 	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
 	rootCmd.PersistentFlags().String("theme", "", "color theme (light|dark|auto)")
 	rootCmd.PersistentFlags().Bool("debug", false, "enable verbose logging")
@@ -452,7 +449,6 @@ func init() {
 	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(doctorCmd)
-	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(completionCmd)
 }
 
