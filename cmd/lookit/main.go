@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 	"golang.org/x/term"
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
@@ -66,6 +67,16 @@ link navigation with history, backlinks, and broken link detection.`,
 			return fmt.Errorf("building index: %w", err)
 		}
 
+		// Build fulltext search index
+		cacheDir, _ := os.UserCacheDir()
+		if cacheDir != "" {
+			cacheDir = filepath.Join(cacheDir, "lookit")
+		}
+		if err := idx.BuildFulltext(cacheDir); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: fulltext index unavailable: %v\n", err)
+		}
+		defer idx.CloseFulltext()
+
 		links := index.NewLinkGraph()
 		links.BuildFromIndex(idx)
 
@@ -110,6 +121,16 @@ var serveCmd = &cobra.Command{
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
 		}
+
+		// Build fulltext search index
+		serveCacheDir, _ := os.UserCacheDir()
+		if serveCacheDir != "" {
+			serveCacheDir = filepath.Join(serveCacheDir, "lookit")
+		}
+		if err := idx.BuildFulltext(serveCacheDir); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: fulltext index unavailable: %v\n", err)
+		}
+		defer idx.CloseFulltext()
 
 		links := index.NewLinkGraph()
 		links.BuildFromIndex(idx)
@@ -254,6 +275,28 @@ var doctorCmd = &cobra.Command{
 	},
 }
 
+
+var genManCmd = &cobra.Command{
+	Use:    "gen-man [output-dir]",
+	Short:  "Generate man pages",
+	Hidden: true,
+	Args:   cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir := "./man"
+		if len(args) > 0 {
+			dir = args[0]
+		}
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+		header := &doc.GenManHeader{
+			Title:   "LOOKIT",
+			Section: "1",
+			Source:  "lookit " + version,
+		}
+		return doc.GenManTree(rootCmd, header, dir)
+	},
+}
 
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
@@ -450,6 +493,7 @@ func init() {
 	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(completionCmd)
+	rootCmd.AddCommand(genManCmd)
 }
 
 func loadConfig(cmd *cobra.Command, args []string) error {

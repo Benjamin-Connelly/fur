@@ -302,10 +302,19 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		forwardLinks = s.links.ForwardLinks(relPath)
 	}
 
+	// Replace mermaid fenced code blocks so mermaid.js renders them client-side
+	rendered := mermaidBlockRe.ReplaceAllStringFunc(buf.String(), func(match string) string {
+		inner := mermaidBlockRe.FindStringSubmatch(match)
+		if len(inner) < 2 {
+			return match
+		}
+		return `<pre class="mermaid">` + inner[1] + `</pre>`
+	})
+
 	data := markdownPageData{
 		pageData:     s.buildPageData(relPath),
 		RelPath:      relPath,
-		RenderedHTML: template.HTML(buf.String()),
+		RenderedHTML: template.HTML(rendered),
 		Headings:     tocHeadings,
 		Backlinks:    backlinks,
 		ForwardLinks: forwardLinks,
@@ -387,12 +396,38 @@ type searchResult struct {
 
 var grepLineRe = regexp.MustCompile(`^([^:]+):(\d+):(.*)$`)
 
+// mermaidBlockRe matches goldmark-rendered mermaid fenced code blocks.
+var mermaidBlockRe = regexp.MustCompile(`(?s)<pre><code class="language-mermaid">(.*?)</code></pre>`)
+
 func (s *Server) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" || len(query) > 200 {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]searchResult{})
 		return
+	}
+
+	// Use Bleve fulltext search when available
+	if s.idx.Fulltext != nil {
+		bleveResults, err := s.idx.Fulltext.Search(query, 100)
+		if err == nil {
+			var results []searchResult
+			for _, br := range bleveResults {
+				content := ""
+				if len(br.Snippets) > 0 {
+					content = br.Snippets[0]
+				}
+				results = append(results, searchResult{
+					File:    br.Path,
+					Line:    0,
+					Content: content,
+				})
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(results)
+			return
+		}
+		// Fall through to grep on error
 	}
 
 	// Use git grep if in a git repo, otherwise fall back to grep.
@@ -501,6 +536,74 @@ func dirEntryLess(a, b dirEntry) bool {
 		return a.IsDir
 	}
 	return strings.ToLower(a.Name) < strings.ToLower(b.Name)
+}
+
+func (s *Server) handleGraph(w http.ResponseWriter, r *http.Request) {
+	data := s.buildPageData("graph")
+	data.Title = "Link Graph"
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	var buf bytes.Buffer
+	if err := templates.PageTemplates["graph.html"].ExecuteTemplate(&buf, "base", data); err != nil {
+		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	buf.WriteTo(w)
+}
+
+func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
+	type graphNode struct {
+		ID         string `json:"id"`
+		Label      string `json:"label"`
+		IsMarkdown bool   `json:"isMarkdown"`
+		Links      int    `json:"links"`
+	}
+	type graphLink struct {
+		Source string `json:"source"`
+		Target string `json:"target"`
+	}
+	type graphData struct {
+		Nodes []graphNode `json:"nodes"`
+		Links []graphLink `json:"links"`
+	}
+
+	nodeSet := make(map[string]bool)
+	var links []graphLink
+
+	if s.links != nil {
+		for _, entry := range s.idx.Entries() {
+			if !entry.IsMarkdown {
+				continue
+			}
+			fwd := s.links.ForwardLinks(entry.RelPath)
+			if len(fwd) == 0 {
+				continue
+			}
+			nodeSet[entry.RelPath] = true
+			for _, link := range fwd {
+				if link.Broken {
+					continue
+				}
+				nodeSet[link.Target] = true
+				links = append(links, graphLink{Source: entry.RelPath, Target: link.Target})
+			}
+		}
+	}
+
+	var nodes []graphNode
+	for id := range nodeSet {
+		label := filepath.Base(id)
+		linkCount := len(s.links.ForwardLinks(id)) + len(s.links.Backlinks(id))
+		nodes = append(nodes, graphNode{
+			ID:         id,
+			Label:      label,
+			IsMarkdown: strings.HasSuffix(id, ".md"),
+			Links:      linkCount,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(graphData{Nodes: nodes, Links: links})
 }
 
 func gitStatusLabel(fs gitpkg.FileStatus) (label, class string) {

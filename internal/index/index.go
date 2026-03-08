@@ -33,12 +33,35 @@ type Options struct {
 
 // Index maintains an in-memory file index for fast lookup and search.
 type Index struct {
-	root    string
-	entries []FileEntry
-	byPath  map[string]*FileEntry
-	opts    Options
-	stats   Stats
-	mu      sync.RWMutex
+	root     string
+	entries  []FileEntry
+	byPath   map[string]*FileEntry
+	opts     Options
+	stats    Stats
+	Fulltext *FulltextIndex
+	mu       sync.RWMutex
+}
+
+// BuildFulltext creates and populates a fulltext search index. If cacheDir
+// is empty, the index lives in memory only.
+func (idx *Index) BuildFulltext(cacheDir string) error {
+	ft, err := NewFulltextIndex(cacheDir)
+	if err != nil {
+		return err
+	}
+	if err := ft.BuildFrom(idx); err != nil {
+		ft.Close()
+		return err
+	}
+	idx.Fulltext = ft
+	return nil
+}
+
+// CloseFulltext shuts down the fulltext index if one exists.
+func (idx *Index) CloseFulltext() {
+	if idx.Fulltext != nil {
+		idx.Fulltext.Close()
+	}
 }
 
 // New creates a new Index rooted at the given directory.

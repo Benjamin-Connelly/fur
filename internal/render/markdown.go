@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/glamour"
@@ -186,6 +187,40 @@ func ExtractHeadings(source string) []Heading {
 		return ast.WalkContinue, nil
 	})
 	return headings
+}
+
+// Slugify converts heading text to a URL-compatible anchor slug.
+// Matches GitHub's heading anchor generation: lowercase, spaces to hyphens,
+// strip non-alphanumeric except hyphens and underscores.
+func Slugify(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, " ", "-")
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// HeadingSlugs returns a map of slug -> true for all headings in the source.
+// Duplicate headings get GitHub-style suffixes: "heading", "heading-1", "heading-2".
+func HeadingSlugs(source string) map[string]bool {
+	headings := ExtractHeadings(source)
+	slugs := make(map[string]bool, len(headings))
+	counts := make(map[string]int)
+	for _, h := range headings {
+		base := Slugify(h.Text)
+		n := counts[base]
+		counts[base]++
+		slug := base
+		if n > 0 {
+			slug = base + "-" + strconv.Itoa(n)
+		}
+		slugs[slug] = true
+	}
+	return slugs
 }
 
 // ExtractLinks returns all links from markdown source.

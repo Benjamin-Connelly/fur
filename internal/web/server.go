@@ -207,7 +207,7 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		// Security headers
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://d3js.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 
@@ -287,7 +287,11 @@ func (s *Server) registerRoutes() {
 	// API routes
 	s.mux.HandleFunc("/__api/files", s.handleAPIFiles)
 	s.mux.HandleFunc("/__api/search", s.handleAPISearch)
+	s.mux.HandleFunc("/__api/graph", s.handleAPIGraph)
 	s.mux.HandleFunc("/__events", s.handleSSE)
+
+	// Graph page
+	s.mux.HandleFunc("/graph", s.handleGraph)
 
 	// All other routes go through root handler with ETag support
 	s.mux.HandleFunc("/", etagMiddleware(s.handleRoot))

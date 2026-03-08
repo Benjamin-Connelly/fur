@@ -96,6 +96,9 @@ type Model struct {
 	// Recent files persistence
 	recentFiles *config.RecentFiles
 
+	// Fulltext search mode toggle: "filename" (default) or "content"
+	searchMode string
+
 	// Vim-style marks: m{a-z} sets, '{a-z} jumps
 	marks        map[rune]mark
 	pendingMark  bool // waiting for mark register key
@@ -120,6 +123,7 @@ type headingJumpEntry struct {
 type previewLink struct {
 	renderedLine int    // line number in the rendered content
 	target       string // link target path
+	fragment     string // anchor fragment (empty if none)
 	text         string // link display text
 }
 
@@ -163,6 +167,7 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 		recentFiles:     config.LoadRecentFiles(),
 		marks:           make(map[rune]mark),
 		imageRenderer:   NewImageRenderer(),
+		searchMode:      "filename",
 	}
 }
 
@@ -767,11 +772,11 @@ func (m *Model) handlePreviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "enter":
 		if m.previewLinkIdx >= 0 && m.previewLinkIdx < len(m.previewLinks) {
-			target := m.previewLinks[m.previewLinkIdx].target
+			pl := m.previewLinks[m.previewLinkIdx]
 			m.previewLinkIdx = -1
 			m.preview.highlightLine = -1
 			return m, func() tea.Msg {
-				return LinkFollowMsg{Target: target}
+				return LinkFollowMsg{Target: pl.target, Fragment: pl.fragment}
 			}
 		}
 		return m, nil
@@ -937,8 +942,20 @@ func (m *Model) handleSidePanelKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "tab":
+		// Toggle between filename and content search modes
+		if m.searchMode == "filename" {
+			m.searchMode = "content"
+		} else {
+			m.searchMode = "filename"
+		}
+		m.fileList.searchMode = m.searchMode
+		m.applyFilter(m.fileList.filter)
+		return m, nil
 	case "esc":
 		m.fileList.ClearFilter()
+		m.searchMode = "filename"
+		m.fileList.searchMode = "filename"
 		m.status.SetMode("NORMAL")
 		return m, nil
 	case "enter":
@@ -949,7 +966,7 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "backspace":
 		if len(m.fileList.filter) > 0 {
-			m.fileList.SetFilter(m.fileList.filter[:len(m.fileList.filter)-1])
+			m.applyFilter(m.fileList.filter[:len(m.fileList.filter)-1])
 		}
 		return m, nil
 	case "up", "ctrl+p", "ctrl+k":
@@ -959,26 +976,47 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.fileList.MoveDown()
 		return m, nil
 	case "ctrl+u":
-		m.fileList.SetFilter("")
+		m.applyFilter("")
 		return m, nil
 	case "ctrl+w":
 		// Delete last word
 		input := m.fileList.filter
 		input = strings.TrimRight(input, " ")
 		if i := strings.LastIndex(input, " "); i >= 0 {
-			m.fileList.SetFilter(input[:i+1])
+			m.applyFilter(input[:i+1])
 		} else {
-			m.fileList.SetFilter("")
+			m.applyFilter("")
 		}
 		return m, nil
 	default:
 		ch := msg.String()
 		// Ignore the `/` that triggered filter mode
 		if len(ch) == 1 && ch != "/" {
-			m.fileList.SetFilter(m.fileList.filter + ch)
+			m.applyFilter(m.fileList.filter + ch)
 		}
 		return m, nil
 	}
+}
+
+// applyFilter updates the file list based on the current search mode.
+func (m *Model) applyFilter(query string) {
+	if m.searchMode == "content" && m.idx.Fulltext != nil && query != "" {
+		results, err := m.idx.Fulltext.Search(query, 50)
+		if err == nil {
+			entries := make([]index.FileEntry, 0, len(results))
+			for _, r := range results {
+				if e := m.idx.Lookup(r.Path); e != nil {
+					entries = append(entries, *e)
+				}
+			}
+			m.fileList.filter = query
+			m.fileList.filtered = entries
+			m.fileList.cursor = 0
+			m.fileList.offset = 0
+			return
+		}
+	}
+	m.fileList.SetFilter(query)
 }
 
 func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -1105,6 +1143,12 @@ func (m *Model) handleLinkFollow(target, fragment string) (tea.Model, tea.Cmd) {
 		m.navigator.Navigate(m.preview.filePath, m.preview.scroll)
 	}
 	m.navigator.Navigate(target, 0)
+
+	// Same-file fragment link: scroll in place without re-rendering
+	if fragment != "" && target == m.preview.filePath && m.currentRawSource != "" {
+		m.scrollToFragment(fragment, m.currentRawSource)
+		return m, nil
+	}
 
 	if fragment != "" {
 		m.pendingFragment = fragment
@@ -1331,7 +1375,13 @@ type previewWithSourceMsg struct {
 }
 
 // ansiRe strips ANSI escape sequences for plain-text search.
-var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+// Covers SGR, CSI, OSC, and hyperlink sequences that Glamour/lipgloss emit.
+var ansiRe = regexp.MustCompile(`\x1b(?:\[[0-9;]*[a-zA-Z]|\]8;[^;]*;[^\x1b]*\x1b\\|\][^\x07]*\x07)`)
+
+// stripANSI removes all ANSI escape sequences from s.
+func stripANSI(s string) string {
+	return ansiRe.ReplaceAllString(s, "")
+}
 
 // buildPreviewLinks finds link positions in the rendered preview content.
 func (m *Model) buildPreviewLinks() {
@@ -1362,11 +1412,12 @@ func (m *Model) buildPreviewLinks() {
 			if usedLines[i] {
 				continue
 			}
-			plain := strings.ToLower(ansiRe.ReplaceAllString(line, ""))
+			plain := strings.ToLower(stripANSI(line))
 			if strings.Contains(plain, searchText) {
 				m.previewLinks = append(m.previewLinks, previewLink{
 					renderedLine: i,
 					target:       link.Target,
+					fragment:     link.Fragment,
 					text:         link.Text,
 				})
 				usedLines[i] = true
@@ -1679,45 +1730,76 @@ func (m *Model) handleHeadingJumpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // slugify converts heading text to a URL-compatible anchor slug.
-// Matches GitHub's heading anchor generation: lowercase, spaces to hyphens,
-// strip non-alphanumeric except hyphens.
+// Delegates to render.Slugify for consistency across TUI and index.
 func slugify(s string) string {
-	s = strings.ToLower(s)
-	s = strings.ReplaceAll(s, " ", "-")
-	var b strings.Builder
-	for _, r := range s {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
+	return render.Slugify(s)
 }
 
 // scrollToFragment finds a heading matching the fragment slug and scrolls to it.
+// Uses GitHub-style duplicate disambiguation: "heading", "heading-1", "heading-2".
 func (m *Model) scrollToFragment(fragment, rawSource string) {
 	headings := render.ExtractHeadings(rawSource)
 	slug := strings.ToLower(fragment)
 
+	// Build slug -> occurrence index to disambiguate duplicates
+	counts := make(map[string]int)
+	type match struct {
+		text       string
+		occurrence int // 0-based occurrence of this heading text
+	}
+	var candidates []match
+
 	for _, h := range headings {
-		if slugify(h.Text) == slug {
-			// Find the heading in rendered lines by searching for heading text
-			target := m.findRenderedLine(h.Text)
-			if target >= 0 {
-				m.preview.CursorTo(target)
-			}
+		base := slugify(h.Text)
+		n := counts[base]
+		counts[base]++
+
+		effective := base
+		if n > 0 {
+			effective = base + "-" + strconv.Itoa(n)
+		}
+		if effective == slug {
+			candidates = append(candidates, match{text: h.Text, occurrence: n})
+		}
+	}
+
+	// Try exact slug match first
+	for _, c := range candidates {
+		target := m.findRenderedLine(c.text, c.occurrence)
+		if target >= 0 {
+			m.preview.CursorTo(target)
+			return
+		}
+	}
+
+	// Fallback: case-insensitive prefix match against stripped line content
+	for i, line := range m.preview.lines {
+		plain := strings.ToLower(strings.TrimSpace(stripANSI(line)))
+		if plain != "" && strings.HasPrefix(plain, slug) {
+			m.preview.CursorTo(i)
 			return
 		}
 	}
 }
 
-// findRenderedLine searches the preview lines for text matching a heading.
-func (m *Model) findRenderedLine(headingText string) int {
+// findRenderedLine searches the preview lines for the nth occurrence of
+// heading text (0-based). Strips ANSI before matching.
+func (m *Model) findRenderedLine(headingText string, occurrence int) int {
 	lower := strings.ToLower(headingText)
+	seen := 0
 	for i, line := range m.preview.lines {
-		plain := strings.ToLower(ansiRe.ReplaceAllString(line, ""))
+		plain := strings.ToLower(stripANSI(line))
 		if strings.Contains(plain, lower) {
-			return i
+			if seen == occurrence {
+				return i
+			}
+			seen++
 		}
+	}
+	// If we didn't find the nth occurrence, try returning the last match
+	// (handles cases where Glamour merges lines differently)
+	if occurrence > 0 && seen > 0 {
+		return m.findRenderedLine(headingText, seen-1)
 	}
 	return -1
 }

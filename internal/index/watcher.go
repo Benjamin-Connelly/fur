@@ -124,6 +124,26 @@ func (w *Watcher) doBuild() {
 		w.graph.BuildFromIndex(w.index)
 	}
 
+	// Update fulltext index for changed markdown files
+	if w.index.Fulltext != nil {
+		for _, p := range paths {
+			if !isMarkdown(filepath.Base(p)) {
+				continue
+			}
+			absPath := filepath.Join(w.index.Root(), p)
+			if _, err := os.Stat(absPath); err != nil {
+				// File was deleted
+				if delErr := w.index.Fulltext.Remove(p); delErr != nil {
+					log.Printf("watcher: fulltext remove %s: %v", p, delErr)
+				}
+			} else {
+				if updErr := w.index.Fulltext.Update(absPath, p); updErr != nil {
+					log.Printf("watcher: fulltext update %s: %v", p, updErr)
+				}
+			}
+		}
+	}
+
 	if w.onChange != nil {
 		for _, rel := range paths {
 			w.onChange(rel)

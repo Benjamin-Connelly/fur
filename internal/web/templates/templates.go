@@ -26,7 +26,7 @@ func init() {
 	base := template.Must(template.New("base.html").Funcs(funcMap).Parse(string(baseContent)))
 
 	// Each page template gets its own clone of the base
-	pages := []string{"directory.html", "markdown.html", "code.html"}
+	pages := []string{"directory.html", "markdown.html", "code.html", "graph.html"}
 	PageTemplates = make(map[string]*template.Template, len(pages))
 
 	for _, page := range pages {

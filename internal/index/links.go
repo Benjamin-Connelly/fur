@@ -6,16 +6,19 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/Benjamin-Connelly/lookit/internal/render"
 )
 
 // Link represents a link from one file to another.
 type Link struct {
-	Source   string // relative path of the source file
-	Target   string // relative path or URL of the target
-	Fragment string // anchor fragment (e.g., "heading-name" from #heading-name)
-	Text     string // link text
-	Line     int    // line number in source
-	Broken   bool   // true if target cannot be resolved
+	Source         string // relative path of the source file
+	Target         string // relative path or URL of the target
+	Fragment       string // anchor fragment (e.g., "heading-name" from #heading-name)
+	Text           string // link text
+	Line           int    // line number in source
+	Broken         bool   // true if target cannot be resolved
+	BrokenFragment bool   // true if target exists but #fragment doesn't match any heading
 }
 
 // LinkGraph maintains bidirectional link relationships between files.
@@ -202,6 +205,61 @@ func (g *LinkGraph) BuildFromIndex(idx *Index) {
 		links := ExtractLinks(entry.RelPath, string(content), idx)
 		g.SetLinks(entry.RelPath, links)
 	}
+}
+
+// ValidateFragments checks all links with fragments and marks those whose
+// anchor doesn't match any heading in the target file. Call after BuildFromIndex.
+func (g *LinkGraph) ValidateFragments(idx *Index) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	// Cache file headings to avoid re-reading the same file
+	slugCache := make(map[string]map[string]bool)
+
+	for source, links := range g.forward {
+		for i := range links {
+			link := &g.forward[source][i]
+			if link.Fragment == "" || link.Broken {
+				continue
+			}
+
+			entry := idx.Lookup(link.Target)
+			if entry == nil {
+				continue
+			}
+
+			slugs, ok := slugCache[link.Target]
+			if !ok {
+				data, err := os.ReadFile(entry.Path)
+				if err != nil {
+					continue
+				}
+				slugs = render.HeadingSlugs(string(data))
+				slugCache[link.Target] = slugs
+			}
+
+			frag := strings.ToLower(link.Fragment)
+			if !slugs[frag] {
+				link.BrokenFragment = true
+			}
+		}
+	}
+}
+
+// BrokenFragmentLinks returns all links where the target exists but the
+// fragment doesn't match any heading.
+func (g *LinkGraph) BrokenFragmentLinks() []Link {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	var broken []Link
+	for _, links := range g.forward {
+		for _, link := range links {
+			if link.BrokenFragment {
+				broken = append(broken, link)
+			}
+		}
+	}
+	return broken
 }
 
 // resolveRelPath resolves a relative link target against a source directory,

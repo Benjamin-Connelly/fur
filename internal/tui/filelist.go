@@ -58,17 +58,18 @@ type treeNode struct {
 
 // FileListModel manages the file list panel with fuzzy filtering.
 type FileListModel struct {
-	idx       *index.Index
-	entries   []index.FileEntry
-	tree      []treeNode    // full tree
-	visible   []treeNode    // visible nodes (respecting collapsed dirs)
-	filtered  []index.FileEntry // for fuzzy search results
-	collapsed map[string]bool   // collapsed directory paths
-	cursor    int
-	filter    string
-	filtering bool
-	offset    int // scroll offset
-	height    int
+	idx        *index.Index
+	entries    []index.FileEntry
+	tree       []treeNode    // full tree
+	visible    []treeNode    // visible nodes (respecting collapsed dirs)
+	filtered   []index.FileEntry // for fuzzy search results
+	collapsed  map[string]bool   // collapsed directory paths
+	cursor     int
+	filter     string
+	filtering  bool
+	searchMode string // "filename" or "content" — set by parent Model
+	offset     int    // scroll offset
+	height     int
 }
 
 // NewFileListModel creates a file list panel.
@@ -342,11 +343,15 @@ func (m FileListModel) viewFiltered() string {
 
 	filterStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("214"))
+	modeLabel := m.searchMode
+	if modeLabel == "" {
+		modeLabel = "filename"
+	}
 	if m.filtering {
-		b.WriteString(filterStyle.Render("/ "+m.filter+"_") + "\n")
+		b.WriteString(filterStyle.Render("/ "+m.filter+"_ ("+modeLabel+")") + "\n")
 	} else {
 		frozenStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-		b.WriteString(frozenStyle.Render("/ "+m.filter+" (esc to clear)") + "\n")
+		b.WriteString(frozenStyle.Render("/ "+m.filter+" ("+modeLabel+", esc to clear)") + "\n")
 	}
 	b.WriteString(strings.Repeat("─", 20) + "\n")
 

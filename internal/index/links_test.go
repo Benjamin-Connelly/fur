@@ -129,3 +129,92 @@ func TestExtractWikilinks(t *testing.T) {
 		t.Error("[[missing]] should be broken")
 	}
 }
+
+func TestExtractLinks_PureFragment(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "page.md"), []byte("# Heading\n## Sub"), 0o644)
+
+	idx := New(dir)
+	idx.Build()
+
+	content := `See [this section](#sub) for details.`
+	links := ExtractLinks("page.md", content, idx)
+
+	if len(links) != 1 {
+		t.Fatalf("expected 1 link, got %d", len(links))
+	}
+	if links[0].Target != "page.md" {
+		t.Errorf("pure fragment link should target current file, got %q", links[0].Target)
+	}
+	if links[0].Fragment != "sub" {
+		t.Errorf("expected fragment 'sub', got %q", links[0].Fragment)
+	}
+	if links[0].Broken {
+		t.Error("pure fragment link should not be broken (file exists)")
+	}
+}
+
+func TestValidateFragments(t *testing.T) {
+	dir := t.TempDir()
+	// Target file with known headings
+	os.WriteFile(filepath.Join(dir, "target.md"), []byte("# Introduction\n## Getting Started\n## FAQ\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "source.md"), []byte("# Source\n"), 0o644)
+
+	idx := New(dir)
+	idx.Build()
+
+	g := NewLinkGraph()
+	g.SetLinks("source.md", []Link{
+		{Source: "source.md", Target: "target.md", Fragment: "introduction", Text: "intro", Line: 1},
+		{Source: "source.md", Target: "target.md", Fragment: "getting-started", Text: "start", Line: 2},
+		{Source: "source.md", Target: "target.md", Fragment: "nonexistent-heading", Text: "bad", Line: 3},
+		{Source: "source.md", Target: "target.md", Fragment: "", Text: "no frag", Line: 4},
+		{Source: "source.md", Target: "missing.md", Fragment: "anything", Text: "broken file", Line: 5, Broken: true},
+	})
+
+	g.ValidateFragments(idx)
+
+	fwd := g.ForwardLinks("source.md")
+	if len(fwd) != 5 {
+		t.Fatalf("expected 5 links, got %d", len(fwd))
+	}
+
+	// Valid fragment: "introduction"
+	if fwd[0].BrokenFragment {
+		t.Error("'introduction' fragment should be valid")
+	}
+
+	// Valid fragment: "getting-started"
+	if fwd[1].BrokenFragment {
+		t.Error("'getting-started' fragment should be valid")
+	}
+
+	// Invalid fragment: "nonexistent-heading"
+	if !fwd[2].BrokenFragment {
+		t.Error("'nonexistent-heading' fragment should be marked broken")
+	}
+
+	// No fragment: should not be marked
+	if fwd[3].BrokenFragment {
+		t.Error("link without fragment should not be marked broken")
+	}
+
+	// Broken target: should not be checked for fragments
+	if fwd[4].BrokenFragment {
+		t.Error("link with broken target should not be fragment-checked")
+	}
+}
+
+func TestBrokenFragmentLinks(t *testing.T) {
+	g := NewLinkGraph()
+	g.SetLinks("a.md", []Link{
+		{Source: "a.md", Target: "b.md", Fragment: "ok", BrokenFragment: false},
+		{Source: "a.md", Target: "b.md", Fragment: "bad", BrokenFragment: true},
+		{Source: "a.md", Target: "c.md", Fragment: "also-bad", BrokenFragment: true},
+	})
+
+	broken := g.BrokenFragmentLinks()
+	if len(broken) != 2 {
+		t.Errorf("expected 2 broken fragment links, got %d", len(broken))
+	}
+}
