@@ -10,11 +10,12 @@ import (
 
 // Link represents a link from one file to another.
 type Link struct {
-	Source string // relative path of the source file
-	Target string // relative path or URL of the target
-	Text   string // link text
-	Line   int    // line number in source
-	Broken bool   // true if target cannot be resolved
+	Source   string // relative path of the source file
+	Target   string // relative path or URL of the target
+	Fragment string // anchor fragment (e.g., "heading-name" from #heading-name)
+	Text     string // link text
+	Line     int    // line number in source
+	Broken   bool   // true if target cannot be resolved
 }
 
 // LinkGraph maintains bidirectional link relationships between files.
@@ -117,26 +118,37 @@ func ExtractLinks(filePath, content string, idx *Index) []Link {
 			text := match[1]
 			target := match[2]
 
-			// Strip fragment anchors
+			// Extract fragment anchor
+			var fragment string
 			if i := strings.Index(target, "#"); i >= 0 {
+				fragment = target[i+1:]
 				target = target[:i]
 			}
 			target = strings.TrimSpace(target)
 
-			// Skip external URLs and empty targets
-			if target == "" || strings.Contains(target, "://") || strings.HasPrefix(target, "mailto:") {
+			// Skip external URLs and empty targets (but allow pure #fragment)
+			if strings.Contains(target, "://") || strings.HasPrefix(target, "mailto:") {
+				continue
+			}
+			if target == "" && fragment == "" {
 				continue
 			}
 
-			resolved := resolveRelPath(sourceDir, target, idx.Root())
-			broken := idx.Lookup(resolved) == nil
+			// Pure #fragment links target the current file
+			resolved := filePath
+			broken := false
+			if target != "" {
+				resolved = resolveRelPath(sourceDir, target, idx.Root())
+				broken = idx.Lookup(resolved) == nil
+			}
 
 			links = append(links, Link{
-				Source: filePath,
-				Target: resolved,
-				Text:   text,
-				Line:   lineNum + 1,
-				Broken: broken,
+				Source:   filePath,
+				Target:   resolved,
+				Fragment: fragment,
+				Text:     text,
+				Line:     lineNum + 1,
+				Broken:   broken,
 			})
 		}
 

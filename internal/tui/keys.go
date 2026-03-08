@@ -120,6 +120,13 @@ func Help(km KeyMap) string {
 	b.WriteString("  N            previous match\n")
 	b.WriteString("  enter/esc    close search input\n")
 
+	b.WriteString("\nHeading Jump\n")
+	b.WriteString(strings.Repeat("-", 40) + "\n")
+	b.WriteString("  ctrl+g       open global heading jump\n")
+	b.WriteString("  type         fuzzy filter headings\n")
+	b.WriteString("  enter        jump to heading\n")
+	b.WriteString("  esc          cancel\n")
+
 	b.WriteString("\nGeneral\n")
 	b.WriteString(strings.Repeat("-", 40) + "\n")
 	b.WriteString("  esc          close help / back to file list\n")

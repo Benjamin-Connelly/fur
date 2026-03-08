@@ -82,6 +82,22 @@ type Model struct {
 	// Link cursor in preview (Tab/Shift-Tab navigation)
 	previewLinks   []previewLink
 	previewLinkIdx int // -1 = no link selected
+
+	// Anchor fragment to scroll to after preview loads
+	pendingFragment string
+
+	// Global heading jump state
+	headingJump      bool
+	headingJumpInput string
+	headingJumpItems []headingJumpEntry
+	headingJumpCur   int
+}
+
+// headingJumpEntry is a heading from any file in the index.
+type headingJumpEntry struct {
+	File    string // relative path
+	Heading string // heading text
+	Line    int    // source line number
 }
 
 // previewLink maps a link to its position in the rendered preview.
@@ -147,6 +163,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.cmdPalette.IsActive() {
 			return m.handleCommandKey(msg)
 		}
+		// Heading jump intercepts all keys when active
+		if m.headingJump {
+			return m.handleHeadingJumpKey(msg)
+		}
 		// Link selection overlay intercepts keys when showing
 		if m.navigator.IsShowingLinks() {
 			return m.handleLinkSelectKey(msg)
@@ -190,7 +210,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case LinkFollowMsg:
-		return m.handleLinkFollow(msg.Target)
+		return m.handleLinkFollow(msg.Target, msg.Fragment)
 
 	case commandLinksMsg:
 		return m.handleCommandLinks()
@@ -209,6 +229,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update TOC if panel is open
 		if m.sidePanel.Type() == PanelTOC {
 			m.sidePanel.SetTOCFromMarkdown(msg.rawSource)
+		}
+		// Resolve pending anchor fragment
+		if m.pendingFragment != "" {
+			m.scrollToFragment(m.pendingFragment, msg.rawSource)
+			m.pendingFragment = ""
 		}
 		return m, nil
 
@@ -309,6 +334,14 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = PanelFileList
 		m.fileList.StartFilter()
 		m.status.SetMode("FILTER")
+		return m, nil
+
+	case "ctrl+g":
+		m.headingJump = true
+		m.headingJumpInput = ""
+		m.headingJumpItems = m.collectAllHeadings()
+		m.headingJumpCur = 0
+		m.status.SetMode("HEADING")
 		return m, nil
 
 	case "?":
@@ -921,10 +954,10 @@ func (m *Model) handleLinkSelectKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.navigator.LinkMoveDown()
 		return m, nil
 	case "enter":
-		target := m.navigator.LinkSelect()
+		target, fragment := m.navigator.LinkSelect()
 		if target != "" {
 			return m, func() tea.Msg {
-				return LinkFollowMsg{Target: target}
+				return LinkFollowMsg{Target: target, Fragment: fragment}
 			}
 		}
 		return m, nil
@@ -936,11 +969,11 @@ func (m *Model) handleFollowLink() (tea.Model, tea.Cmd) {
 	if m.preview.filePath == "" {
 		return m, nil
 	}
-	target := m.navigator.ShowLinks(m.preview.filePath)
+	target, fragment := m.navigator.ShowLinks(m.preview.filePath)
 	if target != "" {
 		// Single link, follow directly
 		return m, func() tea.Msg {
-			return LinkFollowMsg{Target: target}
+			return LinkFollowMsg{Target: target, Fragment: fragment}
 		}
 	}
 	// Either no links (status message) or multiple (overlay shown)
@@ -952,13 +985,17 @@ func (m *Model) handleFollowLink() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Model) handleLinkFollow(target string) (tea.Model, tea.Cmd) {
+func (m *Model) handleLinkFollow(target, fragment string) (tea.Model, tea.Cmd) {
 	// Save current position in history, then push the target so that
 	// Back returns the source and Forward from the source reaches the target.
 	if m.preview.filePath != "" {
 		m.navigator.Navigate(m.preview.filePath, m.preview.scroll)
 	}
 	m.navigator.Navigate(target, 0)
+
+	if fragment != "" {
+		m.pendingFragment = fragment
+	}
 	return m.navigateToPath(target, 0)
 }
 
@@ -1314,6 +1351,10 @@ func (m *Model) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left, main, cmdView)
 	}
 
+	if m.headingJump {
+		return lipgloss.JoinVertical(lipgloss.Left, main, m.headingJumpView())
+	}
+
 	m.status.width = m.width
 	m.status.focus = m.focus
 	m.status.showingHelp = m.showingHelp
@@ -1351,4 +1392,168 @@ func isTextFile(ext string) bool {
 		".gitignore": true, ".env": true, ".mod": true, ".sum": true,
 	}
 	return textExts[ext]
+}
+
+// headingJumpView renders the heading jump picker.
+func (m *Model) headingJumpView() string {
+	var b strings.Builder
+	prompt := lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Bold(true)
+	b.WriteString(prompt.Render("Jump to heading: ") + m.headingJumpInput)
+	b.WriteString("_\n")
+
+	filtered := m.filterHeadingJump()
+	maxShow := 10
+	if len(filtered) < maxShow {
+		maxShow = len(filtered)
+	}
+
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	for i := 0; i < maxShow; i++ {
+		e := filtered[i]
+		cursor := "  "
+		if i == m.headingJumpCur {
+			cursor = "> "
+		}
+		b.WriteString(fmt.Sprintf("%s%s  %s\n", cursor, e.Heading, dimStyle.Render(e.File)))
+	}
+
+	if len(filtered) > maxShow {
+		b.WriteString(dimStyle.Render(fmt.Sprintf("  ... and %d more", len(filtered)-maxShow)))
+	}
+	if len(filtered) == 0 {
+		b.WriteString(dimStyle.Render("  No matching headings"))
+	}
+
+	return b.String()
+}
+
+// handleHeadingJumpKey handles keys during global heading jump mode.
+func (m *Model) handleHeadingJumpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.headingJump = false
+		m.status.SetMode(m.modeString())
+		return m, nil
+	case "enter":
+		filtered := m.filterHeadingJump()
+		if m.headingJumpCur >= 0 && m.headingJumpCur < len(filtered) {
+			entry := filtered[m.headingJumpCur]
+			m.headingJump = false
+			m.status.SetMode(m.modeString())
+			m.pendingFragment = slugify(entry.Heading)
+			return m.navigateToPath(entry.File, 0)
+		}
+		m.headingJump = false
+		m.status.SetMode(m.modeString())
+		return m, nil
+	case "up", "ctrl+p", "ctrl+k":
+		if m.headingJumpCur > 0 {
+			m.headingJumpCur--
+		}
+		return m, nil
+	case "down", "ctrl+n", "ctrl+j":
+		filtered := m.filterHeadingJump()
+		if m.headingJumpCur < len(filtered)-1 {
+			m.headingJumpCur++
+		}
+		return m, nil
+	case "backspace":
+		if len(m.headingJumpInput) > 0 {
+			m.headingJumpInput = m.headingJumpInput[:len(m.headingJumpInput)-1]
+			m.headingJumpCur = 0
+		}
+		return m, nil
+	case "ctrl+u":
+		m.headingJumpInput = ""
+		m.headingJumpCur = 0
+		return m, nil
+	default:
+		ch := msg.String()
+		if len(ch) == 1 {
+			m.headingJumpInput += ch
+			m.headingJumpCur = 0
+		}
+		return m, nil
+	}
+}
+
+// slugify converts heading text to a URL-compatible anchor slug.
+// Matches GitHub's heading anchor generation: lowercase, spaces to hyphens,
+// strip non-alphanumeric except hyphens.
+func slugify(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, " ", "-")
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// scrollToFragment finds a heading matching the fragment slug and scrolls to it.
+func (m *Model) scrollToFragment(fragment, rawSource string) {
+	headings := render.ExtractHeadings(rawSource)
+	slug := strings.ToLower(fragment)
+
+	for _, h := range headings {
+		if slugify(h.Text) == slug {
+			// Find the heading in rendered lines by searching for heading text
+			target := m.findRenderedLine(h.Text)
+			if target >= 0 {
+				m.preview.CursorTo(target)
+			}
+			return
+		}
+	}
+}
+
+// findRenderedLine searches the preview lines for text matching a heading.
+func (m *Model) findRenderedLine(headingText string) int {
+	lower := strings.ToLower(headingText)
+	for i, line := range m.preview.lines {
+		plain := strings.ToLower(ansiRe.ReplaceAllString(line, ""))
+		if strings.Contains(plain, lower) {
+			return i
+		}
+	}
+	return -1
+}
+
+// collectAllHeadings gathers headings from every markdown file in the index.
+func (m *Model) collectAllHeadings() []headingJumpEntry {
+	mdFiles := m.idx.MarkdownFiles()
+	var entries []headingJumpEntry
+	for _, f := range mdFiles {
+		data, err := os.ReadFile(f.Path)
+		if err != nil {
+			continue
+		}
+		headings := render.ExtractHeadings(string(data))
+		for _, h := range headings {
+			entries = append(entries, headingJumpEntry{
+				File:    f.RelPath,
+				Heading: h.Text,
+				Line:    h.Line,
+			})
+		}
+	}
+	return entries
+}
+
+// filterHeadingJump filters heading jump entries by the current query.
+func (m *Model) filterHeadingJump() []headingJumpEntry {
+	if m.headingJumpInput == "" {
+		return m.headingJumpItems
+	}
+	query := strings.ToLower(m.headingJumpInput)
+	var filtered []headingJumpEntry
+	for _, e := range m.headingJumpItems {
+		if strings.Contains(strings.ToLower(e.Heading), query) ||
+			strings.Contains(strings.ToLower(e.File), query) {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
 }

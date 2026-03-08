@@ -9,7 +9,8 @@ import (
 
 // LinkFollowMsg is sent when the user follows a link.
 type LinkFollowMsg struct {
-	Target string
+	Target   string
+	Fragment string // anchor fragment to scroll to
 }
 
 // LinkSelectMsg is sent when the user picks a link from the overlay.
@@ -92,18 +93,18 @@ func (n *LinkNavigator) BacklinksAt(path string) []index.Link {
 // ShowLinks opens the link selection overlay for the given file.
 // If there is exactly one link, it returns the target directly.
 // Returns the single target or empty string if overlay is shown.
-func (n *LinkNavigator) ShowLinks(path string) string {
+func (n *LinkNavigator) ShowLinks(path string) (target, fragment string) {
 	links := n.graph.ForwardLinks(path)
 	if len(links) == 0 {
-		return ""
+		return "", ""
 	}
 	if len(links) == 1 {
-		return links[0].Target
+		return links[0].Target, links[0].Fragment
 	}
 	n.showing = true
 	n.links = links
 	n.linkCur = 0
-	return ""
+	return "", ""
 }
 
 // IsShowingLinks returns whether the link selection overlay is visible.
@@ -132,15 +133,16 @@ func (n *LinkNavigator) LinkMoveDown() {
 	}
 }
 
-// LinkSelect returns the currently selected link target and closes the overlay.
-func (n *LinkNavigator) LinkSelect() string {
+// LinkSelect returns the currently selected link target and fragment, then closes the overlay.
+func (n *LinkNavigator) LinkSelect() (string, string) {
 	if n.linkCur >= 0 && n.linkCur < len(n.links) {
 		target := n.links[n.linkCur].Target
+		fragment := n.links[n.linkCur].Fragment
 		n.CloseLinks()
-		return target
+		return target, fragment
 	}
 	n.CloseLinks()
-	return ""
+	return "", ""
 }
 
 // LinkOverlayView renders the link selection overlay.
