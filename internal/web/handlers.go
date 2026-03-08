@@ -27,10 +27,11 @@ import (
 
 // Common template data shared by all pages.
 type pageData struct {
-	Title       string
-	Breadcrumbs []breadcrumb
-	GitBranch   string
-	ExtraCSS    template.CSS
+	Title         string
+	Breadcrumbs   []breadcrumb
+	GitBranch     string
+	ExtraCSS      template.CSS
+	CustomCSSPath string
 }
 
 type breadcrumb struct {
@@ -71,6 +72,11 @@ func (s *Server) buildPageData(relPath string) pageData {
 	css, err := s.code.CSS()
 	if err == nil {
 		pd.ExtraCSS = template.CSS(css)
+	}
+
+	// Custom CSS override
+	if s.cfg.Server.CustomCSS != "" {
+		pd.CustomCSSPath = "/__custom.css"
 	}
 
 	return pd

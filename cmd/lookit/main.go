@@ -193,6 +193,29 @@ var exportCmd = &cobra.Command{
 	},
 }
 
+var graphCmd = &cobra.Command{
+	Use:   "graph [path]",
+	Short: "Output link graph in DOT format",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		root, err := resolveRoot(args)
+		if err != nil {
+			return err
+		}
+
+		idx := index.New(root)
+		if err := idx.Build(); err != nil {
+			return fmt.Errorf("building index: %w", err)
+		}
+
+		links := index.NewLinkGraph()
+		links.BuildFromIndex(idx)
+
+		fmt.Print(links.ToDOT())
+		return nil
+	},
+}
+
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check environment and diagnose issues",
@@ -390,6 +413,7 @@ func init() {
 	serveCmd.Flags().IntP("port", "p", 0, "server port")
 	serveCmd.Flags().Bool("open", false, "open browser after starting")
 	serveCmd.Flags().Bool("no-https", false, "disable HTTPS even if certs exist")
+	serveCmd.Flags().String("css", "", "path to custom CSS file")
 
 	exportCmd.Flags().StringP("format", "f", "html", "export format (html|pdf)")
 	exportCmd.Flags().StringP("output", "o", "", "output directory")
@@ -399,6 +423,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(catCmd)
 	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(completionCmd)
@@ -437,6 +462,9 @@ func loadConfig(cmd *cobra.Command, args []string) error {
 		}
 		if open, _ := cmd.Flags().GetBool("open"); open {
 			cfg.Server.Open = true
+		}
+		if css, _ := cmd.Flags().GetString("css"); css != "" {
+			cfg.Server.CustomCSS = css
 		}
 	}
 

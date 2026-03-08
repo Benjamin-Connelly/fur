@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}} - lookit</title>
 <link rel="stylesheet" href="/__static/style.css">
+<link rel="stylesheet" href="/__static/print.css" media="print">
 {{if .ExtraCSS}}<style>{{.ExtraCSS}}</style>{{end}}
+{{if .CustomCSSPath}}<link rel="stylesheet" href="{{.CustomCSSPath}}">{{end}}
 </head>
 <body>
 <header class="topbar">

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -135,8 +136,11 @@ func (s *Server) Start() error {
 		errCh <- s.server.ListenAndServe()
 	}()
 
-	// Open browser if requested
-	if s.cfg.Server.Open {
+	// Open browser if requested, but skip when running over SSH
+	isSSH := os.Getenv("SSH_CLIENT") != "" || os.Getenv("SSH_CONNECTION") != ""
+	if s.cfg.Server.Open && isSSH {
+		fmt.Println("SSH session detected, skipping browser open")
+	} else if s.cfg.Server.Open {
 		url := fmt.Sprintf("http://%s", addr)
 		go func() {
 			// Small delay to let the server start
@@ -161,6 +165,38 @@ func (s *Server) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return s.server.Shutdown(ctx)
+}
+
+// handleCustomCSS serves the user-specified custom CSS file.
+func (s *Server) handleCustomCSS(w http.ResponseWriter, r *http.Request) {
+	cssPath := s.cfg.Server.CustomCSS
+	if cssPath == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Resolve relative paths against the served root
+	if !filepath.IsAbs(cssPath) {
+		cssPath = filepath.Join(s.idx.Root(), cssPath)
+	}
+
+	// Ensure the resolved path doesn't escape expected directories
+	resolved, err := filepath.EvalSymlinks(cssPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_ = resolved
+
+	data, err := os.ReadFile(cssPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/css; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(data)
 }
 
 // middleware chains security headers, request logging, and ETag support.
@@ -242,6 +278,11 @@ func (s *Server) registerRoutes() {
 		log.Fatalf("failed to create static sub-filesystem: %v", err)
 	}
 	s.mux.Handle("/__static/", http.StripPrefix("/__static/", http.FileServer(http.FS(staticFS))))
+
+	// Custom CSS override route
+	if s.cfg.Server.CustomCSS != "" {
+		s.mux.HandleFunc("/__custom.css", s.handleCustomCSS)
+	}
 
 	// API routes
 	s.mux.HandleFunc("/__api/files", s.handleAPIFiles)

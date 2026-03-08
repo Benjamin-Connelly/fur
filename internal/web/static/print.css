@@ -1,0 +1,78 @@
+@media print {
+  /* Hide navigation, search, and interactive elements */
+  .topbar,
+  .search-overlay,
+  #theme-toggle,
+  #search-toggle,
+  .markdown-sidebar {
+    display: none !important;
+  }
+
+  /* Full-width content */
+  main {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .markdown-view {
+    display: block;
+  }
+
+  /* Black on white for readability and ink savings */
+  body {
+    color: #000;
+    background: #fff;
+    font-size: 12pt;
+  }
+
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  /* Show link URLs in parentheses after the link text */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #555;
+  }
+  /* Skip anchors and internal navigation links */
+  a[href^="#"]::after,
+  a[href^="javascript"]::after {
+    content: "";
+  }
+
+  /* Code blocks */
+  .markdown-body pre,
+  .code-body pre {
+    border: 1px solid #ccc;
+    background: #f8f8f8;
+    page-break-inside: avoid;
+  }
+
+  .markdown-body code {
+    background: #f0f0f0;
+  }
+
+  /* Tables */
+  .markdown-body th,
+  .markdown-body td {
+    border-color: #999;
+  }
+
+  .markdown-body blockquote {
+    border-left-color: #999;
+    color: #333;
+    background: none;
+  }
+
+  /* Avoid page breaks inside key elements */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+
+  pre, table, blockquote, img {
+    page-break-inside: avoid;
+  }
+}

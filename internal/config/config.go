@@ -45,10 +45,11 @@ type Config struct {
 
 // ServerConfig holds web server settings.
 type ServerConfig struct {
-	Port    int    `mapstructure:"port"`
-	Host    string `mapstructure:"host"`
-	NoHTTPS bool   `mapstructure:"no_https"`
-	Open    bool   `mapstructure:"open"`
+	Port      int    `mapstructure:"port"`
+	Host      string `mapstructure:"host"`
+	NoHTTPS   bool   `mapstructure:"no_https"`
+	Open      bool   `mapstructure:"open"`
+	CustomCSS string `mapstructure:"custom_css"`
 }
 
 // GitConfig holds git integration settings.
