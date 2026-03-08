@@ -206,6 +206,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case PreviewLoadedMsg:
 		m.preview.SetContent(msg.Path, msg.Content)
 		m.status.SetFile(msg.Path)
+		m.status.wordCount = 0
+		m.status.readingTime = 0
 		m.buildPreviewLinks()
 		return m, nil
 
@@ -225,6 +227,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.preview.SetContent(msg.preview.Path, msg.preview.Content)
 		m.status.SetFile(msg.preview.Path)
 		m.currentRawSource = msg.rawSource
+		// Word count + reading time (avg 200 wpm)
+		words := len(strings.Fields(msg.rawSource))
+		m.status.wordCount = words
+		m.status.readingTime = (words + 199) / 200
+		if m.status.readingTime < 1 {
+			m.status.readingTime = 1
+		}
 		m.buildPreviewLinks()
 		// Update TOC if panel is open
 		if m.sidePanel.Type() == PanelTOC {
@@ -1244,36 +1253,11 @@ func (m *Model) View() string {
 		return "Loading..."
 	}
 
-	// Width budget: total must equal m.width exactly.
-	// Each BorderRight border costs 1 column.
-	// Layout: [listWidth]|[previewWidth]  or  [listWidth]|[previewWidth]|[panelWidth]
-	//         border=1                        borders=2
-	borders := 1
-	panelWidth := 0
-	contentHeight := m.height - 1
-
-	if m.sidePanel.Visible() {
-		borders = 2
-	}
-
-	available := m.width - borders
-	listWidth := available / 5
-	if listWidth < 20 {
-		listWidth = 20
-	}
-
-	if m.sidePanel.Visible() {
-		panelWidth = (available - listWidth) / 4
-		if panelWidth < 25 {
-			panelWidth = 25
-		}
-	}
-
-	previewWidth := available - listWidth - panelWidth
-
 	accentColor := lipgloss.Color("62")  // bright blue-purple for focused
 	dimColor := lipgloss.Color("240")    // gray for unfocused
 	borderColor := lipgloss.Color("237") // subtle separator
+
+	contentHeight := m.height - 1
 
 	// Pane label helper
 	paneLabel := func(name string, focused bool, width int) string {
@@ -1293,12 +1277,7 @@ func (m *Model) View() string {
 
 	bodyHeight := contentHeight - 1 // 1 row for label
 
-	// Vertical separator: one column of │ characters for the full height
-	sepStyle := lipgloss.NewStyle().Foreground(borderColor)
-	sep := sepStyle.Render(strings.Repeat("│\n", contentHeight-1) + "│")
-
 	// Build each pane as label + body, hard-clipped to exact dimensions.
-	// MaxWidth+MaxHeight ensure content never overflows the budget.
 	buildPane := func(label, content string, width, height int) string {
 		body := lipgloss.NewStyle().
 			Width(width).
@@ -1309,41 +1288,91 @@ func (m *Model) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left, label, body)
 	}
 
-	// File list pane
-	listFocused := m.focus == PanelFileList || m.fileList.filtering
-	listLabel := paneLabel("FILES", listFocused, listWidth)
-	listContent := m.fileList.View()
-	left := buildPane(listLabel, listContent, listWidth, bodyHeight)
-
-	// Preview pane
-	previewFocused := m.focus == PanelPreview
-	previewTitle := m.preview.filePath
-	if previewTitle == "" {
-		previewTitle = "PREVIEW"
-	}
-	previewLabel := paneLabel(previewTitle, previewFocused, previewWidth)
-	previewContent := m.preview.View()
-	if m.navigator.IsShowingLinks() {
-		overlay := m.navigator.LinkOverlayView()
-		previewContent = overlay + "\n" + strings.Repeat("─", 20) + "\n" + previewContent
-	}
+	// Narrow mode: <100 cols, show only the focused panel
+	narrow := m.width < 100
 
 	var main string
-	if m.sidePanel.Visible() {
-		right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
-
-		// Side panel
-		sideFocused := m.focus == PanelSide
-		sideName := m.sidePanel.TypeName()
-		sideLabel := paneLabel(sideName, sideFocused, panelWidth)
-		sideContent := m.sidePanel.View()
-		side := buildPane(sideLabel, sideContent, panelWidth, bodyHeight)
-
-		main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right, sep, side)
+	if narrow {
+		w := m.width
+		switch m.focus {
+		case PanelFileList:
+			label := paneLabel("FILES", true, w)
+			main = buildPane(label, m.fileList.View(), w, bodyHeight)
+		case PanelSide:
+			label := paneLabel(m.sidePanel.TypeName(), true, w)
+			main = buildPane(label, m.sidePanel.View(), w, bodyHeight)
+		default:
+			title := m.preview.filePath
+			if title == "" {
+				title = "PREVIEW"
+			}
+			label := paneLabel(title, true, w)
+			content := m.preview.View()
+			if m.navigator.IsShowingLinks() {
+				overlay := m.navigator.LinkOverlayView()
+				content = overlay + "\n" + strings.Repeat("─", 20) + "\n" + content
+			}
+			main = buildPane(label, content, w, bodyHeight)
+		}
 	} else {
-		right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+		// Normal split-pane layout
+		borders := 1
+		panelWidth := 0
 
-		main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
+		if m.sidePanel.Visible() {
+			borders = 2
+		}
+
+		available := m.width - borders
+		listWidth := available / 5
+		if listWidth < 20 {
+			listWidth = 20
+		}
+
+		if m.sidePanel.Visible() {
+			panelWidth = (available - listWidth) / 4
+			if panelWidth < 25 {
+				panelWidth = 25
+			}
+		}
+
+		previewWidth := available - listWidth - panelWidth
+
+		// Vertical separator
+		sepStyle := lipgloss.NewStyle().Foreground(borderColor)
+		sep := sepStyle.Render(strings.Repeat("│\n", contentHeight-1) + "│")
+
+		// File list pane
+		listFocused := m.focus == PanelFileList || m.fileList.filtering
+		listLabel := paneLabel("FILES", listFocused, listWidth)
+		left := buildPane(listLabel, m.fileList.View(), listWidth, bodyHeight)
+
+		// Preview pane
+		previewFocused := m.focus == PanelPreview
+		previewTitle := m.preview.filePath
+		if previewTitle == "" {
+			previewTitle = "PREVIEW"
+		}
+		previewLabel := paneLabel(previewTitle, previewFocused, previewWidth)
+		previewContent := m.preview.View()
+		if m.navigator.IsShowingLinks() {
+			overlay := m.navigator.LinkOverlayView()
+			previewContent = overlay + "\n" + strings.Repeat("─", 20) + "\n" + previewContent
+		}
+
+		if m.sidePanel.Visible() {
+			right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+
+			sideFocused := m.focus == PanelSide
+			sideName := m.sidePanel.TypeName()
+			sideLabel := paneLabel(sideName, sideFocused, panelWidth)
+			side := buildPane(sideLabel, m.sidePanel.View(), panelWidth, bodyHeight)
+
+			main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right, sep, side)
+		} else {
+			right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+			main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
+		}
 	}
 
 	cmdView := m.cmdPalette.View()

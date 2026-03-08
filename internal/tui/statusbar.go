@@ -21,6 +21,8 @@ type StatusBarModel struct {
 	searchMode       bool
 	searchQuery      string
 	searchMatchCount int
+	wordCount        int
+	readingTime      int // minutes
 	width            int
 }
 
@@ -100,6 +102,9 @@ func (m StatusBarModel) View() string {
 	var middle string
 	if m.filePath != "" {
 		middle = " " + m.filePath
+		if m.wordCount > 0 {
+			middle += fmt.Sprintf("  %dw ~%dm", m.wordCount, m.readingTime)
+		}
 	}
 
 	right := ""

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,6 +33,27 @@ link navigation with history, backlinks, and broken link detection.`,
 	Args:              cobra.MaximumNArgs(1),
 	PersistentPreRunE: loadConfig,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Detect piped stdin: render markdown and exit
+		if stdinInfo, _ := os.Stdin.Stat(); stdinInfo != nil && stdinInfo.Mode()&os.ModeCharDevice == 0 {
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("reading stdin: %w", err)
+			}
+			if len(data) == 0 {
+				return nil
+			}
+			mdRenderer, err := render.NewMarkdownRenderer(cfg.Theme, 80)
+			if err != nil {
+				return fmt.Errorf("creating renderer: %w", err)
+			}
+			out, err := mdRenderer.Render(string(data))
+			if err != nil {
+				return fmt.Errorf("rendering: %w", err)
+			}
+			fmt.Print(out)
+			return nil
+		}
+
 		root, err := resolveRoot(args)
 		if err != nil {
 			return err
