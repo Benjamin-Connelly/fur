@@ -24,6 +24,11 @@ type StatusBarModel struct {
 	wordCount        int
 	readingTime      int // minutes
 	width            int
+
+	// Remote connection state
+	remoteDisplay string // e.g. "user@host:/path"
+	remoteState   string // "Connected", "Reconnecting", etc.
+	lastSync      string // e.g. "5s ago"
 }
 
 // NewStatusBarModel creates a status bar.
@@ -100,7 +105,24 @@ func (m StatusBarModel) View() string {
 	modeStr := modeStyle.Render(m.mode)
 
 	var middle string
-	if m.filePath != "" {
+	if m.remoteDisplay != "" {
+		connStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("235")).
+			Foreground(lipgloss.Color("70"))
+		if m.remoteState == "Reconnecting" || m.remoteState == "Disconnected" {
+			connStyle = connStyle.Foreground(lipgloss.Color("203"))
+		}
+		middle = " " + m.remoteDisplay
+		if m.remoteState != "" {
+			middle += "  " + connStyle.Render(m.remoteState)
+		}
+		if m.lastSync != "" {
+			middle += "  " + m.lastSync
+		}
+		if m.filePath != "" {
+			middle += "  " + m.filePath
+		}
+	} else if m.filePath != "" {
 		middle = " " + m.filePath
 		if m.wordCount > 0 {
 			middle += fmt.Sprintf("  %dw ~%dm", m.wordCount, m.readingTime)

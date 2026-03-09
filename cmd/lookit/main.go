@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -17,6 +18,7 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/doctor"
 	"github.com/Benjamin-Connelly/lookit/internal/export"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/lookit/internal/remote"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
 	"github.com/Benjamin-Connelly/lookit/internal/tui"
 	"github.com/Benjamin-Connelly/lookit/internal/web"
@@ -32,7 +34,12 @@ var rootCmd = &cobra.Command{
 	Version: version,
 	Long: `Lookit is a dual-mode markdown navigator that provides both TUI and web
 interfaces for browsing code, markdown, and files. Features inter-document
-link navigation with history, backlinks, and broken link detection.`,
+link navigation with history, backlinks, and broken link detection.
+
+Supports browsing remote files over SSH:
+  lookit myhost:/path/to/docs
+  lookit user@host:/path
+  lookit --remote myhost /path`,
 	Args:              cobra.MaximumNArgs(1),
 	PersistentPreRunE: loadConfig,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,6 +62,23 @@ link navigation with history, backlinks, and broken link detection.`,
 			}
 			fmt.Print(out)
 			return nil
+		}
+
+		// Check for remote path (host:/path syntax or --remote flag)
+		if remoteHost, _ := cmd.Flags().GetString("remote"); remoteHost != "" {
+			remotePath := "."
+			if len(args) > 0 {
+				remotePath = args[0]
+			}
+			remotePort, _ := cmd.Flags().GetInt("remote-port")
+			target := &remote.Target{Host: remoteHost, Path: remotePath, Port: remotePort}
+			return runRemote(target)
+		}
+		if len(args) > 0 {
+			target := resolveRemoteTarget(args[0])
+			if target != nil {
+				return runRemote(target)
+			}
 		}
 
 		root, err := resolveRoot(args)
@@ -476,6 +500,8 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-color", false, "disable colors (ascii theme)")
 
 	rootCmd.Flags().String("keymap", "", "keybinding preset (default|vim|emacs)")
+	rootCmd.Flags().String("remote", "", "remote host (SSH config alias or user@host)")
+	rootCmd.Flags().Int("remote-port", 0, "remote SSH port (default: from ssh config or 22)")
 
 	serveCmd.Flags().IntP("port", "p", 0, "server port")
 	serveCmd.Flags().Bool("open", false, "open browser after starting")
@@ -555,6 +581,143 @@ func resolveRoot(args []string) (string, error) {
 		return "", fmt.Errorf("root path %q is not a directory", absRoot)
 	}
 	return absRoot, nil
+}
+
+// resolveRemoteTarget checks if the arg is a remote path spec or a named
+// remote from config. Returns nil if the arg is a local path.
+func resolveRemoteTarget(arg string) *remote.Target {
+	// Try SCP-style parsing first (host:/path)
+	if target := remote.ParseTarget(arg); target != nil {
+		return target
+	}
+
+	// Check named remotes in config (e.g. @docs)
+	if strings.HasPrefix(arg, "@") && cfg.Remotes != nil {
+		name := arg[1:]
+		if rc, ok := cfg.Remotes[name]; ok {
+			return &remote.Target{
+				Host: rc.Host,
+				User: rc.User,
+				Port: rc.Port,
+				Path: rc.Path,
+			}
+		}
+	}
+
+	return nil
+}
+
+// runRemote handles the full lifecycle of browsing a remote host.
+func runRemote(target *remote.Target) error {
+	// Check minimum terminal size
+	if w, h, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
+		if w < 80 || h < 24 {
+			return fmt.Errorf("terminal too small (%dx%d). Lookit requires at least 80x24", w, h)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "Connecting to %s...\n", target.Display())
+
+	// Establish SSH connection
+	conn := remote.NewConn(*target)
+	if err := conn.Connect(); err != nil {
+		return fmt.Errorf("connecting to %s: %w", target.Display(), err)
+	}
+	defer conn.Close()
+
+	fmt.Fprintf(os.Stderr, "Connected. Syncing files...\n")
+
+	// Set up local cache
+	cacheDir, err := remote.CachePath(*target)
+	if err != nil {
+		return fmt.Errorf("cache path: %w", err)
+	}
+
+	// Sync remote files to local cache
+	syncer := remote.NewSyncer(conn, cacheDir)
+	if err := syncer.InitialSync(); err != nil {
+		return fmt.Errorf("initial sync from %s: %w", target.Display(), err)
+	}
+
+	fmt.Fprintf(os.Stderr, "Sync complete. Starting TUI...\n")
+
+	// Build index from cached files
+	idx := index.New(syncer.CacheDir())
+	if err := idx.Build(); err != nil {
+		return fmt.Errorf("building index: %w", err)
+	}
+
+	// Build fulltext search index
+	fulltextDir, _ := os.UserCacheDir()
+	if fulltextDir != "" {
+		fulltextDir = filepath.Join(fulltextDir, "lookit")
+	}
+	if err := idx.BuildFulltext(fulltextDir); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: fulltext index unavailable: %v\n", err)
+	}
+	defer idx.CloseFulltext()
+
+	links := index.NewLinkGraph()
+	links.BuildFromIndex(idx)
+
+	// Set up file watcher on local cache (catches sync updates)
+	watcher, err := index.NewWatcher(idx, links, nil)
+	if err != nil {
+		return fmt.Errorf("starting watcher: %w", err)
+	}
+	defer watcher.Close()
+	if err := watcher.Start(); err != nil {
+		return fmt.Errorf("watching files: %w", err)
+	}
+
+	// Start background polling for remote changes
+	syncer.SetOnChange(func() {
+		// Watcher will pick up changes via fsnotify on the cache dir
+	})
+	syncer.StartPolling()
+	defer syncer.Stop()
+
+	// Create TUI with remote info
+	model := tui.New(cfg, idx, links)
+	model.SetRemoteInfo(&tui.RemoteInfo{
+		Display: target.Display(),
+		State:   conn.State().String(),
+	})
+
+	// Start a goroutine to update remote status periodically
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				status := syncer.Status()
+				elapsed := time.Since(status.LastSync).Truncate(time.Second)
+				syncText := ""
+				switch status.State {
+				case remote.SyncRunning:
+					syncText = "syncing..."
+				default:
+					if !status.LastSync.IsZero() {
+						syncText = fmt.Sprintf("synced %s ago", elapsed)
+					}
+				}
+				model.SetRemoteInfo(&tui.RemoteInfo{
+					Display:  target.Display(),
+					State:    conn.State().String(),
+					LastSync: syncText,
+				})
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	_, err = p.Run()
+	return err
 }
 
 func main() {

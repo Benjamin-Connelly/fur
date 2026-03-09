@@ -41,6 +41,17 @@ type Config struct {
 
 	// Debug enables verbose logging
 	Debug bool `mapstructure:"debug"`
+
+	// Remote holds named remote host configurations
+	Remotes map[string]RemoteConfig `mapstructure:"remotes"`
+}
+
+// RemoteConfig defines a named remote host for SSH browsing.
+type RemoteConfig struct {
+	Host string `mapstructure:"host"`
+	User string `mapstructure:"user"`
+	Port int    `mapstructure:"port"`
+	Path string `mapstructure:"path"`
 }
 
 // ServerConfig holds web server settings.
