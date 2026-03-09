@@ -45,6 +45,7 @@ type Conn struct {
 	target    Target
 	sshClient *ssh.Client
 	sftp      *sftp.Client
+	sshCfg   *ssh_config.Config // parsed ~/.ssh/config
 
 	state     ConnState
 	lastError error
@@ -58,9 +59,41 @@ type Conn struct {
 func NewConn(target Target) *Conn {
 	return &Conn{
 		target:    target,
+		sshCfg:   loadSSHConfig(),
 		done:      make(chan struct{}),
 		keepalive: 30 * time.Second,
 	}
+}
+
+// loadSSHConfig reads and parses ~/.ssh/config. Returns nil on failure.
+func loadSSHConfig() *ssh_config.Config {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	f, err := os.Open(filepath.Join(home, ".ssh", "config"))
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	cfg, err := ssh_config.Decode(f)
+	if err != nil {
+		return nil
+	}
+	return cfg
+}
+
+// configGet looks up a key for the target host in the parsed SSH config.
+// Returns empty string if config is nil or key not found.
+func (c *Conn) configGet(key string) string {
+	if c.sshCfg == nil {
+		return ""
+	}
+	val, err := c.sshCfg.Get(c.target.Host, key)
+	if err != nil {
+		return ""
+	}
+	return val
 }
 
 // Connect establishes the SSH and SFTP connections.
@@ -108,8 +141,55 @@ func (c *Conn) Connect() error {
 	c.lastError = nil
 	c.mu.Unlock()
 
+	// Resolve ~ in remote path using SFTP home directory
+	if err := c.resolveRemotePath(); err != nil {
+		sftpClient.Close()
+		sshClient.Close()
+		c.mu.Lock()
+		c.state = ConnDisconnected
+		c.lastError = err
+		c.mu.Unlock()
+		return fmt.Errorf("resolving remote path: %w", err)
+	}
+
 	go c.keepaliveLoop()
 
+	return nil
+}
+
+// resolveRemotePath expands ~ and relative paths using SFTP RealPath.
+func (c *Conn) resolveRemotePath() error {
+	path := c.target.Path
+	if path == "" || path == "." {
+		// Default to home directory
+		home, err := c.sftp.RealPath(".")
+		if err != nil {
+			return fmt.Errorf("getting remote home: %w", err)
+		}
+		c.target.Path = home
+		return nil
+	}
+
+	if len(path) >= 2 && path[0] == '~' && path[1] == '/' {
+		// ~/foo → /home/user/foo
+		home, err := c.sftp.RealPath(".")
+		if err != nil {
+			return fmt.Errorf("getting remote home: %w", err)
+		}
+		c.target.Path = home + path[1:]
+		return nil
+	}
+
+	if path == "~" {
+		home, err := c.sftp.RealPath(".")
+		if err != nil {
+			return fmt.Errorf("getting remote home: %w", err)
+		}
+		c.target.Path = home
+		return nil
+	}
+
+	// Absolute paths stay as-is
 	return nil
 }
 
@@ -252,11 +332,9 @@ func (c *Conn) resolveUser() string {
 	if c.target.User != "" {
 		return c.target.User
 	}
-	// Check SSH config
-	if u := ssh_config.Get(c.target.Host, "User"); u != "" {
+	if u := c.configGet("User"); u != "" {
 		return u
 	}
-	// Fall back to current OS user
 	if u, err := user.Current(); err == nil {
 		return u.Username
 	}
@@ -264,7 +342,7 @@ func (c *Conn) resolveUser() string {
 }
 
 func (c *Conn) resolveHost() string {
-	if h := ssh_config.Get(c.target.Host, "Hostname"); h != "" {
+	if h := c.configGet("Hostname"); h != "" {
 		return h
 	}
 	return c.target.Host
@@ -274,7 +352,7 @@ func (c *Conn) resolvePort() int {
 	if c.target.Port != 0 {
 		return c.target.Port
 	}
-	if p := ssh_config.Get(c.target.Host, "Port"); p != "" {
+	if p := c.configGet("Port"); p != "" {
 		var port int
 		fmt.Sscanf(p, "%d", &port)
 		if port != 0 {
@@ -305,7 +383,7 @@ func (c *Conn) keyAuth() ssh.AuthMethod {
 
 	// Check SSH config for IdentityFile
 	var keyPaths []string
-	if idFile := ssh_config.Get(c.target.Host, "IdentityFile"); idFile != "" && idFile != "~/.ssh/identity" {
+	if idFile := c.configGet("IdentityFile"); idFile != "" && idFile != "~/.ssh/identity" {
 		// Expand ~ in path
 		if len(idFile) > 0 && idFile[0] == '~' {
 			idFile = filepath.Join(home, idFile[1:])

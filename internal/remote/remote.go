@@ -77,10 +77,16 @@ func ParseTarget(s string) *Target {
 		return nil
 	}
 
+	path := m[4]
+	// Reject paths that are just punctuation artifacts (e.g. "host::" → path=":")
+	if path == ":" || path == "" {
+		return nil
+	}
+
 	t := &Target{
 		User: m[1],
 		Host: m[2],
-		Path: m[4],
+		Path: path,
 	}
 
 	// Parse optional port

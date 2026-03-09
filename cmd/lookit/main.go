@@ -625,10 +625,13 @@ func runRemote(target *remote.Target) error {
 	}
 	defer conn.Close()
 
-	fmt.Fprintf(os.Stderr, "Connected. Syncing files...\n")
+	// Use the resolved target (~ expanded, relative paths resolved)
+	resolved := conn.Target()
+
+	fmt.Fprintf(os.Stderr, "Connected to %s. Syncing files...\n", resolved.Display())
 
 	// Set up local cache
-	cacheDir, err := remote.CachePath(*target)
+	cacheDir, err := remote.CachePath(resolved)
 	if err != nil {
 		return fmt.Errorf("cache path: %w", err)
 	}
@@ -636,7 +639,7 @@ func runRemote(target *remote.Target) error {
 	// Sync remote files to local cache
 	syncer := remote.NewSyncer(conn, cacheDir)
 	if err := syncer.InitialSync(); err != nil {
-		return fmt.Errorf("initial sync from %s: %w", target.Display(), err)
+		return fmt.Errorf("initial sync from %s: %w", resolved.Display(), err)
 	}
 
 	fmt.Fprintf(os.Stderr, "Sync complete. Starting TUI...\n")
@@ -680,7 +683,7 @@ func runRemote(target *remote.Target) error {
 	// Create TUI with remote info
 	model := tui.New(cfg, idx, links)
 	model.SetRemoteInfo(&tui.RemoteInfo{
-		Display: target.Display(),
+		Display: resolved.Display(),
 		State:   conn.State().String(),
 	})
 
@@ -705,7 +708,7 @@ func runRemote(target *remote.Target) error {
 					}
 				}
 				model.SetRemoteInfo(&tui.RemoteInfo{
-					Display:  target.Display(),
+					Display:  resolved.Display(),
 					State:    conn.State().String(),
 					LastSync: syncText,
 				})
