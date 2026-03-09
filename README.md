@@ -26,6 +26,7 @@ Requires Go 1.24+. Pure Go, no CGO — cross-compiles to linux/darwin on amd64/a
 ```bash
 lookit                          # TUI mode — browse current directory
 lookit ~/docs                   # TUI mode — browse specific directory
+lookit myhost:~/docs            # SSH remote — browse files on a remote host
 lookit serve                    # Web mode — localhost:7777
 lookit serve --port 3000 --open # Web mode — custom port, auto-open browser
 lookit cat README.md            # Render markdown to terminal
@@ -38,6 +39,7 @@ lookit doctor                   # Environment diagnostics
 | Feature | `glow` | `mdcat` | `frogmouth` | **lookit** |
 |---------|:------:|:-------:|:-----------:|:----------:|
 | TUI file browser | Stash only | No | Single-pane | **Split-pane tree + preview** |
+| SSH remote browsing | No | No | No | **`host:/path` — browse remote docs** |
 | Full-text search | No | No | No | **Bleve BM25 index** |
 | Inter-document links | No | No | No | **History, backlinks, `[[wikilinks]]`** |
 | Broken link detection | No | No | No | **Files + `#heading` anchors** |
@@ -91,6 +93,32 @@ Lightweight HTTP server with live reload.
 - **Themes** — light/dark toggle, CSS custom properties
 - **Security headers** — CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy
 - **ETag caching** — MD5-based for HTML, size+mtime for static
+
+### SSH Remote Browsing
+
+Browse files on remote hosts over SSH — no installation required on the remote machine.
+
+```bash
+lookit myhost:~/docs                # SSH config alias with ~ expansion
+lookit user@192.168.1.50:/var/docs  # Explicit user and IP
+lookit --remote myhost ~/docs       # Flag-style alternative
+lookit @docs                        # Named remote from config
+```
+
+- **Zero remote setup** — uses SFTP, nothing to install on the server
+- **SSH config support** — respects `~/.ssh/config` (Host aliases, Hostname, User, Port, IdentityFile)
+- **Auth chain** — ssh-agent → key files → SSH config (TOFU for unknown host keys)
+- **Sync/cache model** — files cached locally at `~/.cache/lookit/remote/`, polled every 15s for changes
+- **Status bar** — shows connection state (Connected/Reconnecting/Disconnected) and last sync time
+- **Auto-reconnect** — exponential backoff on connection loss
+- **Named remotes** — configure aliases in `config.yaml`:
+  ```yaml
+  remotes:
+    docs:
+      host: myserver
+      user: deploy
+      path: /home/deploy/docs
+  ```
 
 ### Shared
 
@@ -185,6 +213,10 @@ Lightweight HTTP server with live reload.
 
 ```
 lookit [path]                    # TUI mode (default)
+lookit host:/path                # SSH remote (SCP-style)
+lookit @alias                    # Named remote from config
+  --remote <host>                # Remote host (SSH config alias or user@host)
+  --remote-port <port>           # Remote SSH port
   --keymap vim|emacs|default     # Keybinding preset
   --theme dark|light|auto|ascii  # Color theme
   --no-color                     # Alias for --theme ascii
@@ -231,6 +263,12 @@ git:
 ignore:
   - "*.tmp"
   - "vendor/"
+
+remotes:                # Named remote hosts for SSH browsing
+  docs:
+    host: myserver      # SSH config alias or hostname
+    user: deploy        # SSH user (optional)
+    path: /home/deploy/docs
 ```
 
 **Per-project config:** Place `.lookit.toml` or `.lookit.yaml` in your project root. Lookit walks up from the current directory and merges the first one found over the global config.
@@ -297,6 +335,12 @@ Lookit exists because generous people write extraordinary software and give it a
 **Visualization**
 - [D3.js](https://d3js.org) — the gold standard for data visualization on the web
 - [Mermaid](https://mermaid.js.org) — diagrams from text, rendered beautifully in the browser
+
+**SSH & Networking**
+- [x/crypto/ssh](https://pkg.go.dev/golang.org/x/crypto/ssh) — pure Go SSH client from the Go team
+- [sftp](https://github.com/pkg/sftp) — SFTP client that makes remote file access feel local
+- [ssh_config](https://github.com/kevinburke/ssh_config) — OpenSSH config parser (maintained by Tailscale)
+- [knownhosts](https://github.com/skeema/knownhosts) — SSH host key verification with known_hosts support
 
 **Utilities**
 - [clipboard](https://github.com/atotto/clipboard) — cross-platform clipboard access
