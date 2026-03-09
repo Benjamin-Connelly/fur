@@ -47,6 +47,10 @@ internal/
   git/
     git.go                      # go-git: repo, status, branches, log, remotes
     permalink.go                # URL generation (GitHub/GitLab/Bitbucket/Gitea/Codeberg)
+  remote/
+    remote.go                   # SCP-style path parsing, Target type
+    conn.go                     # SSH connection (ssh-agent, key files, ~/.ssh/config)
+    sync.go                     # SFTP sync/cache with periodic polling
   export/export.go              # Markdown → HTML with Chroma highlighting
   doctor/doctor.go              # 8 environment checks with colored output
   plugin/plugin.go              # YAML hook system (prepend/append/replace)
@@ -84,6 +88,12 @@ go build -o lookit ./cmd/lookit
 ./lookit serve [path]
 ./lookit serve --port 3000 --open
 
+# Remote browsing (SSH)
+./lookit myhost:/path/to/docs       # SCP-style remote path
+./lookit user@host:/path            # with explicit user
+./lookit --remote myhost /path      # flag-style alternative
+./lookit @docs                      # named remote from config
+
 # Utilities
 ./lookit cat README.md              # render markdown to terminal
 ./lookit export --format html       # export markdown to HTML
@@ -117,3 +127,6 @@ GOOS=darwin GOARCH=arm64 go build -o lookit-darwin-arm64 ./cmd/lookit
 - Permalink generation detects forge style from remote URL (GitHub/GitLab/Bitbucket/Gitea/Codeberg).
 - Plugin hooks loaded from `~/.config/lookit/plugins/*.yaml`.
 - Task extraction recognizes `!high`/`!medium`/`!low` priority, `#tag`, `@due(YYYY-MM-DD)`.
+- Remote mode caches files to `~/.cache/lookit/remote/<hash>/`. Git features disabled for remote.
+- SSH auth: ssh-agent → key files → ~/.ssh/config. TOFU for unknown host keys.
+- Remote polling interval: 15 seconds. No real-time change notification (SFTP limitation).

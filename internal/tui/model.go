@@ -103,6 +103,16 @@ type Model struct {
 	marks        map[rune]mark
 	pendingMark  bool // waiting for mark register key
 	pendingJump  bool // waiting for jump register key
+
+	// Remote connection state (nil = local mode)
+	remoteInfo *RemoteInfo
+}
+
+// RemoteInfo holds remote connection display state for the TUI.
+type RemoteInfo struct {
+	Display  string // "user@host:/path"
+	State    string // "Connected", "Reconnecting", "Disconnected"
+	LastSync string // "5s ago", "syncing..."
 }
 
 // mark records a position for vim-style marks.
@@ -169,6 +179,12 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 		imageRenderer:   NewImageRenderer(),
 		searchMode:      "filename",
 	}
+}
+
+// SetRemoteInfo updates the remote connection display state.
+// Safe to call from any goroutine.
+func (m *Model) SetRemoteInfo(info *RemoteInfo) {
+	m.remoteInfo = info
 }
 
 // Init implements tea.Model.
@@ -1609,6 +1625,11 @@ func (m *Model) View() string {
 	m.status.width = m.width
 	m.status.focus = m.focus
 	m.status.showingHelp = m.showingHelp
+	if m.remoteInfo != nil {
+		m.status.remoteDisplay = m.remoteInfo.Display
+		m.status.remoteState = m.remoteInfo.State
+		m.status.lastSync = m.remoteInfo.LastSync
+	}
 	m.status.visualMode = m.preview.visualMode
 	if m.preview.visualMode {
 		s, e := m.preview.SelectedSourceLines()
