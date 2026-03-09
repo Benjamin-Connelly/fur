@@ -1,7 +1,0 @@
-# Test .gitignore patterns
-*.log
-node_modules/
-.env
-temp/
-build/
-*.tmp
