@@ -1,6 +1,6 @@
 module github.com/Benjamin-Connelly/lookit
 
-go 1.25.0
+go 1.26.1
 
 require (
 	github.com/alecthomas/chroma/v2 v2.23.1
