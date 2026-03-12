@@ -48,9 +48,10 @@ func (t Target) Display() string {
 }
 
 // scpPattern matches SCP-style remote paths:
-//   user@host:/path
-//   host:/path
-//   user@host:port:/path
+//
+//	user@host:/path
+//	host:/path
+//	user@host:port:/path
 var scpPattern = regexp.MustCompile(`^(?:([^@:]+)@)?([^:]+):(\d+:)?(.+)$`)
 
 // ParseTarget parses an SCP-style remote path specification.

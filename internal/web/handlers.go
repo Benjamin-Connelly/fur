@@ -611,7 +611,7 @@ func gitStatusLabel(fs gitpkg.FileStatus) (label, class string) {
 	if code == ' ' {
 		code = fs.Staging
 	}
-	switch gitpkg.StatusCode(code) {
+	switch code {
 	case gitpkg.Modified:
 		return "M", "modified"
 	case gitpkg.Added:

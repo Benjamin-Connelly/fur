@@ -1,0 +1,108 @@
+version: "2"
+formatters:
+  enable:
+    - gofmt
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errcheck
+    - errname
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+  disable:
+    - goconst
+    - prealloc
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+    gosec:
+      excludes:
+        - G104
+        - G115
+        - G203
+        - G204
+        - G301
+        - G302
+        - G304
+        - G306
+        - G401
+        - G501
+        - G702
+        - G703
+        - G704
+        - G706
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - unparam
+          - staticcheck
+      - text: "Error return value of .*.Close"
+        linters:
+          - errcheck
+      - text: "Error return value of .*.Install"
+        linters:
+          - errcheck
+      - text: "Error return value of .*.WriteTo"
+        linters:
+          - errcheck
+      - text: "Error return value of .*.Write\\b"
+        linters:
+          - errcheck
+      - text: "Error return value of .*.Encode"
+        linters:
+          - errcheck
+      - text: "Error return value of .*.Reconnect"
+        linters:
+          - errcheck
+      - text: "Error return value of .*os.Chtimes"
+        linters:
+          - errcheck
+      - text: "Error return value of .*os.Remove"
+        linters:
+          - errcheck
+      - text: "Error return value of .*os.RemoveAll"
+        linters:
+          - errcheck
+      - text: "Error return value of .*os.MkdirAll"
+        linters:
+          - errcheck
+      - text: "Error return value of .*fmt.Sscanf"
+        linters:
+          - errcheck
+      - text: "Error return value of .*fmt.Fprintf"
+        linters:
+          - errcheck
+      - text: "is deprecated"
+        linters:
+          - staticcheck
+      - text: "is unused"
+        path: internal/web/handlers\.go
+        linters:
+          - unparam
+      - text: "is unused"
+        path: internal/tui/model\.go
+        linters:
+          - unparam
+      - text: "is unused"
+        path: internal/index/links\.go
+        linters:
+          - unparam
+    paths:
+      - internal/web/static
+      - internal/web/templates

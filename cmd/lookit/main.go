@@ -15,10 +15,10 @@ import (
 	"golang.org/x/term"
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
-	"github.com/Benjamin-Connelly/lookit/internal/manpages"
 	"github.com/Benjamin-Connelly/lookit/internal/doctor"
 	"github.com/Benjamin-Connelly/lookit/internal/export"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/lookit/internal/manpages"
 	"github.com/Benjamin-Connelly/lookit/internal/remote"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
 	"github.com/Benjamin-Connelly/lookit/internal/tui"
@@ -299,7 +299,6 @@ var doctorCmd = &cobra.Command{
 		return nil
 	},
 }
-
 
 var genManCmd = &cobra.Command{
 	Use:    "gen-man [output-dir]",

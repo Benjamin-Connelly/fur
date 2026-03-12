@@ -153,7 +153,7 @@ func renderMarkdownTable(rows [][]string) string {
 	}
 
 	totalRows := len(rows) - 1 // exclude header
-	buf.WriteString(fmt.Sprintf("\n*%d rows displayed*", totalRows))
+	fmt.Fprintf(&buf, "\n*%d rows displayed*", totalRows)
 
 	return buf.String()
 }

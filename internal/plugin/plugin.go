@@ -46,10 +46,10 @@ type PluginConfig struct {
 
 // HookConfig defines a hook in a YAML plugin file.
 type HookConfig struct {
-	Point   string `yaml:"point"`
-	Command string `yaml:"command"`
-	Prepend string `yaml:"prepend"`
-	Append  string `yaml:"append"`
+	Point   string        `yaml:"point"`
+	Command string        `yaml:"command"`
+	Prepend string        `yaml:"prepend"`
+	Append  string        `yaml:"append"`
 	Replace []ReplaceRule `yaml:"replace"`
 }
 
@@ -161,7 +161,7 @@ func makeHookFn(hc HookConfig) func(ctx *HookContext) error {
 
 		// Append content
 		if hc.Append != "" {
-			ctx.Content = ctx.Content + hc.Append
+			ctx.Content += hc.Append
 		}
 
 		return nil

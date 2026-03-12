@@ -31,9 +31,9 @@ type LinkNavigator struct {
 	pos     int // current position in history
 
 	// Link selection overlay
-	showing   bool
-	links     []index.Link
-	linkCur   int
+	showing bool
+	links   []index.Link
+	linkCur int
 }
 
 // NewLinkNavigator creates a link navigator backed by a link graph.
@@ -161,7 +161,7 @@ func (n *LinkNavigator) LinkOverlayView() string {
 		if label == "" {
 			label = link.Target
 		}
-		b.WriteString(fmt.Sprintf("%s%s -> %s\n", cursor, label, link.Target))
+		fmt.Fprintf(&b, "%s%s -> %s\n", cursor, label, link.Target)
 	}
 	return b.String()
 }

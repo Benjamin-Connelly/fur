@@ -162,9 +162,9 @@ func ExtractLinks(filePath, content string, idx *Index) []Link {
 			target := raw
 
 			// Handle [[target|display text]] syntax
-			if i := strings.Index(raw, "|"); i >= 0 {
-				target = raw[:i]
-				text = raw[i+1:]
+			if t, txt, ok := strings.Cut(raw, "|"); ok {
+				target = t
+				text = txt
 			}
 
 			target = strings.TrimSpace(target)

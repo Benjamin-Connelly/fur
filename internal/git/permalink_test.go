@@ -167,11 +167,11 @@ func TestBuildFileLink_MarkdownPlain(t *testing.T) {
 
 func TestLineFragment_AllStyles(t *testing.T) {
 	tests := []struct {
-		name      string
-		style     PermalinkStyle
-		start     int
-		end       int
-		want      string
+		name  string
+		style PermalinkStyle
+		start int
+		end   int
+		want  string
 	}{
 		{"github single", PermalinkGitHub, 5, 0, "#L5"},
 		{"github range", PermalinkGitHub, 5, 15, "#L5-L15"},

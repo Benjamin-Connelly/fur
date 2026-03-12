@@ -100,7 +100,7 @@ func (m *SidePanelModel) SetGitInfo(repoRoot, filePath string) {
 
 	branch, err := repo.Branch()
 	if err == nil {
-		b.WriteString(fmt.Sprintf("Branch: %s\n", branch))
+		fmt.Fprintf(&b, "Branch: %s\n", branch)
 	}
 
 	clean, err := repo.IsClean()
@@ -120,7 +120,7 @@ func (m *SidePanelModel) SetGitInfo(repoRoot, filePath string) {
 			if staging == " " && worktree == " " {
 				b.WriteString("File: unmodified\n")
 			} else {
-				b.WriteString(fmt.Sprintf("File: %s%s\n", staging, worktree))
+				fmt.Fprintf(&b, "File: %s%s\n", staging, worktree)
 			}
 		}
 	}
@@ -128,15 +128,15 @@ func (m *SidePanelModel) SetGitInfo(repoRoot, filePath string) {
 	commits, err := repo.Log(1)
 	if err == nil && len(commits) > 0 {
 		c := commits[0]
-		b.WriteString(fmt.Sprintf("\nLast commit:\n"))
-		b.WriteString(fmt.Sprintf("  %s\n", c.Hash[:8]))
-		b.WriteString(fmt.Sprintf("  %s\n", c.Author))
-		b.WriteString(fmt.Sprintf("  %s\n", c.Date.Format("2006-01-02 15:04")))
+		b.WriteString("\nLast commit:\n")
+		fmt.Fprintf(&b, "  %s\n", c.Hash[:8])
+		fmt.Fprintf(&b, "  %s\n", c.Author)
+		fmt.Fprintf(&b, "  %s\n", c.Date.Format("2006-01-02 15:04"))
 		msg := c.Message
 		if i := strings.Index(msg, "\n"); i >= 0 {
 			msg = msg[:i]
 		}
-		b.WriteString(fmt.Sprintf("  %s\n", msg))
+		fmt.Fprintf(&b, "  %s\n", msg)
 	}
 
 	m.gitInfo = b.String()

@@ -100,9 +100,9 @@ type Model struct {
 	searchMode string
 
 	// Vim-style marks: m{a-z} sets, '{a-z} jumps
-	marks        map[rune]mark
-	pendingMark  bool // waiting for mark register key
-	pendingJump  bool // waiting for jump register key
+	marks       map[rune]mark
+	pendingMark bool // waiting for mark register key
+	pendingJump bool // waiting for jump register key
 
 	// Remote connection state (nil = local mode)
 	remoteInfo *RemoteInfo
@@ -160,24 +160,24 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 	preview.readingGuide = cfg.ReadingGuide
 
 	return &Model{
-		cfg:          cfg,
-		idx:          idx,
-		links:        links,
-		fileList:     NewFileListModel(idx),
-		preview:      preview,
-		status:       NewStatusBarModel(),
-		keys:         km,
-		mdRenderer:   mdRenderer,
-		codeRenderer: codeRenderer,
+		cfg:            cfg,
+		idx:            idx,
+		links:          links,
+		fileList:       NewFileListModel(idx),
+		preview:        preview,
+		status:         NewStatusBarModel(),
+		keys:           km,
+		mdRenderer:     mdRenderer,
+		codeRenderer:   codeRenderer,
 		navigator:      nav,
 		sidePanel:      panel,
 		cmdPalette:     palette,
 		focus:          PanelFileList,
-		previewLinkIdx:  -1,
-		recentFiles:     config.LoadRecentFiles(),
-		marks:           make(map[rune]mark),
-		imageRenderer:   NewImageRenderer(),
-		searchMode:      "filename",
+		previewLinkIdx: -1,
+		recentFiles:    config.LoadRecentFiles(),
+		marks:          make(map[rune]mark),
+		imageRenderer:  NewImageRenderer(),
+		searchMode:     "filename",
 	}
 }
 
@@ -1206,14 +1206,14 @@ func (m *Model) handleCommandLinks() (tea.Model, tea.Cmd) {
 		}
 	}
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Links in %s\n", m.preview.filePath))
+	fmt.Fprintf(&b, "Links in %s\n", m.preview.filePath)
 	b.WriteString(strings.Repeat("=", 40) + "\n\n")
 	for _, link := range links {
 		status := " "
 		if link.Broken {
 			status = "!"
 		}
-		b.WriteString(fmt.Sprintf("  [%s] %s -> %s", status, link.Text, link.Target))
+		fmt.Fprintf(&b, "  [%s] %s -> %s", status, link.Text, link.Target)
 		b.WriteString("\n")
 	}
 	content := b.String()
@@ -1368,12 +1368,10 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 					content = table
 				}
 			}
-		} else {
-			if isTextFile(ext) {
-				highlighted, hlErr := codeRenderer.Highlight(filepath.Base(entry.RelPath), content)
-				if hlErr == nil {
-					content = highlighted
-				}
+		} else if isTextFile(ext) {
+			highlighted, hlErr := codeRenderer.Highlight(filepath.Base(entry.RelPath), content)
+			if hlErr == nil {
+				content = highlighted
 			}
 		}
 
@@ -1687,7 +1685,7 @@ func (m *Model) headingJumpView() string {
 		if i == m.headingJumpCur {
 			cursor = "> "
 		}
-		b.WriteString(fmt.Sprintf("%s%s  %s\n", cursor, e.Heading, dimStyle.Render(e.File)))
+		fmt.Fprintf(&b, "%s%s  %s\n", cursor, e.Heading, dimStyle.Render(e.File))
 	}
 
 	if len(filtered) > maxShow {

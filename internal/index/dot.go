@@ -39,7 +39,7 @@ func (g *LinkGraph) ToDOT() string {
 	for i, n := range nodes {
 		id := fmt.Sprintf("n%d", i)
 		nodeID[n] = id
-		b.WriteString(fmt.Sprintf("  %s [label=%q];\n", id, n))
+		fmt.Fprintf(&b, "  %s [label=%q];\n", id, n)
 	}
 
 	if len(nodes) > 0 {
@@ -58,9 +58,9 @@ func (g *LinkGraph) ToDOT() string {
 			srcID := nodeID[source]
 			tgtID := nodeID[link.Target]
 			if link.Broken {
-				b.WriteString(fmt.Sprintf("  %s -> %s [style=dashed, color=red];\n", srcID, tgtID))
+				fmt.Fprintf(&b, "  %s -> %s [style=dashed, color=red];\n", srcID, tgtID)
 			} else {
-				b.WriteString(fmt.Sprintf("  %s -> %s;\n", srcID, tgtID))
+				fmt.Fprintf(&b, "  %s -> %s;\n", srcID, tgtID)
 			}
 		}
 	}

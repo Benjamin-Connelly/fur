@@ -164,8 +164,8 @@ func TestMiddlewareSetsSecurityHeaders(t *testing.T) {
 
 	expected := map[string]string{
 		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options":       "DENY",
-		"Referrer-Policy":       "no-referrer",
+		"X-Frame-Options":        "DENY",
+		"Referrer-Policy":        "no-referrer",
 	}
 	for header, want := range expected {
 		got := rec.Header().Get(header)

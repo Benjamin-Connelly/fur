@@ -13,15 +13,15 @@ import (
 
 // Watcher monitors the filesystem for changes and re-indexes affected files.
 type Watcher struct {
-	index     *Index
-	graph     *LinkGraph
-	watcher   *fsnotify.Watcher
-	onChange  func(path string) // callback for file changes
-	done      chan struct{}
-	debounce  time.Duration
-	mu        sync.Mutex
-	timer     *time.Timer
-	pending   map[string]struct{}
+	index    *Index
+	graph    *LinkGraph
+	watcher  *fsnotify.Watcher
+	onChange func(path string) // callback for file changes
+	done     chan struct{}
+	debounce time.Duration
+	mu       sync.Mutex
+	timer    *time.Timer
+	pending  map[string]struct{}
 }
 
 // NewWatcher creates a file watcher that updates the index on changes.

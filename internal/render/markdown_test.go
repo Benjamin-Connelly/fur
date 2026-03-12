@@ -288,10 +288,10 @@ func TestLineNumber(t *testing.T) {
 	}{
 		{0, 1},
 		{3, 1},
-		{5, 1},  // newline char itself
-		{6, 2},  // start of line2
-		{11, 2}, // newline after line2
-		{12, 3}, // start of line3
+		{5, 1},   // newline char itself
+		{6, 2},   // start of line2
+		{11, 2},  // newline after line2
+		{12, 3},  // start of line3
 		{100, 4}, // past end, clamped
 	}
 	for _, tt := range tests {

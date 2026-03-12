@@ -45,7 +45,7 @@ type Conn struct {
 	target    Target
 	sshClient *ssh.Client
 	sftp      *sftp.Client
-	sshCfg   *ssh_config.Config // parsed ~/.ssh/config
+	sshCfg    *ssh_config.Config // parsed ~/.ssh/config
 
 	state     ConnState
 	lastError error
@@ -59,7 +59,7 @@ type Conn struct {
 func NewConn(target Target) *Conn {
 	return &Conn{
 		target:    target,
-		sshCfg:   loadSSHConfig(),
+		sshCfg:    loadSSHConfig(),
 		done:      make(chan struct{}),
 		keepalive: 30 * time.Second,
 	}

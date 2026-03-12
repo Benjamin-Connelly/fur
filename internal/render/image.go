@@ -66,9 +66,9 @@ func renderKitty(data []byte) string {
 			more = 0
 		}
 		if i == 0 {
-			b.WriteString(fmt.Sprintf("\033_Ga=T,f=100,m=%d;%s\033\\", more, chunk))
+			fmt.Fprintf(&b, "\033_Ga=T,f=100,m=%d;%s\033\\", more, chunk)
 		} else {
-			b.WriteString(fmt.Sprintf("\033_Gm=%d;%s\033\\", more, chunk))
+			fmt.Fprintf(&b, "\033_Gm=%d;%s\033\\", more, chunk)
 		}
 	}
 	b.WriteString("\n")

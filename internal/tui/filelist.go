@@ -60,8 +60,8 @@ type treeNode struct {
 type FileListModel struct {
 	idx        *index.Index
 	entries    []index.FileEntry
-	tree       []treeNode    // full tree
-	visible    []treeNode    // visible nodes (respecting collapsed dirs)
+	tree       []treeNode        // full tree
+	visible    []treeNode        // visible nodes (respecting collapsed dirs)
 	filtered   []index.FileEntry // for fuzzy search results
 	collapsed  map[string]bool   // collapsed directory paths
 	cursor     int

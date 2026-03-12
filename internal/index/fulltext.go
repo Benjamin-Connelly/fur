@@ -109,7 +109,7 @@ func (ft *FulltextIndex) BuildFrom(idx *Index) error {
 			"content": string(data),
 			"path":    e.RelPath,
 		}
-		batch.Index(e.RelPath, doc)
+		_ = batch.Index(e.RelPath, doc)
 	}
 
 	return ft.idx.Batch(batch)

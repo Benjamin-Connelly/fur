@@ -9,25 +9,25 @@ import (
 
 // KeyMap defines all keybindings for the TUI.
 type KeyMap struct {
-	Quit       key.Binding
-	Up         key.Binding
-	Down       key.Binding
-	Enter      key.Binding
-	Back       key.Binding
-	Tab        key.Binding
-	Search     key.Binding
-	Help       key.Binding
-	Follow     key.Binding
-	Backlinks  key.Binding
-	TOC        key.Binding
-	Bookmark   key.Binding
-	Command    key.Binding
-	CopyLink   key.Binding
-	GitInfo    key.Binding
-	Copy       key.Binding
-	Reload     key.Binding
-	HalfUp     key.Binding
-	HalfDown   key.Binding
+	Quit      key.Binding
+	Up        key.Binding
+	Down      key.Binding
+	Enter     key.Binding
+	Back      key.Binding
+	Tab       key.Binding
+	Search    key.Binding
+	Help      key.Binding
+	Follow    key.Binding
+	Backlinks key.Binding
+	TOC       key.Binding
+	Bookmark  key.Binding
+	Command   key.Binding
+	CopyLink  key.Binding
+	GitInfo   key.Binding
+	Copy      key.Binding
+	Reload    key.Binding
+	HalfUp    key.Binding
+	HalfDown  key.Binding
 }
 
 // DefaultKeyMap returns the default keybinding set.
@@ -87,7 +87,7 @@ func Help(km KeyMap) string {
 
 	for _, binding := range bindings {
 		h := binding.Help()
-		b.WriteString(fmt.Sprintf("  %-12s %s\n", h.Key, h.Desc))
+		fmt.Fprintf(&b, "  %-12s %s\n", h.Key, h.Desc)
 	}
 
 	b.WriteString("\nNavigation\n")

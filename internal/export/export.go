@@ -33,10 +33,10 @@ type ProgressFunc func(current, total int, file string)
 
 // Options configures the export operation.
 type Options struct {
-	Format   Format
+	Format    Format
 	OutputDir string
-	Files    []string // specific files, or empty for all markdown
-	Progress ProgressFunc
+	Files     []string // specific files, or empty for all markdown
+	Progress  ProgressFunc
 }
 
 // Export converts markdown files to the specified output format.
@@ -190,7 +190,7 @@ func exportPDF(source []byte, relPath, absPath, outputDir string) error {
 	var args []string
 	if len(baseArgs) > 0 {
 		// Chromium: --print-to-pdf=output input
-		args = append(baseArgs, "--print-to-pdf="+pdfPath, htmlPath)
+		args = append(baseArgs, "--print-to-pdf="+pdfPath, htmlPath) //nolint:gocritic // intentional: args is a new slice from baseArgs
 	} else {
 		// wkhtmltopdf: input output
 		args = []string{htmlPath, pdfPath}

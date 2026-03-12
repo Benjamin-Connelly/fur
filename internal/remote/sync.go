@@ -34,12 +34,12 @@ type SyncStatus struct {
 // Syncer downloads remote files to a local cache directory and
 // periodically polls for changes.
 type Syncer struct {
-	conn     *Conn
-	cacheDir string // local cache root (e.g. ~/.cache/lookit/remote/host/path)
+	conn       *Conn
+	cacheDir   string // local cache root (e.g. ~/.cache/lookit/remote/host/path)
 	remotePath string
 
-	status   SyncStatus
-	mu       sync.RWMutex
+	status SyncStatus
+	mu     sync.RWMutex
 
 	// mtimeCache tracks remote file modification times to detect changes
 	mtimeCache map[string]time.Time

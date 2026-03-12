@@ -35,9 +35,7 @@ func (p *CommandPalette) RegisterCommands(idx *index.Index, links *index.LinkGra
 	p.RegisterCommand(CommandEntry{
 		Name:        "quit",
 		Description: "Exit lookit",
-		Action: func() tea.Msg {
-			return tea.Quit()
-		},
+		Action:      tea.Quit,
 	})
 
 	p.RegisterCommand(CommandEntry{
