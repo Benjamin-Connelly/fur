@@ -668,8 +668,16 @@ func runRemote(target *remote.Target) error {
 	sftpFs := remote.NewSFTPFs(conn.SFTP())
 	cachedFs := afero.NewCacheOnReadFs(sftpFs, afero.NewMemMapFs(), 30*time.Second)
 
+	// Resolve root: if target is a file, use parent dir and pre-select
+	root := resolved.Path
+	var initialFile string
+	if info, err := cachedFs.Stat(root); err == nil && !info.IsDir() {
+		initialFile = filepath.Base(root)
+		root = filepath.Dir(root)
+	}
+
 	// Build index directly from remote filesystem
-	idx := index.NewWithFs(resolved.Path, cachedFs)
+	idx := index.NewWithFs(root, cachedFs)
 	if err := idx.Build(); err != nil {
 		return fmt.Errorf("building index: %w", err)
 	}
@@ -687,6 +695,9 @@ func runRemote(target *remote.Target) error {
 
 	// Create TUI with remote info
 	model := tui.New(cfg, idx, links)
+	if initialFile != "" {
+		model.SelectFile(initialFile)
+	}
 	model.SetRemoteInfo(&tui.RemoteInfo{
 		Display: resolved.Display(),
 		State:   conn.State().String(),
