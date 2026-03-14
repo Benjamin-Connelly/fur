@@ -33,14 +33,43 @@ var rootCmd = &cobra.Command{
 	Use:     "lookit [path]",
 	Short:   "Dual-mode markdown navigator with inter-document link navigation",
 	Version: version,
-	Long: `Lookit is a dual-mode markdown navigator that provides both TUI and web
-interfaces for browsing code, markdown, and files. Features inter-document
-link navigation with history, backlinks, and broken link detection.
+	Long: `Lookit is a dual-mode markdown navigator (TUI + web) for browsing code,
+markdown, and files. Features inter-document link navigation, backlinks,
+broken link detection, fulltext search, and syntax highlighting for 50+
+languages.
 
-Supports browsing remote files over SSH:
-  lookit myhost:/path/to/docs
-  lookit user@host:/path
-  lookit --remote myhost /path`,
+Usage:
+  lookit                       Browse current directory
+  lookit ~/docs                Browse a specific directory
+  lookit README.md             Single-file mode (full-width preview)
+  cat file.md | lookit         Render piped markdown
+
+Remote browsing over SSH:
+  lookit myhost:/path/to/docs  SCP-style remote path
+  lookit user@host:/path       Explicit user
+  lookit @docs                 Named remote from config
+
+Configuration:
+  ~/.config/lookit/config.yaml   Global config
+  .lookit.toml / .lookit.yaml    Per-project config (auto-discovered)
+  LOOKIT_* environment vars      Override any config key
+
+TUI keybindings (press ? for full help):
+  j/k, arrows   Navigate           /          Filter files / search preview
+  Tab            Switch panels      Shift+Tab  Switch panels (reverse)
+  Enter          Open file          f          Follow link
+  h, Backspace   Go back            t          Table of contents
+  b              Backlinks panel    i          Git info panel
+  m              Bookmark / mark    M          Bookmarks panel
+  V              Visual line select y          Copy permalink
+  :              Command palette    Ctrl+G     Global heading jump
+  Ctrl+T         Cycle theme        ?          Help overlay`,
+	Example: `  lookit
+  lookit ~/docs
+  lookit README.md
+  lookit devbox:/srv/docs
+  echo "# Hello" | lookit
+  lookit --keymap vim --theme dark ~/notes`,
 	Args:              cobra.MaximumNArgs(1),
 	PersistentPreRunE: loadConfig,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -134,7 +163,23 @@ Supports browsing remote files over SSH:
 var serveCmd = &cobra.Command{
 	Use:   "serve [path]",
 	Short: "Start the web server",
-	Args:  cobra.MaximumNArgs(1),
+	Long: `Start a web server for browsing markdown and code in a browser. Renders
+markdown with GitHub Flavored Markdown, emoji, and syntax highlighting.
+Watches for file changes and pushes live updates via Server-Sent Events.
+
+API endpoints:
+  /__api/files?q=term   Fuzzy file search (JSON)
+  /__api/search?q=term  Full-text content search (JSON)
+  /__api/graph          Link graph data (JSON)
+  /graph                Interactive link graph visualization
+
+The server adds security headers (CSP, X-Frame-Options, X-Content-Type-Options),
+ETag caching, and skips auto-opening the browser when an SSH session is detected.`,
+	Example: `  lookit serve
+  lookit serve --port 3000 --open ~/docs
+  lookit serve --css ./custom.css
+  lookit serve --no-https`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
 		if err != nil {
@@ -186,7 +231,18 @@ var serveCmd = &cobra.Command{
 var catCmd = &cobra.Command{
 	Use:   "cat <file>",
 	Short: "Render markdown or image to terminal",
-	Args:  cobra.ExactArgs(1),
+	Long: `Render a markdown file or display an image directly in the terminal.
+
+Markdown files are rendered with syntax highlighting and formatting.
+Image files are displayed inline using your terminal's image protocol
+(auto-detected: Kitty, iTerm2, WezTerm, Ghostty). Non-PNG images
+(WebP, BMP, GIF, JPEG) are converted to PNG for protocol compatibility.
+
+Supported image formats: PNG, JPG, WebP, BMP, GIF, SVG, ICO`,
+	Example: `  lookit cat README.md
+  lookit cat diagram.png
+  lookit cat photo.webp`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filePath := args[0]
 		if _, err := os.Stat(filePath); err != nil {
@@ -230,7 +286,16 @@ func isImageExt(ext string) bool {
 var exportCmd = &cobra.Command{
 	Use:   "export [path]",
 	Short: "Export markdown files to HTML or PDF",
-	Args:  cobra.MaximumNArgs(1),
+	Long: `Export all markdown files to HTML with syntax highlighting. Processes files
+in the target directory (respecting .gitignore), preserving the directory
+structure under the output directory. Referenced images are copied alongside.
+
+PDF export requires wkhtmltopdf to be installed. Default output directory
+is "lookit-export" in the current directory.`,
+	Example: `  lookit export
+  lookit export ~/docs -f html -o ./site
+  lookit export --format pdf --output ./pdfs`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
 		if err != nil {
@@ -273,7 +338,16 @@ var exportCmd = &cobra.Command{
 var graphCmd = &cobra.Command{
 	Use:   "graph [path]",
 	Short: "Output link graph in DOT format",
-	Args:  cobra.MaximumNArgs(1),
+	Long: `Generate a Graphviz DOT representation of the inter-document link graph.
+Nodes are markdown files, edges are links between them (standard markdown
+links and [[wikilinks]]). Pipe to dot, neato, or other Graphviz tools to
+render as an image.
+
+An interactive graph is also available at /graph when using "lookit serve".`,
+	Example: `  lookit graph
+  lookit graph | dot -Tpng -o links.png
+  lookit graph ~/docs | dot -Tsvg -o graph.svg`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
 		if err != nil {
@@ -296,6 +370,12 @@ var graphCmd = &cobra.Command{
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check environment and diagnose issues",
+	Long: `Run diagnostic checks on your environment and report results.
+
+Checks: Go version, Git version, git repo detection, .gitignore presence,
+terminal size and capabilities, config file loading, markdown file count,
+large file warnings, and wkhtmltopdf availability (for PDF export).`,
+	Example: `  lookit doctor`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		checks := doctor.Run()
 		doctor.Print(checks)
