@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"golang.org/x/term"
@@ -25,7 +26,7 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/web"
 )
 
-var version = "v0.2.3"
+var version = "v0.3.0"
 
 var cfg *config.Config
 
@@ -661,34 +662,20 @@ func runRemote(target *remote.Target) error {
 	// Use the resolved target (~ expanded, relative paths resolved)
 	resolved := conn.Target()
 
-	fmt.Fprintf(os.Stderr, "Connected to %s. Syncing files...\n", resolved.Display())
+	fmt.Fprintf(os.Stderr, "Connected to %s. Indexing...\n", resolved.Display())
 
-	// Set up local cache
-	cacheDir, err := remote.CachePath(resolved)
-	if err != nil {
-		return fmt.Errorf("cache path: %w", err)
-	}
+	// Build afero filesystem: SFTP reads cached in memory with 30s TTL
+	sftpFs := remote.NewSFTPFs(conn.SFTP())
+	cachedFs := afero.NewCacheOnReadFs(sftpFs, afero.NewMemMapFs(), 30*time.Second)
 
-	// Sync remote files to local cache
-	syncer := remote.NewSyncer(conn, cacheDir)
-	if err := syncer.InitialSync(); err != nil {
-		return fmt.Errorf("initial sync from %s: %w", resolved.Display(), err)
-	}
-
-	fmt.Fprintf(os.Stderr, "Sync complete. Starting TUI...\n")
-
-	// Build index from cached files
-	idx := index.New(syncer.CacheDir())
+	// Build index directly from remote filesystem
+	idx := index.NewWithFs(resolved.Path, cachedFs)
 	if err := idx.Build(); err != nil {
 		return fmt.Errorf("building index: %w", err)
 	}
 
-	// Build fulltext search index
-	fulltextDir, _ := os.UserCacheDir()
-	if fulltextDir != "" {
-		fulltextDir = filepath.Join(fulltextDir, "lookit")
-	}
-	if err := idx.BuildFulltext(fulltextDir); err != nil {
+	// Build fulltext search index (in-memory for remote)
+	if err := idx.BuildFulltext(""); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: fulltext index unavailable: %v\n", err)
 	}
 	defer idx.CloseFulltext()
@@ -696,22 +683,7 @@ func runRemote(target *remote.Target) error {
 	links := index.NewLinkGraph()
 	links.BuildFromIndex(idx)
 
-	// Set up file watcher on local cache (catches sync updates)
-	watcher, err := index.NewWatcher(idx, links, nil)
-	if err != nil {
-		return fmt.Errorf("starting watcher: %w", err)
-	}
-	defer watcher.Close()
-	if err := watcher.Start(); err != nil {
-		return fmt.Errorf("watching files: %w", err)
-	}
-
-	// Start background polling for remote changes
-	syncer.SetOnChange(func() {
-		// Watcher will pick up changes via fsnotify on the cache dir
-	})
-	syncer.StartPolling()
-	defer syncer.Stop()
+	fmt.Fprintf(os.Stderr, "Ready. Starting TUI...\n")
 
 	// Create TUI with remote info
 	model := tui.New(cfg, idx, links)
@@ -720,31 +692,31 @@ func runRemote(target *remote.Target) error {
 		State:   conn.State().String(),
 	})
 
-	// Start a goroutine to update remote status periodically
+	// Background poller: rebuild index periodically to detect remote changes
 	done := make(chan struct{})
 	defer close(done)
+	lastRefresh := time.Now()
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				status := syncer.Status()
-				elapsed := time.Since(status.LastSync).Truncate(time.Second)
-				syncText := ""
-				switch status.State {
-				case remote.SyncRunning:
-					syncText = "syncing..."
-				default:
-					if !status.LastSync.IsZero() {
-						syncText = fmt.Sprintf("synced %s ago", elapsed)
-					}
-				}
+				elapsed := time.Since(lastRefresh).Truncate(time.Second)
 				model.SetRemoteInfo(&tui.RemoteInfo{
 					Display:  resolved.Display(),
 					State:    conn.State().String(),
-					LastSync: syncText,
+					LastSync: fmt.Sprintf("refreshed %s ago", elapsed),
 				})
+
+				// Rebuild index every 15s to detect remote changes
+				if time.Since(lastRefresh) >= 15*time.Second {
+					if conn.State() == remote.ConnConnected {
+						_ = idx.Rebuild()
+						links.BuildFromIndex(idx)
+						lastRefresh = time.Now()
+					}
+				}
 			case <-done:
 				return
 			}
@@ -752,7 +724,7 @@ func runRemote(target *remote.Target) error {
 	}()
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	_, err = p.Run()
+	_, err := p.Run()
 	return err
 }
 
