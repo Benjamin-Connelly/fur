@@ -395,10 +395,6 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case "tab":
-		// In preview with links: Tab cycles links instead of switching panels
-		if m.focus == PanelPreview && len(m.previewLinks) > 0 {
-			return m.handlePreviewKey(msg)
-		}
 		if m.sidePanel.Visible() {
 			switch m.focus {
 			case PanelFileList:
@@ -423,10 +419,28 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "shift+tab":
-		// In preview with links: Shift-Tab cycles links backward
-		if m.focus == PanelPreview && len(m.previewLinks) > 0 {
-			return m.handlePreviewKey(msg)
+		// Reverse cycle panels
+		if m.sidePanel.Visible() {
+			switch m.focus {
+			case PanelFileList:
+				m.focus = PanelSide
+			case PanelPreview:
+				if m.singleFile {
+					m.focus = PanelSide
+				} else {
+					m.focus = PanelFileList
+				}
+			case PanelSide:
+				m.focus = PanelPreview
+			}
+		} else {
+			if m.focus == PanelPreview && !m.singleFile {
+				m.focus = PanelFileList
+			} else if m.focus == PanelFileList {
+				m.focus = PanelPreview
+			}
 		}
+		m.status.SetMode(m.modeString())
 		return m, nil
 
 	case "esc":
@@ -1364,6 +1378,20 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 			return PreviewLoadedMsg{
 				Path:    entry.RelPath,
 				Content: "Error: " + err.Error(),
+			}
+		}
+
+		// Block binary files — check for null bytes in first 8KB
+		sample := data
+		if len(sample) > 8192 {
+			sample = sample[:8192]
+		}
+		for _, b := range sample {
+			if b == 0 {
+				return PreviewLoadedMsg{
+					Path:    entry.RelPath,
+					Content: fmt.Sprintf("[binary file: %s]", formatFileSize(entry.Size)),
+				}
 			}
 		}
 
