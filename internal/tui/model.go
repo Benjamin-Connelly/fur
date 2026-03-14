@@ -110,6 +110,9 @@ type Model struct {
 
 	// Single-file mode: hide file list, start in preview
 	singleFile bool
+
+	// Pending file to auto-load on Init (set by SelectFile)
+	pendingSelect string
 }
 
 // RemoteInfo holds remote connection display state for the TUI.
@@ -190,9 +193,11 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 // SelectFile pre-selects a file by relative path on startup.
 // In single-file mode (1 non-dir entry), hides the file list and
 // focuses the preview pane for full-width content viewing.
+// The preview auto-loads via Init().
 // Must be called before Run().
 func (m *Model) SelectFile(relPath string) {
 	m.fileList.SelectByPath(relPath)
+	m.pendingSelect = relPath
 
 	// Count non-directory entries to detect single-file mode
 	fileCount := 0
@@ -215,10 +220,21 @@ func (m *Model) SetRemoteInfo(info *RemoteInfo) {
 
 // Init implements tea.Model.
 func (m *Model) Init() tea.Cmd {
+	var cmds []tea.Cmd
 	if m.cfg.Mouse {
-		return tea.EnableMouseCellMotion
+		cmds = append(cmds, tea.EnableMouseCellMotion)
 	}
-	return nil
+	// Auto-load preview for pre-selected file
+	if m.pendingSelect != "" {
+		entry := m.idx.Lookup(m.pendingSelect)
+		if entry != nil {
+			cmds = append(cmds, func() tea.Msg {
+				return FileSelectedMsg{Entry: *entry}
+			})
+		}
+		m.pendingSelect = ""
+	}
+	return tea.Batch(cmds...)
 }
 
 // Update implements tea.Model.
