@@ -2,7 +2,7 @@
 
 Dual-mode markdown navigator: TUI (Bubble Tea) and web (stdlib net/http). Inter-document link navigation with history, backlinks, and broken link detection. Syntax highlighting (50+ languages), git-aware, zero-config.
 
-**Version:** v0.3.2
+**Version:** v0.3.3
 
 ## Tech Stack
 

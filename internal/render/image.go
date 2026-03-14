@@ -1,13 +1,23 @@
 package render
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"image"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/afero"
+
+	// Register image decoders for non-PNG formats
+	_ "image/gif"
+	_ "image/jpeg"
+
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/webp"
 )
 
 // ImageProtocol identifies the terminal image protocol to use.
@@ -59,7 +69,25 @@ func RenderImageInline(path string, protocol ImageProtocol, fsys ...afero.Fs) (s
 	}
 }
 
+// toPNG converts image data to PNG if it isn't already.
+// Kitty protocol f=100 requires PNG format.
+func toPNG(data []byte) []byte {
+	if len(data) >= 8 && string(data[:4]) == "\x89PNG" {
+		return data
+	}
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return data // can't decode — send raw, terminal may reject
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return data
+	}
+	return buf.Bytes()
+}
+
 func renderKitty(data []byte) string {
+	data = toPNG(data)
 	encoded := base64.StdEncoding.EncodeToString(data)
 	var b strings.Builder
 	for i := 0; i < len(encoded); i += 4096 {

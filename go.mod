@@ -22,6 +22,8 @@ require (
 	golang.org/x/term v0.41.0
 )
 
+require golang.org/x/image v0.37.0 // indirect
+
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect

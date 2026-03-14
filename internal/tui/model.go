@@ -107,6 +107,9 @@ type Model struct {
 
 	// Remote connection state (nil = local mode)
 	remoteInfo *RemoteInfo
+
+	// Single-file mode: hide file list, start in preview
+	singleFile bool
 }
 
 // RemoteInfo holds remote connection display state for the TUI.
@@ -185,9 +188,23 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 }
 
 // SelectFile pre-selects a file by relative path on startup.
+// In single-file mode (1 non-dir entry), hides the file list and
+// focuses the preview pane for full-width content viewing.
 // Must be called before Run().
 func (m *Model) SelectFile(relPath string) {
 	m.fileList.SelectByPath(relPath)
+
+	// Count non-directory entries to detect single-file mode
+	fileCount := 0
+	for _, e := range m.idx.Entries() {
+		if !e.IsDir {
+			fileCount++
+		}
+	}
+	if fileCount <= 1 {
+		m.singleFile = true
+		m.focus = PanelPreview
+	}
 }
 
 // SetRemoteInfo updates the remote connection display state.
@@ -367,19 +384,22 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.handlePreviewKey(msg)
 		}
 		if m.sidePanel.Visible() {
-			// Cycle: FileList -> Preview -> Side -> FileList
 			switch m.focus {
 			case PanelFileList:
 				m.focus = PanelPreview
 			case PanelPreview:
 				m.focus = PanelSide
 			case PanelSide:
-				m.focus = PanelFileList
+				if m.singleFile {
+					m.focus = PanelPreview
+				} else {
+					m.focus = PanelFileList
+				}
 			}
 		} else {
 			if m.focus == PanelFileList {
 				m.focus = PanelPreview
-			} else {
+			} else if !m.singleFile {
 				m.focus = PanelFileList
 			}
 		}
@@ -1565,15 +1585,22 @@ func (m *Model) View() string {
 		// Normal split-pane layout
 		borders := 1
 		panelWidth := 0
+		showFileList := !m.singleFile || m.focus == PanelFileList
 
 		if m.sidePanel.Visible() {
 			borders = 2
 		}
+		if !showFileList {
+			borders--
+		}
 
 		available := m.width - borders
-		listWidth := available / 5
-		if listWidth < 20 {
-			listWidth = 20
+		listWidth := 0
+		if showFileList {
+			listWidth = available / 5
+			if listWidth < 20 {
+				listWidth = 20
+			}
 		}
 
 		if m.sidePanel.Visible() {
@@ -1589,11 +1616,6 @@ func (m *Model) View() string {
 		sepStyle := lipgloss.NewStyle().Foreground(borderColor)
 		sep := sepStyle.Render(strings.Repeat("│\n", contentHeight-1) + "│")
 
-		// File list pane
-		listFocused := m.focus == PanelFileList || m.fileList.filtering
-		listLabel := paneLabel("FILES", listFocused, listWidth)
-		left := buildPane(listLabel, m.fileList.View(), listWidth, bodyHeight)
-
 		// Preview pane
 		previewFocused := m.focus == PanelPreview
 		previewTitle := m.preview.filePath
@@ -1607,18 +1629,39 @@ func (m *Model) View() string {
 			previewContent = overlay + "\n" + strings.Repeat("─", 20) + "\n" + previewContent
 		}
 
-		if m.sidePanel.Visible() {
-			right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+		if showFileList {
+			// File list pane
+			listFocused := m.focus == PanelFileList || m.fileList.filtering
+			listLabel := paneLabel("FILES", listFocused, listWidth)
+			left := buildPane(listLabel, m.fileList.View(), listWidth, bodyHeight)
 
-			sideFocused := m.focus == PanelSide
-			sideName := m.sidePanel.TypeName()
-			sideLabel := paneLabel(sideName, sideFocused, panelWidth)
-			side := buildPane(sideLabel, m.sidePanel.View(), panelWidth, bodyHeight)
+			if m.sidePanel.Visible() {
+				right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
 
-			main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right, sep, side)
+				sideFocused := m.focus == PanelSide
+				sideName := m.sidePanel.TypeName()
+				sideLabel := paneLabel(sideName, sideFocused, panelWidth)
+				side := buildPane(sideLabel, m.sidePanel.View(), panelWidth, bodyHeight)
+
+				main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right, sep, side)
+			} else {
+				right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+				main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
+			}
 		} else {
-			right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
-			main = lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
+			// Single-file mode: no file list
+			if m.sidePanel.Visible() {
+				right := buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+
+				sideFocused := m.focus == PanelSide
+				sideName := m.sidePanel.TypeName()
+				sideLabel := paneLabel(sideName, sideFocused, panelWidth)
+				side := buildPane(sideLabel, m.sidePanel.View(), panelWidth, bodyHeight)
+
+				main = lipgloss.JoinHorizontal(lipgloss.Top, right, sep, side)
+			} else {
+				main = buildPane(previewLabel, previewContent, previewWidth, bodyHeight)
+			}
 		}
 	}
 
