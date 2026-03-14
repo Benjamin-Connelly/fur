@@ -26,7 +26,7 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/web"
 )
 
-var version = "v0.3.0"
+var version = "v0.3.1"
 
 var cfg *config.Config
 
