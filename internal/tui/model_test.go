@@ -36,7 +36,7 @@ func testModel(t *testing.T) *Model {
 		{Source: "docs/guide.md", Target: "README.md", Text: "README"},
 	})
 
-	m := New(cfg, idx, links)
+	m := New(cfg, idx, links, nil)
 	// Set a reasonable terminal size
 	m.width = 120
 	m.height = 40

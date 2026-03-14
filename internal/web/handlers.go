@@ -17,6 +17,7 @@ import (
 
 	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/lookit/internal/plugin"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
 	"github.com/Benjamin-Connelly/lookit/internal/web/templates"
 	"github.com/spf13/afero"
@@ -268,6 +269,14 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		return
 	}
 
+	// Fire BeforeRender hook on source
+	sourceStr := string(source)
+	if s.plugins != nil {
+		ctx := &plugin.HookContext{Content: sourceStr, FilePath: relPath}
+		s.plugins.Run(plugin.HookBeforeRender, ctx)
+		sourceStr = ctx.Content
+	}
+
 	// Render markdown to HTML using Goldmark
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -279,7 +288,7 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		),
 	)
 	var buf bytes.Buffer
-	if err := md.Convert(source, &buf); err != nil {
+	if err := md.Convert([]byte(sourceStr), &buf); err != nil {
 		http.Error(w, "Markdown render error", http.StatusInternalServerError)
 		return
 	}
@@ -311,6 +320,13 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		}
 		return `<pre class="mermaid">` + inner[1] + `</pre>`
 	})
+
+	// Fire AfterRender hook on rendered HTML
+	if s.plugins != nil {
+		ctx := &plugin.HookContext{Content: rendered, FilePath: relPath}
+		s.plugins.Run(plugin.HookAfterRender, ctx)
+		rendered = ctx.Content
+	}
 
 	data := markdownPageData{
 		pageData:     s.buildPageData(relPath),

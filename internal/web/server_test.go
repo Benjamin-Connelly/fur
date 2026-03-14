@@ -35,7 +35,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 		{Source: "README.md", Target: "docs/guide.md", Text: "Guide"},
 	})
 
-	s := New(cfg, idx, links)
+	s := New(cfg, idx, links, nil)
 	return s, dir
 }
 

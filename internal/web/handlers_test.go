@@ -859,7 +859,7 @@ func TestHandleDirectoryEmpty(t *testing.T) {
 	idx.Build()
 
 	links := index.NewLinkGraph()
-	s := New(cfg, idx, links)
+	s := New(cfg, idx, links, nil)
 	defer s.sse.Stop()
 
 	req := httptest.NewRequest("GET", "/empty", nil)

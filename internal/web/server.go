@@ -16,6 +16,7 @@ import (
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/lookit/internal/plugin"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
 	"github.com/Benjamin-Connelly/lookit/internal/web/static"
 	"github.com/spf13/afero"
@@ -23,14 +24,15 @@ import (
 
 // Server is the HTTP server for web mode.
 type Server struct {
-	cfg    *config.Config
-	idx    *index.Index
-	links  *index.LinkGraph
-	code   *render.CodeRenderer
-	fs     afero.Fs
-	mux    *http.ServeMux
-	server *http.Server
-	sse    *SSEBroker
+	cfg     *config.Config
+	idx     *index.Index
+	links   *index.LinkGraph
+	plugins *plugin.Registry
+	code    *render.CodeRenderer
+	fs      afero.Fs
+	mux     *http.ServeMux
+	server  *http.Server
+	sse     *SSEBroker
 }
 
 // SSEBroker manages Server-Sent Events for live reload.
@@ -97,15 +99,16 @@ func (b *SSEBroker) Notify(path string) {
 }
 
 // New creates a new web server.
-func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Server {
+func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph, plugins *plugin.Registry) *Server {
 	s := &Server{
-		cfg:   cfg,
-		idx:   idx,
-		links: links,
-		code:  render.NewCodeRenderer(cfg.Theme, false),
-		fs:    idx.Fs(),
-		mux:   http.NewServeMux(),
-		sse:   NewSSEBroker(),
+		cfg:     cfg,
+		idx:     idx,
+		links:   links,
+		plugins: plugins,
+		code:    render.NewCodeRenderer(cfg.Theme, false),
+		fs:      idx.Fs(),
+		mux:     http.NewServeMux(),
+		sse:     NewSSEBroker(),
 	}
 
 	s.registerRoutes()

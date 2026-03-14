@@ -963,7 +963,7 @@ func runRemote(target *remote.Target) error {
 	fmt.Fprintf(os.Stderr, "Ready. Starting TUI...\n")
 
 	// Create TUI with remote info (fulltext + link graph build in background)
-	model := tui.New(cfg, idx, links)
+	model := tui.New(cfg, idx, links, plugins)
 	if initialFile != "" {
 		model.SelectFile(initialFile)
 	}
