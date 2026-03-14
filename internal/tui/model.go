@@ -13,6 +13,7 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/afero"
 
 	"github.com/Benjamin-Connelly/lookit/internal/config"
 	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
@@ -148,7 +149,9 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph) *Model {
 	}
 
 	mdRenderer, _ := render.NewMarkdownRenderer(cfg.Theme, 80)
+	mdRenderer.SetFs(idx.Fs())
 	codeRenderer := render.NewCodeRenderer(cfg.Theme, true)
+	codeRenderer.SetFs(idx.Fs())
 
 	nav := NewLinkNavigator(links)
 	panel := NewSidePanelModel()
@@ -593,8 +596,9 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if entry == nil {
 			return m, nil
 		}
+		fs := m.idx.Fs()
 		return m, func() tea.Msg {
-			data, err := os.ReadFile(entry.Path)
+			data, err := afero.ReadFile(fs, entry.Path)
 			if err != nil {
 				return StatusMsg{Text: "Read error: " + err.Error()}
 			}
@@ -1296,6 +1300,7 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 	// Capture renderers for closure (safe since they're pointers)
 	mdRenderer := m.mdRenderer
 	codeRenderer := m.codeRenderer
+	fs := m.idx.Fs()
 
 	imgRenderer := m.imageRenderer
 
@@ -1318,7 +1323,7 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		data, err := os.ReadFile(entry.Path)
+		data, err := afero.ReadFile(fs, entry.Path)
 		if err != nil {
 			return PreviewLoadedMsg{
 				Path:    entry.RelPath,
@@ -1834,7 +1839,7 @@ func (m *Model) collectAllHeadings() []headingJumpEntry {
 	mdFiles := m.idx.MarkdownFiles()
 	var entries []headingJumpEntry
 	for _, f := range mdFiles {
-		data, err := os.ReadFile(f.Path)
+		data, err := afero.ReadFile(m.idx.Fs(), f.Path)
 		if err != nil {
 			continue
 		}
@@ -1887,7 +1892,9 @@ func (m *Model) cycleTheme() (*Model, tea.Cmd) {
 	}
 	m.cfg.Theme = next
 	m.mdRenderer, _ = render.NewMarkdownRenderer(next, 80)
+	m.mdRenderer.SetFs(m.idx.Fs())
 	m.codeRenderer = render.NewCodeRenderer(next, true)
+	m.codeRenderer.SetFs(m.idx.Fs())
 	m.status.SetMessage("Theme: " + next)
 
 	// Re-render current preview if one is loaded
