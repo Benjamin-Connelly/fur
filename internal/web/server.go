@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -192,9 +193,13 @@ func (s *Server) handleCustomCSS(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	_ = resolved
+	rootPrefix := s.idx.Root() + string(filepath.Separator)
+	if !strings.HasPrefix(resolved, rootPrefix) && resolved != s.idx.Root() {
+		http.NotFound(w, r)
+		return
+	}
 
-	data, err := afero.ReadFile(s.fs, cssPath)
+	data, err := afero.ReadFile(s.fs, resolved)
 	if err != nil {
 		http.NotFound(w, r)
 		return

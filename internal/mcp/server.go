@@ -111,11 +111,32 @@ func (s *Server) registerTools() {
 	)
 }
 
+// validatePath checks that the resolved path stays within the index root.
+// Prevents symlink escapes and path traversal.
+func (s *Server) validatePath(relPath string) (string, error) {
+	if strings.Contains(relPath, "..") {
+		return "", fmt.Errorf("path traversal not allowed")
+	}
+	absPath := filepath.Join(s.idx.Root(), relPath)
+	resolved, err := filepath.EvalSymlinks(absPath)
+	if err != nil {
+		return "", fmt.Errorf("file not found")
+	}
+	root := s.idx.Root()
+	if !strings.HasPrefix(resolved, root+string(filepath.Separator)) && resolved != root {
+		return "", fmt.Errorf("path escapes index root")
+	}
+	return absPath, nil
+}
+
 // --- Tool Handlers ---
 
 func (s *Server) handleSearchDocs(ctx context.Context, req mcp.CallToolRequest, args searchDocsArgs) (*mcp.CallToolResult, error) {
 	if args.Query == "" {
 		return mcp.NewToolResultError("query is required"), nil
+	}
+	if len(args.Query) > 500 {
+		return mcp.NewToolResultError("query too long (max 500 chars)"), nil
 	}
 
 	if args.Type == "content" && s.idx.Fulltext != nil {
@@ -153,16 +174,17 @@ func (s *Server) handleGetDocument(ctx context.Context, req mcp.CallToolRequest,
 	if args.File == "" {
 		return mcp.NewToolResultError("file is required"), nil
 	}
-	if strings.Contains(args.File, "..") {
-		return mcp.NewToolResultError("path traversal not allowed"), nil
-	}
 
 	entry := s.idx.Lookup(args.File)
 	if entry == nil {
 		return mcp.NewToolResultError("file not found: " + args.File), nil
 	}
 
-	absPath := filepath.Join(s.idx.Root(), args.File)
+	absPath, err := s.validatePath(args.File)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
 	data, err := afero.ReadFile(s.idx.Fs(), absPath)
 	if err != nil {
 		return mcp.NewToolResultError("read error: " + err.Error()), nil
@@ -185,6 +207,9 @@ func (s *Server) handleGetDocument(ctx context.Context, req mcp.CallToolRequest,
 func (s *Server) handleGetRelatedDocs(ctx context.Context, req mcp.CallToolRequest, args getRelatedDocsArgs) (*mcp.CallToolResult, error) {
 	if args.File == "" {
 		return mcp.NewToolResultError("file is required"), nil
+	}
+	if s.idx.Lookup(args.File) == nil {
+		return mcp.NewToolResultError("file not found: " + args.File), nil
 	}
 	if s.links == nil {
 		return mcp.NewToolResultError("link graph not available"), nil
@@ -276,15 +301,21 @@ func (s *Server) handleCheckDocHealth(ctx context.Context, req mcp.CallToolReque
 	var allTasks []tasks.Task
 	mdFiles := s.idx.MarkdownFiles()
 	for _, entry := range mdFiles {
+		if args.File != "" && entry.RelPath != args.File {
+			continue
+		}
+		if entry.Size > 10*1024*1024 {
+			continue // skip files > 10MB
+		}
 		absPath := filepath.Join(s.idx.Root(), entry.RelPath)
 		data, err := afero.ReadFile(s.idx.Fs(), absPath)
 		if err != nil {
 			continue
 		}
-		if args.File != "" && entry.RelPath != args.File {
-			continue
-		}
 		allTasks = append(allTasks, tasks.Extract(entry.RelPath, string(data))...)
+		if len(allTasks) > 1000 {
+			break
+		}
 	}
 	pending := tasks.Pending(allTasks)
 
@@ -309,16 +340,17 @@ func (s *Server) handleGetDocStructure(ctx context.Context, req mcp.CallToolRequ
 	if args.File == "" {
 		return mcp.NewToolResultError("file is required"), nil
 	}
-	if strings.Contains(args.File, "..") {
-		return mcp.NewToolResultError("path traversal not allowed"), nil
-	}
 
 	entry := s.idx.Lookup(args.File)
 	if entry == nil {
 		return mcp.NewToolResultError("file not found: " + args.File), nil
 	}
 
-	absPath := filepath.Join(s.idx.Root(), args.File)
+	absPath, err := s.validatePath(args.File)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
 	data, err := afero.ReadFile(s.idx.Fs(), absPath)
 	if err != nil {
 		return mcp.NewToolResultError("read error: " + err.Error()), nil

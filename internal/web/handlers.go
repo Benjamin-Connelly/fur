@@ -733,12 +733,18 @@ func (s *Server) handleAPITasks(w http.ResponseWriter, r *http.Request) {
 
 	var allTasks []tasks.Task
 	for _, entry := range s.idx.MarkdownFiles() {
+		if entry.Size > 10*1024*1024 {
+			continue // skip files > 10MB
+		}
 		absPath := filepath.Join(s.idx.Root(), entry.RelPath)
 		data, err := afero.ReadFile(s.fs, absPath)
 		if err != nil {
 			continue
 		}
 		allTasks = append(allTasks, tasks.Extract(entry.RelPath, string(data))...)
+		if len(allTasks) > 1000 {
+			break
+		}
 	}
 
 	if pendingOnly {
