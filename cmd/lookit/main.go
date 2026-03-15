@@ -174,10 +174,12 @@ markdown with GitHub Flavored Markdown, emoji, and syntax highlighting.
 Watches for file changes and pushes live updates via Server-Sent Events.
 
 API endpoints:
-  /__api/files?q=term   Fuzzy file search (JSON)
-  /__api/search?q=term  Full-text content search (JSON)
-  /__api/graph          Link graph data (JSON)
-  /graph                Interactive link graph visualization
+  /__api/files?q=term        Fuzzy file search (JSON)
+  /__api/search?q=term       Full-text content search (JSON)
+  /__api/graph               Link graph data (JSON)
+  /__api/document?file=path  Headings, forward links, backlinks for a file
+  /__api/tasks               All tasks (optional ?pending=true filter)
+  /graph                     Interactive link graph visualization
 
 The server adds security headers (CSP, X-Frame-Options, X-Content-Type-Options),
 ETag caching, and skips auto-opening the browser when an SSH session is detected.`,

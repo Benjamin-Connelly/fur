@@ -294,6 +294,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/__api/files", s.handleAPIFiles)
 	s.mux.HandleFunc("/__api/search", s.handleAPISearch)
 	s.mux.HandleFunc("/__api/graph", s.handleAPIGraph)
+	s.mux.HandleFunc("/__api/document", s.handleAPIDocument)
+	s.mux.HandleFunc("/__api/tasks", s.handleAPITasks)
 	s.mux.HandleFunc("/__events", s.handleSSE)
 
 	// Graph page

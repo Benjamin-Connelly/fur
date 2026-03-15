@@ -19,6 +19,7 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/index"
 	"github.com/Benjamin-Connelly/lookit/internal/plugin"
 	"github.com/Benjamin-Connelly/lookit/internal/render"
+	"github.com/Benjamin-Connelly/lookit/internal/tasks"
 	"github.com/Benjamin-Connelly/lookit/internal/web/templates"
 	"github.com/spf13/afero"
 	"github.com/yuin/goldmark"
@@ -621,6 +622,131 @@ func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(graphData{Nodes: nodes, Links: links})
+}
+
+func (s *Server) handleAPIDocument(w http.ResponseWriter, r *http.Request) {
+	filePath := r.URL.Query().Get("file")
+	if filePath == "" {
+		http.Error(w, `missing "file" query parameter`, http.StatusBadRequest)
+		return
+	}
+
+	// Prevent path traversal
+	if strings.Contains(filePath, "..") {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	entry := s.idx.Lookup(filePath)
+	if entry == nil {
+		http.Error(w, "file not found in index", http.StatusNotFound)
+		return
+	}
+
+	absPath := filepath.Join(s.idx.Root(), filePath)
+	data, err := afero.ReadFile(s.fs, absPath)
+	if err != nil {
+		http.Error(w, "failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	content := string(data)
+
+	// Extract headings
+	headings := render.ExtractHeadings(content)
+	type headingJSON struct {
+		Level int    `json:"level"`
+		Text  string `json:"text"`
+		Slug  string `json:"slug"`
+		Line  int    `json:"line"`
+	}
+	slugCounts := make(map[string]int)
+	var hdgs []headingJSON
+	for _, h := range headings {
+		slug := render.Slugify(h.Text)
+		n := slugCounts[slug]
+		slugCounts[slug]++
+		if n > 0 {
+			slug = fmt.Sprintf("%s-%d", slug, n)
+		}
+		hdgs = append(hdgs, headingJSON{
+			Level: h.Level,
+			Text:  h.Text,
+			Slug:  slug,
+			Line:  h.Line,
+		})
+	}
+
+	// Extract links (forward + backlinks)
+	type linkJSON struct {
+		Source   string `json:"source"`
+		Target  string `json:"target"`
+		Text    string `json:"text"`
+		Line    int    `json:"line,omitempty"`
+		Broken  bool   `json:"broken,omitempty"`
+		Fragment string `json:"fragment,omitempty"`
+	}
+	var fwd, back []linkJSON
+	if s.links != nil {
+		for _, l := range s.links.ForwardLinks(filePath) {
+			fwd = append(fwd, linkJSON{
+				Source:   l.Source,
+				Target:   l.Target,
+				Text:     l.Text,
+				Line:     l.Line,
+				Broken:   l.Broken,
+				Fragment: l.Fragment,
+			})
+		}
+		for _, l := range s.links.Backlinks(filePath) {
+			back = append(back, linkJSON{
+				Source: l.Source,
+				Target: l.Target,
+				Text:   l.Text,
+				Line:   l.Line,
+			})
+		}
+	}
+
+	result := struct {
+		File         string        `json:"file"`
+		Size         int64         `json:"size"`
+		IsMarkdown   bool          `json:"isMarkdown"`
+		Headings     []headingJSON `json:"headings"`
+		ForwardLinks []linkJSON    `json:"forwardLinks"`
+		Backlinks    []linkJSON    `json:"backlinks"`
+	}{
+		File:         filePath,
+		Size:         entry.Size,
+		IsMarkdown:   entry.IsMarkdown,
+		Headings:     hdgs,
+		ForwardLinks: fwd,
+		Backlinks:    back,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+func (s *Server) handleAPITasks(w http.ResponseWriter, r *http.Request) {
+	pendingOnly := r.URL.Query().Get("pending") == "true"
+
+	var allTasks []tasks.Task
+	for _, entry := range s.idx.MarkdownFiles() {
+		absPath := filepath.Join(s.idx.Root(), entry.RelPath)
+		data, err := afero.ReadFile(s.fs, absPath)
+		if err != nil {
+			continue
+		}
+		allTasks = append(allTasks, tasks.Extract(entry.RelPath, string(data))...)
+	}
+
+	if pendingOnly {
+		allTasks = tasks.Pending(allTasks)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(allTasks)
 }
 
 func gitStatusLabel(fs gitpkg.FileStatus) (label, class string) {
