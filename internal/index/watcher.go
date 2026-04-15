@@ -176,7 +176,7 @@ func (w *Watcher) addRecursive(root string) error {
 	}
 	for dir := range dirs {
 		if err := w.watcher.Add(dir); err != nil {
-			return err
+			log.Printf("watcher: skipping %s: %v", dir, err)
 		}
 	}
 	return nil
