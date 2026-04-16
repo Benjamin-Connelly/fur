@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"unicode"
 
 	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
@@ -252,18 +251,6 @@ type tocHeading struct {
 }
 
 // slugify converts a heading text to a URL-safe anchor ID.
-func slugify(text string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(text) {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			b.WriteRune(r)
-		} else if r == ' ' || r == '-' || r == '_' {
-			b.WriteByte('-')
-		}
-	}
-	return strings.Trim(b.String(), "-")
-}
-
 func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath string) {
 	absPath := filepath.Join(s.idx.Root(), relPath)
 	source, err := afero.ReadFile(s.fs, absPath)
@@ -303,7 +290,7 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		tocHeadings = append(tocHeadings, tocHeading{
 			Level: h.Level,
 			Text:  h.Text,
-			Slug:  slugify(h.Text),
+			Slug:  render.Slugify(h.Text),
 		})
 	}
 

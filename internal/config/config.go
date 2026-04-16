@@ -180,7 +180,9 @@ func mergeProjectConfig(cfg *Config) {
 			if err := v.ReadInConfig(); err != nil {
 				continue
 			}
-			_ = v.Unmarshal(cfg)
+			if err := v.Unmarshal(cfg); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: parsing project config %s: %v\n", path, err)
+			}
 			return // Use first found, stop walking
 		}
 		parent := filepath.Dir(dir)

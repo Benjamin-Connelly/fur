@@ -14,6 +14,7 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/config"
 	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
 	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/lookit/internal/render"
 )
 
 // --- handleRoot tests ---
@@ -552,19 +553,19 @@ func TestSlugify(t *testing.T) {
 	}{
 		{"Hello World", "hello-world"},
 		{"Getting Started", "getting-started"},
-		{"foo_bar_baz", "foo-bar-baz"},
+		{"foo_bar_baz", "foo_bar_baz"},
 		{"Hello   World", "hello---world"},
 		{"CamelCase", "camelcase"},
 		{"with 123 numbers", "with-123-numbers"},
-		{"  leading trailing  ", "leading-trailing"},
+		{"  leading trailing  ", "--leading-trailing--"},
 		{"special!@#$chars", "specialchars"},
 		{"hyphen-case", "hyphen-case"},
 		{"", ""},
 	}
 	for _, tt := range tests {
-		got := slugify(tt.input)
+		got := render.Slugify(tt.input)
 		if got != tt.want {
-			t.Errorf("slugify(%q) = %q, want %q", tt.input, got, tt.want)
+			t.Errorf("Slugify(%q) = %q, want %q", tt.input, got, tt.want)
 		}
 	}
 }

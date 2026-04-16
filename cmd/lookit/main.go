@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -29,7 +30,11 @@ import (
 	"github.com/Benjamin-Connelly/lookit/internal/web"
 )
 
-var version = "v0.4.0-dev"
+var (
+	version = "v0.4.0-dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
 
 var cfg *config.Config
 var plugins *plugin.Registry
@@ -605,6 +610,18 @@ Configure in Claude Code's MCP settings:
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print version, build, and runtime information",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("lookit %s\n", version)
+		fmt.Printf("  commit:  %s\n", commit)
+		fmt.Printf("  built:   %s\n", date)
+		fmt.Printf("  go:      %s\n", runtime.Version())
+		fmt.Printf("  os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+	},
+}
+
 var genManCmd = &cobra.Command{
 	Use:    "gen-man [output-dir]",
 	Short:  "Generate man pages",
@@ -857,6 +874,7 @@ func init() {
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(tasksCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(completionCmd)
 	rootCmd.AddCommand(genManCmd)
 }
