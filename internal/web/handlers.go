@@ -20,10 +20,6 @@ import (
 	"github.com/Benjamin-Connelly/fur/internal/tasks"
 	"github.com/Benjamin-Connelly/fur/internal/web/templates"
 	"github.com/spf13/afero"
-	"github.com/yuin/goldmark"
-	highlighting "github.com/yuin/goldmark-emoji"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
 )
 
 // Common template data shared by all pages.
@@ -260,17 +256,8 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 	}
 
 	// Render markdown to HTML using Goldmark
-	md := goldmark.New(
-		goldmark.WithExtensions(
-			extension.GFM,
-			highlighting.Emoji,
-		),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-		),
-	)
 	var buf bytes.Buffer
-	if err := md.Convert([]byte(sourceStr), &buf); err != nil {
+	if err := s.md.Convert([]byte(sourceStr), &buf); err != nil {
 		http.Error(w, "Markdown render error", http.StatusInternalServerError)
 		return
 	}

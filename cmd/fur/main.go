@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -237,7 +239,7 @@ ETag caching, and skips auto-opening the browser when an SSH session is detected
 
 		err = srv.Start()
 		// Suppress context deadline error on clean shutdown
-		if err != nil && err.Error() == "context deadline exceeded" {
+		if err != nil && errors.Is(err, context.DeadlineExceeded) {
 			return nil
 		}
 		return err

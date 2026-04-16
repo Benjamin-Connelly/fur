@@ -21,6 +21,10 @@ import (
 	"github.com/Benjamin-Connelly/fur/internal/render"
 	"github.com/Benjamin-Connelly/fur/internal/web/static"
 	"github.com/spf13/afero"
+	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-emoji"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
 )
 
 // Server is the HTTP server for web mode.
@@ -30,6 +34,7 @@ type Server struct {
 	links   *index.LinkGraph
 	plugins *plugin.Registry
 	code    *render.CodeRenderer
+	md      goldmark.Markdown
 	fs      afero.Fs
 	mux     *http.ServeMux
 	server  *http.Server
@@ -107,9 +112,13 @@ func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph, plugins *
 		links:   links,
 		plugins: plugins,
 		code:    render.NewCodeRenderer(cfg.Theme, false),
-		fs:      idx.Fs(),
-		mux:     http.NewServeMux(),
-		sse:     NewSSEBroker(),
+		md: goldmark.New(
+			goldmark.WithExtensions(extension.GFM, highlighting.Emoji),
+			goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+		),
+		fs:  idx.Fs(),
+		mux: http.NewServeMux(),
+		sse: NewSSEBroker(),
 	}
 
 	s.registerRoutes()

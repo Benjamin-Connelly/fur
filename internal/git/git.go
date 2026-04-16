@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -10,6 +11,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+var errStopIteration = errors.New("stop iteration")
 
 // Repo wraps a go-git repository with convenience methods.
 type Repo struct {
@@ -182,7 +185,7 @@ func (r *Repo) Log(n int) ([]CommitInfo, error) {
 	count := 0
 	err = iter.ForEach(func(c *object.Commit) error {
 		if count >= n {
-			return fmt.Errorf("stop")
+			return errStopIteration
 		}
 		commits = append(commits, CommitInfo{
 			Hash:    c.Hash.String(),
@@ -193,8 +196,7 @@ func (r *Repo) Log(n int) ([]CommitInfo, error) {
 		count++
 		return nil
 	})
-	// The "stop" error is our sentinel to break iteration early.
-	if err != nil && err.Error() != "stop" {
+	if err != nil && !errors.Is(err, errStopIteration) {
 		return nil, fmt.Errorf("iterating commits: %w", err)
 	}
 
