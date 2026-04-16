@@ -1,38 +1,38 @@
 .nh
-.TH "LOOKIT" "1" "Apr 2026" "lookit v0.4.0-dev" ""
+.TH "FUR" "1" "Apr 2026" "fur v0.4.0-dev" ""
 
 .SH NAME
-lookit - Dual-mode markdown navigator with inter-document link navigation
+fur - Dual-mode markdown navigator with inter-document link navigation
 
 
 .SH SYNOPSIS
-\fBlookit [path] [flags]\fP
+\fBfur [path] [flags]\fP
 
 
 .SH DESCRIPTION
-Lookit is a dual-mode markdown navigator (TUI + web) for browsing code,
+fur is a dual-mode markdown navigator (TUI + web) for browsing code,
 markdown, and files. Features inter-document link navigation, backlinks,
 broken link detection, fulltext search, and syntax highlighting for 50+
 languages.
 
 .PP
 Usage:
-  lookit                       Browse current directory
-  lookit ~/docs                Browse a specific directory
-  lookit README.md             Single-file mode (full-width preview)
-  cat file.md | lookit         Render piped markdown
+  fur                       Browse current directory
+  fur ~/docs                Browse a specific directory
+  fur README.md             Single-file mode (full-width preview)
+  cat file.md | fur         Render piped markdown
 
 .PP
 Remote browsing over SSH:
-  lookit myhost:/path/to/docs  SCP-style remote path
-  lookit user@host:/path       Explicit user
-  lookit @docs                 Named remote from config
+  fur myhost:/path/to/docs  SCP-style remote path
+  fur user@host:/path       Explicit user
+  fur @docs                 Named remote from config
 
 .PP
 Configuration:
-  ~/.config/lookit/config.yaml   Global config
-  .lookit.toml / .lookit.yaml    Per-project config (auto-discovered)
-  LOOKIT_* environment vars      Override any config key
+  ~/.config/fur/config.yaml    Global config
+  .fur.toml / .fur.yaml        Per-project config (auto-discovered)
+  FUR_* environment vars       Override any config key
 
 .PP
 TUI keybindings (press ? for full help):
@@ -57,7 +57,7 @@ TUI keybindings (press ? for full help):
 
 .PP
 \fB-h\fP, \fB--help\fP[=false]
-	help for lookit
+	help for fur
 
 .PP
 \fB--keymap\fP=""
@@ -86,17 +86,17 @@ TUI keybindings (press ? for full help):
 
 .SH EXAMPLE
 .EX
-  lookit
-  lookit ~/docs
-  lookit README.md
-  lookit devbox:/srv/docs
-  echo "# Hello" | lookit
-  lookit --keymap vim --theme dark ~/notes
+  fur
+  fur ~/docs
+  fur README.md
+  fur devbox:/srv/docs
+  echo "# Hello" | fur
+  fur --keymap vim --theme dark ~/notes
 .EE
 
 
 .SH SEE ALSO
-\fBlookit-cat(1)\fP, \fBlookit-completion(1)\fP, \fBlookit-doctor(1)\fP, \fBlookit-export(1)\fP, \fBlookit-graph(1)\fP, \fBlookit-mcp(1)\fP, \fBlookit-serve(1)\fP, \fBlookit-tasks(1)\fP, \fBlookit-version(1)\fP
+\fBfur-cat(1)\fP, \fBfur-completion(1)\fP, \fBfur-doctor(1)\fP, \fBfur-export(1)\fP, \fBfur-graph(1)\fP, \fBfur-mcp(1)\fP, \fBfur-serve(1)\fP, \fBfur-tasks(1)\fP, \fBfur-version(1)\fP
 
 
 .SH HISTORY

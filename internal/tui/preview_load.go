@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/afero"
 
-	"github.com/Benjamin-Connelly/lookit/internal/index"
-	"github.com/Benjamin-Connelly/lookit/internal/plugin"
+	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/plugin"
 )
 
 // previewWithSourceMsg carries both rendered preview and raw markdown source.

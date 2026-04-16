@@ -1,4 +1,4 @@
-// Package remote provides SSH/SFTP remote file access for lookit.
+// Package remote provides SSH/SFTP remote file access for fur.
 // It implements a sync/cache model: files are downloaded from the remote
 // host to a local cache directory, and a background goroutine polls for
 // changes periodically.

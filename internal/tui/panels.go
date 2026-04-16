@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Benjamin-Connelly/lookit/internal/git"
-	"github.com/Benjamin-Connelly/lookit/internal/index"
-	"github.com/Benjamin-Connelly/lookit/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/git"
+	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/render"
 )
 
 // PanelType identifies the type of side panel displayed.

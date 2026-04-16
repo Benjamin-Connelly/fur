@@ -52,7 +52,7 @@ func TestRecentFiles_SaveAndLoad(t *testing.T) {
 	t.Setenv("HOME", tmpHome)
 
 	// Create config dir
-	configDir := filepath.Join(tmpHome, ".config", "lookit")
+	configDir := filepath.Join(tmpHome, ".config", "fur")
 	os.MkdirAll(configDir, 0o755)
 
 	r := &RecentFiles{path: filepath.Join(configDir, "recent.json")}
@@ -96,7 +96,7 @@ func TestRecentFiles_SaveNoPath(t *testing.T) {
 	}
 
 	// Verify file was created
-	configDir := filepath.Join(tmpHome, ".config", "lookit")
+	configDir := filepath.Join(tmpHome, ".config", "fur")
 	if _, err := os.Stat(filepath.Join(configDir, "recent.json")); err != nil {
 		t.Errorf("recent.json not created: %v", err)
 	}
@@ -105,8 +105,8 @@ func TestRecentFiles_SaveNoPath(t *testing.T) {
 func TestMergeProjectConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Write a .lookit.yaml in the temp dir
-	os.WriteFile(filepath.Join(tmpDir, ".lookit.yaml"), []byte(`
+	// Write a .fur.yaml in the temp dir
+	os.WriteFile(filepath.Join(tmpDir, ".fur.yaml"), []byte(`
 theme: dark
 keymap: vim
 `), 0o644)
@@ -130,7 +130,7 @@ keymap: vim
 func TestMergeProjectConfig_TomlFormat(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	os.WriteFile(filepath.Join(tmpDir, ".lookit.toml"), []byte(`
+	os.WriteFile(filepath.Join(tmpDir, ".fur.toml"), []byte(`
 theme = "light"
 `), 0o644)
 
@@ -152,7 +152,7 @@ func TestMergeProjectConfig_WalksUp(t *testing.T) {
 	os.MkdirAll(subDir, 0o755)
 
 	// Config in parent
-	os.WriteFile(filepath.Join(tmpDir, ".lookit.yaml"), []byte("theme: dark\n"), 0o644)
+	os.WriteFile(filepath.Join(tmpDir, ".fur.yaml"), []byte("theme: dark\n"), 0o644)
 
 	origDir, _ := os.Getwd()
 	os.Chdir(subDir)

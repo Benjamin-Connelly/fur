@@ -1,17 +1,17 @@
 .nh
-.TH "LOOKIT" "1" "Apr 2026" "lookit v0.4.0-dev" ""
+.TH "FUR" "1" "Apr 2026" "fur v0.4.0-dev" ""
 
 .SH NAME
-lookit-mcp - Start MCP server for AI agent integration
+fur-mcp - Start MCP server for AI agent integration
 
 
 .SH SYNOPSIS
-\fBlookit mcp [path] [flags]\fP
+\fBfur mcp [path] [flags]\fP
 
 
 .SH DESCRIPTION
 Start a Model Context Protocol (MCP) server on stdin/stdout. This exposes
-lookit's documentation index as tools that AI agents (Claude Code, Cursor,
+fur's documentation index as tools that AI agents (Claude Code, Cursor,
 etc.) can call.
 
 .PP
@@ -27,7 +27,7 @@ Configure in Claude Code's MCP settings:
   {
     "mcpServers": {
       "docs": {
-        "command": "lookit",
+        "command": "fur",
         "args": ["mcp", "/path/to/docs"]
       }
     }
@@ -58,13 +58,13 @@ Configure in Claude Code's MCP settings:
 
 .SH EXAMPLE
 .EX
-  lookit mcp ~/docs
-  lookit mcp .
+  fur mcp ~/docs
+  fur mcp .
 .EE
 
 
 .SH SEE ALSO
-\fBlookit(1)\fP
+\fBfur(1)\fP
 
 
 .SH HISTORY

@@ -188,7 +188,7 @@ func TestCachePath(t *testing.T) {
 
 	// Path is under cache dir
 	cacheDir, _ := os.UserCacheDir()
-	if !strings.HasPrefix(path, filepath.Join(cacheDir, "lookit", "remote")) {
+	if !strings.HasPrefix(path, filepath.Join(cacheDir, "fur", "remote")) {
 		t.Errorf("CachePath() not under expected cache dir: %q", path)
 	}
 }

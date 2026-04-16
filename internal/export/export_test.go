@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/index"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -545,7 +545,7 @@ func TestExport_DefaultOutputDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Change to a temp dir so the default "lookit-export" dir is created there
+	// Change to a temp dir so the default "fur-export" dir is created there
 	origDir, _ := os.Getwd()
 	tmpWork := t.TempDir()
 	os.Chdir(tmpWork)
@@ -557,7 +557,7 @@ func TestExport_DefaultOutputDir(t *testing.T) {
 		t.Fatalf("Export: %v", err)
 	}
 
-	defaultOut := filepath.Join(tmpWork, "lookit-export", "test.html")
+	defaultOut := filepath.Join(tmpWork, "fur-export", "test.html")
 	if _, err := os.Stat(defaultOut); err != nil {
 		t.Errorf("default output dir not used: %v", err)
 	}

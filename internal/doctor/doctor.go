@@ -11,7 +11,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/Benjamin-Connelly/lookit/internal/git"
+	"github.com/Benjamin-Connelly/fur/internal/git"
 )
 
 // Check represents a single diagnostic check.
@@ -215,7 +215,7 @@ func checkConfig() Check {
 		}
 	}
 
-	configPath := filepath.Join(home, ".config", "lookit", "config.yaml")
+	configPath := filepath.Join(home, ".config", "fur", "config.yaml")
 	if _, err := os.Stat(configPath); err != nil {
 		return Check{
 			Name:    "Config",

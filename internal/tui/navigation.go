@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/afero"
 
-	"github.com/Benjamin-Connelly/lookit/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/render"
 )
 
 // ansiRe strips ANSI escape sequences for plain-text search.

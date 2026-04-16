@@ -16,18 +16,18 @@ import (
 	"github.com/spf13/cobra/doc"
 	"golang.org/x/term"
 
-	"github.com/Benjamin-Connelly/lookit/internal/config"
-	"github.com/Benjamin-Connelly/lookit/internal/doctor"
-	"github.com/Benjamin-Connelly/lookit/internal/export"
-	"github.com/Benjamin-Connelly/lookit/internal/index"
-	"github.com/Benjamin-Connelly/lookit/internal/manpages"
-	mcppkg "github.com/Benjamin-Connelly/lookit/internal/mcp"
-	"github.com/Benjamin-Connelly/lookit/internal/plugin"
-	"github.com/Benjamin-Connelly/lookit/internal/remote"
-	"github.com/Benjamin-Connelly/lookit/internal/render"
-	"github.com/Benjamin-Connelly/lookit/internal/tasks"
-	"github.com/Benjamin-Connelly/lookit/internal/tui"
-	"github.com/Benjamin-Connelly/lookit/internal/web"
+	"github.com/Benjamin-Connelly/fur/internal/config"
+	"github.com/Benjamin-Connelly/fur/internal/doctor"
+	"github.com/Benjamin-Connelly/fur/internal/export"
+	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/manpages"
+	mcppkg "github.com/Benjamin-Connelly/fur/internal/mcp"
+	"github.com/Benjamin-Connelly/fur/internal/plugin"
+	"github.com/Benjamin-Connelly/fur/internal/remote"
+	"github.com/Benjamin-Connelly/fur/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/tasks"
+	"github.com/Benjamin-Connelly/fur/internal/tui"
+	"github.com/Benjamin-Connelly/fur/internal/web"
 )
 
 var (
@@ -40,29 +40,29 @@ var cfg *config.Config
 var plugins *plugin.Registry
 
 var rootCmd = &cobra.Command{
-	Use:     "lookit [path]",
+	Use:     "fur [path]",
 	Short:   "Dual-mode markdown navigator with inter-document link navigation",
 	Version: version,
-	Long: `Lookit is a dual-mode markdown navigator (TUI + web) for browsing code,
+	Long: `fur is a dual-mode markdown navigator (TUI + web) for browsing code,
 markdown, and files. Features inter-document link navigation, backlinks,
 broken link detection, fulltext search, and syntax highlighting for 50+
 languages.
 
 Usage:
-  lookit                       Browse current directory
-  lookit ~/docs                Browse a specific directory
-  lookit README.md             Single-file mode (full-width preview)
-  cat file.md | lookit         Render piped markdown
+  fur                       Browse current directory
+  fur ~/docs                Browse a specific directory
+  fur README.md             Single-file mode (full-width preview)
+  cat file.md | fur         Render piped markdown
 
 Remote browsing over SSH:
-  lookit myhost:/path/to/docs  SCP-style remote path
-  lookit user@host:/path       Explicit user
-  lookit @docs                 Named remote from config
+  fur myhost:/path/to/docs  SCP-style remote path
+  fur user@host:/path       Explicit user
+  fur @docs                 Named remote from config
 
 Configuration:
-  ~/.config/lookit/config.yaml   Global config
-  .lookit.toml / .lookit.yaml    Per-project config (auto-discovered)
-  LOOKIT_* environment vars      Override any config key
+  ~/.config/fur/config.yaml    Global config
+  .fur.toml / .fur.yaml        Per-project config (auto-discovered)
+  FUR_* environment vars       Override any config key
 
 TUI keybindings (press ? for full help):
   j/k, arrows   Navigate           /          Filter files / search preview
@@ -74,12 +74,12 @@ TUI keybindings (press ? for full help):
   V              Visual line select y          Copy permalink
   :              Command palette    Ctrl+G     Global heading jump
   Ctrl+T         Cycle theme        ?          Help overlay`,
-	Example: `  lookit
-  lookit ~/docs
-  lookit README.md
-  lookit devbox:/srv/docs
-  echo "# Hello" | lookit
-  lookit --keymap vim --theme dark ~/notes`,
+	Example: `  fur
+  fur ~/docs
+  fur README.md
+  fur devbox:/srv/docs
+  echo "# Hello" | fur
+  fur --keymap vim --theme dark ~/notes`,
 	Args:              cobra.MaximumNArgs(1),
 	PersistentPreRunE: loadConfig,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -136,7 +136,7 @@ TUI keybindings (press ? for full help):
 		// Build fulltext search index
 		cacheDir, _ := os.UserCacheDir()
 		if cacheDir != "" {
-			cacheDir = filepath.Join(cacheDir, "lookit")
+			cacheDir = filepath.Join(cacheDir, "fur")
 		}
 		if err := idx.BuildFulltext(cacheDir); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: fulltext index unavailable: %v\n", err)
@@ -189,10 +189,10 @@ API endpoints:
 
 The server adds security headers (CSP, X-Frame-Options, X-Content-Type-Options),
 ETag caching, and skips auto-opening the browser when an SSH session is detected.`,
-	Example: `  lookit serve
-  lookit serve --port 3000 --open ~/docs
-  lookit serve --css ./custom.css
-  lookit serve --no-https`,
+	Example: `  fur serve
+  fur serve --port 3000 --open ~/docs
+  fur serve --css ./custom.css
+  fur serve --no-https`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
@@ -214,7 +214,7 @@ ETag caching, and skips auto-opening the browser when an SSH session is detected
 		// Build fulltext search index
 		serveCacheDir, _ := os.UserCacheDir()
 		if serveCacheDir != "" {
-			serveCacheDir = filepath.Join(serveCacheDir, "lookit")
+			serveCacheDir = filepath.Join(serveCacheDir, "fur")
 		}
 		if err := idx.BuildFulltext(serveCacheDir); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: fulltext index unavailable: %v\n", err)
@@ -257,9 +257,9 @@ Image files are displayed inline using your terminal's image protocol
 Supported image formats: PNG, JPG, WebP, BMP, GIF, SVG, ICO
 
 Use --json for machine-readable output (file path, size, format, content).`,
-	Example: `  lookit cat README.md
-  lookit cat diagram.png
-  lookit cat --json README.md`,
+	Example: `  fur cat README.md
+  fur cat diagram.png
+  fur cat --json README.md`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filePath := args[0]
@@ -359,10 +359,10 @@ in the target directory (respecting .gitignore), preserving the directory
 structure under the output directory. Referenced images are copied alongside.
 
 PDF export requires wkhtmltopdf to be installed. Default output directory
-is "lookit-export" in the current directory.`,
-	Example: `  lookit export
-  lookit export ~/docs -f html -o ./site
-  lookit export --format pdf --output ./pdfs`,
+is "fur-export" in the current directory.`,
+	Example: `  fur export
+  fur export ~/docs -f html -o ./site
+  fur export --format pdf --output ./pdfs`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
@@ -373,7 +373,7 @@ is "lookit-export" in the current directory.`,
 		formatStr, _ := cmd.Flags().GetString("format")
 		output, _ := cmd.Flags().GetString("output")
 		if output == "" {
-			output = "lookit-export"
+			output = "fur-export"
 		}
 
 		var format export.Format
@@ -411,12 +411,12 @@ Nodes are markdown files, edges are links between them (standard markdown
 links and [[wikilinks]]). Pipe to dot, neato, or other Graphviz tools to
 render as an image.
 
-An interactive graph is also available at /graph when using "lookit serve".
+An interactive graph is also available at /graph when using "fur serve".
 
 Use --json for machine-readable output (nodes and edges with metadata).`,
-	Example: `  lookit graph
-  lookit graph | dot -Tpng -o links.png
-  lookit graph --json | jq '.nodes | length'`,
+	Example: `  fur graph
+  fur graph | dot -Tpng -o links.png
+  fur graph --json | jq '.nodes | length'`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
@@ -493,7 +493,7 @@ var doctorCmd = &cobra.Command{
 Checks: Go version, Git version, git repo detection, .gitignore presence,
 terminal size and capabilities, config file loading, markdown file count,
 large file warnings, and wkhtmltopdf availability (for PDF export).`,
-	Example: `  lookit doctor`,
+	Example: `  fur doctor`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		checks := doctor.Run()
 		doctor.Print(checks)
@@ -513,10 +513,10 @@ Tasks are extracted from markdown checkbox syntax:
   - [x] Completed task
   - [ ] !high Urgent task with priority
   - [ ] Fix bug #backend @due(2025-01-15)`,
-	Example: `  lookit tasks
-  lookit tasks ~/docs
-  lookit tasks --pending
-  lookit tasks --json | jq '.[] | select(.priority == "high")'`,
+	Example: `  fur tasks
+  fur tasks ~/docs
+  fur tasks --pending
+  fur tasks --json | jq '.[] | select(.priority == "high")'`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
@@ -560,7 +560,7 @@ var mcpCmd = &cobra.Command{
 	Use:   "mcp [path]",
 	Short: "Start MCP server for AI agent integration",
 	Long: `Start a Model Context Protocol (MCP) server on stdin/stdout. This exposes
-lookit's documentation index as tools that AI agents (Claude Code, Cursor,
+fur's documentation index as tools that AI agents (Claude Code, Cursor,
 etc.) can call.
 
 Available tools:
@@ -574,13 +574,13 @@ Configure in Claude Code's MCP settings:
   {
     "mcpServers": {
       "docs": {
-        "command": "lookit",
+        "command": "fur",
         "args": ["mcp", "/path/to/docs"]
       }
     }
   }`,
-	Example: `  lookit mcp ~/docs
-  lookit mcp .`,
+	Example: `  fur mcp ~/docs
+  fur mcp .`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _, err := resolveRoot(args)
@@ -596,7 +596,7 @@ Configure in Claude Code's MCP settings:
 		// Build fulltext index for content search
 		cacheDir, _ := os.UserCacheDir()
 		if cacheDir != "" {
-			cacheDir = filepath.Join(cacheDir, "lookit")
+			cacheDir = filepath.Join(cacheDir, "fur")
 		}
 		_ = idx.BuildFulltext(cacheDir)
 		defer idx.CloseFulltext()
@@ -614,7 +614,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version, build, and runtime information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("lookit %s\n", version)
+		fmt.Printf("fur %s\n", version)
 		fmt.Printf("  commit:  %s\n", commit)
 		fmt.Printf("  built:   %s\n", date)
 		fmt.Printf("  go:      %s\n", runtime.Version())
@@ -637,9 +637,9 @@ var genManCmd = &cobra.Command{
 			return err
 		}
 		header := &doc.GenManHeader{
-			Title:   "LOOKIT",
+			Title:   "FUR",
 			Section: "1",
-			Source:  "lookit " + version,
+			Source:  "fur " + version,
 		}
 		if err := doc.GenManTree(rootCmd, header, manDir); err != nil {
 			return err
@@ -671,16 +671,16 @@ var genManCmd = &cobra.Command{
 
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
-	Short: "Set up shell completions for lookit",
+	Short: "Set up shell completions for fur",
 	Long: `Set up shell completions so you get tab-completion for commands, flags, and file paths.
 
 Run without arguments to auto-detect your shell and install interactively.
 Run with a shell name to output the raw completion script (for custom setups).
 
 Examples:
-  lookit completion              # Interactive setup (recommended)
-  lookit completion bash         # Print raw bash completion script
-  lookit completion --install    # Auto-detect shell and install without prompts`,
+  fur completion              # Interactive setup (recommended)
+  fur completion bash         # Print raw bash completion script
+  fur completion --install    # Auto-detect shell and install without prompts`,
 	Args:      cobra.MaximumNArgs(1),
 	ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -699,7 +699,7 @@ Examples:
 
 		if shell == "" {
 			fmt.Println("Could not detect your shell.")
-			fmt.Println("Run with a shell name: lookit completion bash")
+			fmt.Println("Run with a shell name: fur completion bash")
 			return nil
 		}
 
@@ -712,9 +712,9 @@ Examples:
 		// Interactive prompt
 		fmt.Printf("Detected shell: %s\n\n", shell)
 		fmt.Printf("This will install completions so you get tab-completion for:\n")
-		fmt.Printf("  • Commands:  lookit <TAB>  →  cat, serve, export, doctor, ...\n")
-		fmt.Printf("  • Flags:     lookit serve --<TAB>  →  --port, --open, ...\n")
-		fmt.Printf("  • Files:     lookit cat <TAB>  →  file/directory completion\n\n")
+		fmt.Printf("  • Commands:  fur <TAB>  →  cat, serve, export, doctor, ...\n")
+		fmt.Printf("  • Flags:     fur serve --<TAB>  →  --port, --open, ...\n")
+		fmt.Printf("  • Files:     fur cat <TAB>  →  file/directory completion\n\n")
 
 		if dest != "" {
 			fmt.Printf("Install to: %s\n", dest)
@@ -758,16 +758,16 @@ func completionPath(shell string) (dest, instruction string) {
 	case "bash":
 		// Prefer user-level bash-completion dir
 		dir := filepath.Join(home, ".local", "share", "bash-completion", "completions")
-		return filepath.Join(dir, "lookit"), ""
+		return filepath.Join(dir, "fur"), ""
 	case "zsh":
 		// Use ~/.zfunc if it exists, otherwise instruct to source
 		dir := filepath.Join(home, ".zfunc")
-		return filepath.Join(dir, "_lookit"), "Add to .zshrc: fpath=(~/.zfunc $fpath); autoload -Uz compinit && compinit"
+		return filepath.Join(dir, "_fur"), "Add to .zshrc: fpath=(~/.zfunc $fpath); autoload -Uz compinit && compinit"
 	case "fish":
 		dir := filepath.Join(home, ".config", "fish", "completions")
-		return filepath.Join(dir, "lookit.fish"), ""
+		return filepath.Join(dir, "fur.fish"), ""
 	case "powershell":
-		return "", "Add to $PROFILE: lookit completion powershell | Out-String | Invoke-Expression"
+		return "", "Add to $PROFILE: fur completion powershell | Out-String | Invoke-Expression"
 	}
 	return "", ""
 }
@@ -796,7 +796,7 @@ func installCompletion(shell, dest, instruction string) error {
 	}
 
 	// Generate completion script to temp file, then copy to destination
-	tmpFile, _ := os.CreateTemp("", "lookit-completion-*")
+	tmpFile, _ := os.CreateTemp("", "fur-completion-*")
 	defer os.Remove(tmpFile.Name())
 
 	if err := genCompletion(shell, tmpFile); err != nil {
@@ -838,7 +838,7 @@ func installCompletion(shell, dest, instruction string) error {
 }
 
 func init() {
-	rootCmd.SetVersionTemplate("lookit {{.Version}}\n")
+	rootCmd.SetVersionTemplate("fur {{.Version}}\n")
 	rootCmd.Flags().BoolP("version", "V", false, "print version")
 
 	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")

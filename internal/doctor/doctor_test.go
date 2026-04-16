@@ -306,7 +306,7 @@ func TestCheckPDFTool(t *testing.T) {
 }
 
 func TestCheckGitRepo_InRepo(t *testing.T) {
-	// The test is running inside the lookit repo, so this should return OK.
+	// The test is running inside the fur repo, so this should return OK.
 	c := checkGitRepo()
 	if c.Name != "Git repository" {
 		t.Errorf("expected name 'Git repository', got %q", c.Name)

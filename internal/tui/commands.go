@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/index"
 )
 
 // CommandEntry represents an entry in the command palette.
@@ -34,7 +34,7 @@ func NewCommandPalette() CommandPalette {
 func (p *CommandPalette) RegisterCommands(idx *index.Index, links *index.LinkGraph) {
 	p.RegisterCommand(CommandEntry{
 		Name:        "quit",
-		Description: "Exit lookit",
+		Description: "Exit fur",
 		Action:      tea.Quit,
 	})
 

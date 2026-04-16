@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/index"
 )
 
 // LinkFollowMsg is sent when the user follows a link.

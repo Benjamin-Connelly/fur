@@ -1,4 +1,4 @@
-module github.com/Benjamin-Connelly/lookit
+module github.com/Benjamin-Connelly/fur
 
 go 1.26.1
 

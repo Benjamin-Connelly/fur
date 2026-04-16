@@ -47,7 +47,7 @@ func DetectImageProtocol() ImageProtocol {
 }
 
 // RenderImageInline outputs an image using the given terminal protocol.
-// Only safe outside alt-screen (e.g., `lookit cat`), NOT inside Bubble Tea.
+// Only safe outside alt-screen (e.g., `fur cat`), NOT inside Bubble Tea.
 // An optional afero.Fs can be provided; if nil, the OS filesystem is used.
 func RenderImageInline(path string, protocol ImageProtocol, fsys ...afero.Fs) (string, error) {
 	var fs afero.Fs = afero.NewOsFs()

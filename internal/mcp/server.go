@@ -10,24 +10,24 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/afero"
 
-	"github.com/Benjamin-Connelly/lookit/internal/index"
-	"github.com/Benjamin-Connelly/lookit/internal/render"
-	"github.com/Benjamin-Connelly/lookit/internal/tasks"
+	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/tasks"
 )
 
-// Server wraps lookit's index and link graph as MCP tools.
+// Server wraps fur's index and link graph as MCP tools.
 type Server struct {
 	idx   *index.Index
 	links *index.LinkGraph
 	mcp   *server.MCPServer
 }
 
-// New creates an MCP server with all lookit tools registered.
+// New creates an MCP server with all fur tools registered.
 func New(idx *index.Index, links *index.LinkGraph) *Server {
 	s := &Server{
 		idx:   idx,
 		links: links,
-		mcp: server.NewMCPServer("lookit", "0.4.0",
+		mcp: server.NewMCPServer("fur", "0.4.0",
 			server.WithToolCapabilities(false),
 		),
 	}

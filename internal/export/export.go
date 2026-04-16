@@ -17,7 +17,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 
-	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/index"
 )
 
 // Format identifies the export output format.
@@ -54,7 +54,7 @@ func Export(idx *index.Index, opts Options) error {
 
 	outputDir := opts.OutputDir
 	if outputDir == "" {
-		outputDir = "lookit-export"
+		outputDir = "fur-export"
 	}
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
@@ -155,7 +155,7 @@ func detectPDFTool() (string, []string, error) {
 	if path, err := exec.LookPath("wkhtmltopdf"); err == nil {
 		return path, nil, nil
 	}
-	return "", nil, fmt.Errorf("PDF export requires chromium, google-chrome, or wkhtmltopdf.\nInstall one of these and try again. Run 'lookit doctor' to check your environment")
+	return "", nil, fmt.Errorf("PDF export requires chromium, google-chrome, or wkhtmltopdf.\nInstall one of these and try again. Run 'fur doctor' to check your environment")
 }
 
 func exportPDF(source []byte, relPath, absPath, outputDir string) error {
@@ -165,7 +165,7 @@ func exportPDF(source []byte, relPath, absPath, outputDir string) error {
 	}
 
 	// First render to a temporary HTML file
-	tmpDir, err := os.MkdirTemp("", "lookit-pdf-*")
+	tmpDir, err := os.MkdirTemp("", "fur-pdf-*")
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
 	}

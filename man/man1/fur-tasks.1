@@ -1,12 +1,12 @@
 .nh
-.TH "LOOKIT" "1" "Apr 2026" "lookit v0.4.0-dev" ""
+.TH "FUR" "1" "Apr 2026" "fur v0.4.0-dev" ""
 
 .SH NAME
-lookit-tasks - Extract and list TODO items from markdown files
+fur-tasks - Extract and list TODO items from markdown files
 
 
 .SH SYNOPSIS
-\fBlookit tasks [path] [flags]\fP
+\fBfur tasks [path] [flags]\fP
 
 
 .SH DESCRIPTION
@@ -54,15 +54,15 @@ Tasks are extracted from markdown checkbox syntax:
 
 .SH EXAMPLE
 .EX
-  lookit tasks
-  lookit tasks ~/docs
-  lookit tasks --pending
-  lookit tasks --json | jq '.[] | select(.priority == "high")'
+  fur tasks
+  fur tasks ~/docs
+  fur tasks --pending
+  fur tasks --json | jq '.[] | select(.priority == "high")'
 .EE
 
 
 .SH SEE ALSO
-\fBlookit(1)\fP
+\fBfur(1)\fP
 
 
 .SH HISTORY

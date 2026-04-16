@@ -14,9 +14,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/afero"
 
-	gitpkg "github.com/Benjamin-Connelly/lookit/internal/git"
-	"github.com/Benjamin-Connelly/lookit/internal/index"
-	"github.com/Benjamin-Connelly/lookit/internal/plugin"
+	gitpkg "github.com/Benjamin-Connelly/fur/internal/git"
+	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/plugin"
 )
 
 // Update implements tea.Model.

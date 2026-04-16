@@ -35,7 +35,7 @@ type SyncStatus struct {
 // periodically polls for changes.
 type Syncer struct {
 	conn       *Conn
-	cacheDir   string // local cache root (e.g. ~/.cache/lookit/remote/host/path)
+	cacheDir   string // local cache root (e.g. ~/.cache/fur/remote/host/path)
 	remotePath string
 	singleFile bool // true when remotePath points to a file, not a directory
 
@@ -392,7 +392,7 @@ func (s *Syncer) cleanDeleted(client *sftp.Client) {
 }
 
 // CachePath returns the local cache directory for a given remote target.
-// Format: ~/.cache/lookit/remote/<hash>/
+// Format: ~/.cache/fur/remote/<hash>/
 // Uses a hash to avoid path length issues and special characters.
 func CachePath(target Target) (string, error) {
 	cacheDir, err := os.UserCacheDir()
@@ -405,5 +405,5 @@ func CachePath(target Target) (string, error) {
 	fmt.Fprintf(h, "%s@%s:%d:%s", target.User, target.Host, target.Port, target.Path)
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:12]
 
-	return filepath.Join(cacheDir, "lookit", "remote", hash), nil
+	return filepath.Join(cacheDir, "fur", "remote", hash), nil
 }

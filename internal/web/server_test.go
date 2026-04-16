@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Benjamin-Connelly/lookit/internal/config"
-	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/config"
+	"github.com/Benjamin-Connelly/fur/internal/index"
 )
 
 // setupTestServer creates a Server backed by a temp directory with test files.

@@ -21,7 +21,7 @@ func Install(currentVersion string) (int, error) {
 	}
 
 	// Check version stamp to avoid redundant writes
-	stampFile := filepath.Join(destDir, ".lookit-version")
+	stampFile := filepath.Join(destDir, ".fur-version")
 	if data, err := os.ReadFile(stampFile); err == nil && string(data) == currentVersion {
 		return 0, nil // already installed for this version
 	}

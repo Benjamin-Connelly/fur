@@ -1,12 +1,12 @@
 .nh
-.TH "LOOKIT" "1" "Apr 2026" "lookit v0.4.0-dev" ""
+.TH "FUR" "1" "Apr 2026" "fur v0.4.0-dev" ""
 
 .SH NAME
-lookit-graph - Output link graph in DOT format
+fur-graph - Output link graph in DOT format
 
 
 .SH SYNOPSIS
-\fBlookit graph [path] [flags]\fP
+\fBfur graph [path] [flags]\fP
 
 
 .SH DESCRIPTION
@@ -16,7 +16,7 @@ links and [[wikilinks]]). Pipe to dot, neato, or other Graphviz tools to
 render as an image.
 
 .PP
-An interactive graph is also available at /graph when using "lookit serve".
+An interactive graph is also available at /graph when using "fur serve".
 
 .PP
 Use --json for machine-readable output (nodes and edges with metadata).
@@ -50,14 +50,14 @@ Use --json for machine-readable output (nodes and edges with metadata).
 
 .SH EXAMPLE
 .EX
-  lookit graph
-  lookit graph | dot -Tpng -o links.png
-  lookit graph --json | jq '.nodes | length'
+  fur graph
+  fur graph | dot -Tpng -o links.png
+  fur graph --json | jq '.nodes | length'
 .EE
 
 
 .SH SEE ALSO
-\fBlookit(1)\fP
+\fBfur(1)\fP
 
 
 .SH HISTORY

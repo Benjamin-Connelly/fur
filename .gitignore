@@ -13,6 +13,7 @@ yarn-error.log*
 *.swo
 *~
 artifacts/
+/fur
 /lookit
 .beads/*
 !.beads/issues.jsonl

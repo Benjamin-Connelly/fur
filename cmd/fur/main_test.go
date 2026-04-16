@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Benjamin-Connelly/lookit/internal/config"
+	"github.com/Benjamin-Connelly/fur/internal/config"
 	"github.com/spf13/cobra/doc"
 )
 
@@ -93,7 +93,7 @@ func TestManPagesUpToDate(t *testing.T) {
 	// Generate fresh man pages to a temp dir
 	tmpDir := t.TempDir()
 	header := &doc.GenManHeader{
-		Title:   "LOOKIT",
+		Title:   "FUR",
 		Section: "1",
 	}
 	if err := doc.GenManTree(rootCmd, header, tmpDir); err != nil {
@@ -119,12 +119,12 @@ func TestManPagesUpToDate(t *testing.T) {
 
 		committed, err := os.ReadFile(filepath.Join(embedDir, entry.Name()))
 		if err != nil {
-			t.Errorf("man page %s not found in embed dir — run: go run ./cmd/lookit gen-man", entry.Name())
+			t.Errorf("man page %s not found in embed dir — run: go run ./cmd/fur gen-man", entry.Name())
 			continue
 		}
 
 		if stripManHeader(string(generated)) != stripManHeader(string(committed)) {
-			t.Errorf("man page %s is stale — run: go run ./cmd/lookit gen-man", entry.Name())
+			t.Errorf("man page %s is stale — run: go run ./cmd/fur gen-man", entry.Name())
 		}
 	}
 }

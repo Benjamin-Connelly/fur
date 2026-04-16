@@ -222,9 +222,11 @@ main {
 .lang-badge {
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 600;
   padding: 2px 8px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--bg-tertiary);
+  color: var(--accent);
+  border: 1px solid var(--border);
   border-radius: 3px;
 }
 .file-size {

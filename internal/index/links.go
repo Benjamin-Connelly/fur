@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Benjamin-Connelly/lookit/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/render"
 	"github.com/spf13/afero"
 )
 

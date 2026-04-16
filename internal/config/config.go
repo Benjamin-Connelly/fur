@@ -137,7 +137,7 @@ func Load(cfgFile string) (*Config, error) {
 		v.AddConfigPath(configDir)
 	}
 
-	v.SetEnvPrefix("LOOKIT")
+	v.SetEnvPrefix("FUR")
 	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
@@ -161,7 +161,7 @@ func Load(cfgFile string) (*Config, error) {
 	return cfg, nil
 }
 
-// mergeProjectConfig walks up from CWD looking for .lookit.toml or .lookit.yaml
+// mergeProjectConfig walks up from CWD looking for .fur.toml or .fur.yaml
 // and merges any found settings into the config. Project config overrides global.
 func mergeProjectConfig(cfg *Config) {
 	dir, err := os.Getwd()
@@ -170,7 +170,7 @@ func mergeProjectConfig(cfg *Config) {
 	}
 
 	for {
-		for _, name := range []string{".lookit.toml", ".lookit.yaml", ".lookit.yml"} {
+		for _, name := range []string{".fur.toml", ".fur.yaml", ".fur.yml"} {
 			path := filepath.Join(dir, name)
 			if _, err := os.Stat(path); err != nil {
 				continue
@@ -227,7 +227,7 @@ func Watch(cfgFile string, onChange func(*Config)) {
 	v.WatchConfig()
 }
 
-// CreateDefault writes a default config file to ~/.config/lookit/config.yaml
+// CreateDefault writes a default config file to ~/.config/fur/config.yaml
 // if one does not already exist. Returns the path written, or empty string if
 // a config already exists.
 func CreateDefault() (string, error) {
@@ -246,8 +246,8 @@ func CreateDefault() (string, error) {
 		return "", fmt.Errorf("creating config dir: %w", err)
 	}
 
-	content := `# Lookit configuration
-# See: https://github.com/Benjamin-Connelly/lookit
+	content := `# fur configuration
+# See: https://github.com/Benjamin-Connelly/fur
 
 # Theme: light, dark, or auto
 theme: auto
@@ -281,11 +281,20 @@ git:
 	return configPath, nil
 }
 
-// ConfigDir returns the lookit configuration directory.
+// ConfigDir returns the fur configuration directory.
+// Migrates from the legacy ~/.config/lookit path if it exists.
 func ConfigDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "lookit"), nil
+	newPath := filepath.Join(home, ".config", "fur")
+	legacyPath := filepath.Join(home, ".config", "lookit")
+	if _, err := os.Stat(legacyPath); err == nil {
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "note: migrating config from %s to %s\n", legacyPath, newPath)
+			os.Rename(legacyPath, newPath)
+		}
+	}
+	return newPath, nil
 }

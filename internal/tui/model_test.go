@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/Benjamin-Connelly/lookit/internal/config"
-	"github.com/Benjamin-Connelly/lookit/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/config"
+	"github.com/Benjamin-Connelly/fur/internal/index"
 )
 
 // testModel creates a Model with a minimal temp directory containing a markdown

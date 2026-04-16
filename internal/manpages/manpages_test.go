@@ -18,12 +18,12 @@ func TestEmbeddedPagesExist(t *testing.T) {
 	// Verify main page exists
 	found := false
 	for _, e := range entries {
-		if e.Name() == "lookit.1" {
+		if e.Name() == "fur.1" {
 			found = true
 		}
 	}
 	if !found {
-		t.Error("lookit.1 not found in embedded pages")
+		t.Error("fur.1 not found in embedded pages")
 	}
 }
 
@@ -75,7 +75,7 @@ func TestInstall(t *testing.T) {
 	}
 
 	// Verify version stamp
-	stamp, err := os.ReadFile(filepath.Join(manDir, ".lookit-version"))
+	stamp, err := os.ReadFile(filepath.Join(manDir, ".fur-version"))
 	if err != nil {
 		t.Fatalf("reading version stamp: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestInstallUpgradesOnVersionChange(t *testing.T) {
 
 	// Verify stamp updated
 	manDir := filepath.Join(tmpDir, ".local", "share", "man", "man1")
-	stamp, _ := os.ReadFile(filepath.Join(manDir, ".lookit-version"))
+	stamp, _ := os.ReadFile(filepath.Join(manDir, ".fur-version"))
 	if string(stamp) != "v2.0.0" {
 		t.Errorf("stamp = %q, want v2.0.0", stamp)
 	}

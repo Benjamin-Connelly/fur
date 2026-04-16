@@ -15,11 +15,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Benjamin-Connelly/lookit/internal/config"
-	"github.com/Benjamin-Connelly/lookit/internal/index"
-	"github.com/Benjamin-Connelly/lookit/internal/plugin"
-	"github.com/Benjamin-Connelly/lookit/internal/render"
-	"github.com/Benjamin-Connelly/lookit/internal/web/static"
+	"github.com/Benjamin-Connelly/fur/internal/config"
+	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/plugin"
+	"github.com/Benjamin-Connelly/fur/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/web/static"
 	"github.com/spf13/afero"
 )
 
@@ -139,7 +139,7 @@ func (s *Server) Start() error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		fmt.Printf("lookit serving http://%s\n", addr)
+		fmt.Printf("fur serving http://%s\n", addr)
 		errCh <- s.server.ListenAndServe()
 	}()
 

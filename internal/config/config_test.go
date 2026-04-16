@@ -119,8 +119,8 @@ func TestConfigDir(t *testing.T) {
 	if !filepath.IsAbs(dir) {
 		t.Errorf("expected absolute path, got %q", dir)
 	}
-	if !strings.HasSuffix(dir, filepath.Join(".config", "lookit")) {
-		t.Errorf("expected path ending in .config/lookit, got %q", dir)
+	if !strings.HasSuffix(dir, filepath.Join(".config", "fur")) {
+		t.Errorf("expected path ending in .config/fur, got %q", dir)
 	}
 }
 
@@ -158,7 +158,7 @@ func TestCreateDefault_Exists(t *testing.T) {
 	defer os.Setenv("HOME", origHome)
 
 	// Create config first
-	configDir := filepath.Join(tmpHome, ".config", "lookit")
+	configDir := filepath.Join(tmpHome, ".config", "fur")
 	os.MkdirAll(configDir, 0o755)
 	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("theme: dark\n"), 0o644)
 
@@ -204,8 +204,8 @@ func TestLoad_EnvVarOverride(t *testing.T) {
 	cfgPath := filepath.Join(dir, "config.yaml")
 	os.WriteFile(cfgPath, []byte("theme: light\nkeymap: default\n"), 0o644)
 
-	os.Setenv("LOOKIT_THEME", "dark")
-	defer os.Unsetenv("LOOKIT_THEME")
+	os.Setenv("FUR_THEME", "dark")
+	defer os.Unsetenv("FUR_THEME")
 
 	cfg, err := Load(cfgPath)
 	if err != nil {
