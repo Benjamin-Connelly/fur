@@ -394,8 +394,8 @@ func (s *Server) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use Bleve fulltext search when available
-	if s.idx.Fulltext != nil {
-		bleveResults, err := s.idx.Fulltext.Search(query, 100)
+	if s.idx.GetFulltext() != nil {
+		bleveResults, err := s.idx.GetFulltext().Search(query, 100)
 		if err == nil {
 			var results []searchResult
 			for _, br := range bleveResults {

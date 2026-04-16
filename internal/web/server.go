@@ -30,7 +30,7 @@ import (
 // Server is the HTTP server for web mode.
 type Server struct {
 	cfg     *config.Config
-	idx     *index.Index
+	idx     index.Indexer
 	links   *index.LinkGraph
 	plugins *plugin.Registry
 	code    *render.CodeRenderer
@@ -105,7 +105,7 @@ func (b *SSEBroker) Notify(path string) {
 }
 
 // New creates a new web server.
-func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph, plugins *plugin.Registry) *Server {
+func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins *plugin.Registry) *Server {
 	s := &Server{
 		cfg:     cfg,
 		idx:     idx,

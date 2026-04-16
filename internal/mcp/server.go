@@ -17,13 +17,13 @@ import (
 
 // Server wraps fur's index and link graph as MCP tools.
 type Server struct {
-	idx   *index.Index
+	idx   index.Indexer
 	links *index.LinkGraph
 	mcp   *server.MCPServer
 }
 
 // New creates an MCP server with all fur tools registered.
-func New(idx *index.Index, links *index.LinkGraph) *Server {
+func New(idx index.Indexer, links *index.LinkGraph) *Server {
 	s := &Server{
 		idx:   idx,
 		links: links,
@@ -125,8 +125,8 @@ func (s *Server) handleSearchDocs(ctx context.Context, req mcp.CallToolRequest, 
 		return mcp.NewToolResultError("query too long (max 500 chars)"), nil
 	}
 
-	if args.Type == "content" && s.idx.Fulltext != nil {
-		results, err := s.idx.Fulltext.Search(args.Query, 20)
+	if args.Type == "content" && s.idx.GetFulltext() != nil {
+		results, err := s.idx.GetFulltext().Search(args.Query, 20)
 		if err != nil {
 			return mcp.NewToolResultError("search failed: " + err.Error()), nil
 		}

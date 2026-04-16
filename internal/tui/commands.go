@@ -31,7 +31,7 @@ func NewCommandPalette() CommandPalette {
 }
 
 // RegisterCommands sets up the standard command set for the TUI.
-func (p *CommandPalette) RegisterCommands(idx *index.Index, links *index.LinkGraph) {
+func (p *CommandPalette) RegisterCommands(idx index.Indexer, links *index.LinkGraph) {
 	p.RegisterCommand(CommandEntry{
 		Name:        "quit",
 		Description: "Exit fur",
@@ -173,7 +173,7 @@ func (p *CommandPalette) Execute() tea.Msg {
 }
 
 // HandleOpenInput handles the "open" command with fuzzy file matching.
-func (p *CommandPalette) HandleOpenInput(idx *index.Index) tea.Msg {
+func (p *CommandPalette) HandleOpenInput(idx index.Indexer) tea.Msg {
 	query := strings.TrimSpace(strings.TrimPrefix(p.input, "open "))
 	if query == "" {
 		return StatusMsg{Text: "Usage: open <filename>"}

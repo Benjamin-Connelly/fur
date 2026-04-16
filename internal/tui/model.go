@@ -59,7 +59,7 @@ type clearStatusMsg struct{}
 // Model is the root Bubble Tea model for the TUI.
 type Model struct {
 	cfg      *config.Config
-	idx      *index.Index
+	idx      index.Indexer
 	links    *index.LinkGraph
 	fileList FileListModel
 	preview  PreviewModel
@@ -150,7 +150,7 @@ type previewLink struct {
 }
 
 // New creates a new root TUI model.
-func New(cfg *config.Config, idx *index.Index, links *index.LinkGraph, plugins *plugin.Registry) *Model {
+func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins *plugin.Registry) *Model {
 	km := DefaultKeyMap()
 	switch cfg.Keymap {
 	case "vim":

@@ -68,8 +68,8 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) applyFilter(query string) {
-	if m.searchMode == "content" && m.idx.Fulltext != nil && query != "" {
-		results, err := m.idx.Fulltext.Search(query, 50)
+	if m.searchMode == "content" && m.idx.GetFulltext() != nil && query != "" {
+		results, err := m.idx.GetFulltext().Search(query, 50)
 		if err == nil {
 			entries := make([]index.FileEntry, 0, len(results))
 			for _, r := range results {

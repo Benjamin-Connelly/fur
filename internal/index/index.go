@@ -34,6 +34,19 @@ type Options struct {
 	IgnorePatterns []string // additional glob patterns to ignore
 }
 
+type Indexer interface {
+	Root() string
+	Fs() afero.Fs
+	Entries() []FileEntry
+	MarkdownFiles() []FileEntry
+	Lookup(relPath string) *FileEntry
+	ValidatePath(relPath string) (string, error)
+	FuzzySearch(query string, maxResults ...int) []FileEntry
+	GetFulltext() *FulltextIndex
+}
+
+var _ Indexer = (*Index)(nil)
+
 // Index maintains an in-memory file index for fast lookup and search.
 type Index struct {
 	root     string
@@ -66,6 +79,10 @@ func (idx *Index) CloseFulltext() {
 	if idx.Fulltext != nil {
 		idx.Fulltext.Close()
 	}
+}
+
+func (idx *Index) GetFulltext() *FulltextIndex {
+	return idx.Fulltext
 }
 
 // New creates a new Index rooted at the given directory.

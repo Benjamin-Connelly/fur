@@ -58,7 +58,7 @@ type treeNode struct {
 
 // FileListModel manages the file list panel with fuzzy filtering.
 type FileListModel struct {
-	idx        *index.Index
+	idx        index.Indexer
 	entries    []index.FileEntry
 	tree       []treeNode        // full tree
 	visible    []treeNode        // visible nodes (respecting collapsed dirs)
@@ -73,7 +73,7 @@ type FileListModel struct {
 }
 
 // NewFileListModel creates a file list panel.
-func NewFileListModel(idx *index.Index) FileListModel {
+func NewFileListModel(idx index.Indexer) FileListModel {
 	entries := idx.Entries()
 	collapsed := make(map[string]bool)
 	// Start with all directories collapsed
