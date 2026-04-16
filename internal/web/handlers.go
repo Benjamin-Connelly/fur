@@ -101,12 +101,14 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if relPath != "." {
 		absPath := filepath.Join(s.idx.Root(), relPath)
 		resolved, err := filepath.EvalSymlinks(absPath)
-		if err == nil {
-			rootPrefix := s.idx.Root() + string(os.PathSeparator)
-			if !strings.HasPrefix(resolved, rootPrefix) && resolved != s.idx.Root() {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		rootPrefix := s.idx.Root() + string(os.PathSeparator)
+		if !strings.HasPrefix(resolved, rootPrefix) && resolved != s.idx.Root() {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
 		}
 	}
 
@@ -510,7 +512,8 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case msg := <-msgCh:
-			fmt.Fprintf(w, "data: %s\n\n", msg)
+			sanitized := strings.NewReplacer("\n", "", "\r", "").Replace(msg)
+			fmt.Fprintf(w, "data: %s\n\n", sanitized)
 			flusher.Flush()
 		case <-ctx.Done():
 			return

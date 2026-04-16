@@ -46,10 +46,12 @@ type Conn struct {
 	sshClient *ssh.Client
 	sftp      *sftp.Client
 	sshCfg    *ssh_config.Config // parsed ~/.ssh/config
+	agentConn net.Conn           // SSH agent socket connection, closed on Close()
 
-	state     ConnState
-	lastError error
-	mu        sync.RWMutex
+	state        ConnState
+	lastError    error
+	reconnecting bool
+	mu           sync.RWMutex
 
 	done      chan struct{}
 	keepalive time.Duration
@@ -218,6 +220,10 @@ func (c *Conn) Close() error {
 		}
 		c.sshClient = nil
 	}
+	if c.agentConn != nil {
+		c.agentConn.Close()
+		c.agentConn = nil
+	}
 	c.state = ConnDisconnected
 	return firstErr
 }
@@ -251,11 +257,14 @@ func (c *Conn) Target() Target {
 // Reconnect attempts to re-establish the connection with exponential backoff.
 func (c *Conn) Reconnect() error {
 	c.mu.Lock()
+	if c.reconnecting {
+		c.mu.Unlock()
+		return fmt.Errorf("reconnection already in progress")
+	}
+	c.reconnecting = true
 	c.state = ConnReconnecting
-	c.mu.Unlock()
 
-	// Close existing connection
-	c.mu.Lock()
+	// Close existing connection under the same lock
 	if c.sftp != nil {
 		c.sftp.Close()
 		c.sftp = nil
@@ -264,10 +273,10 @@ func (c *Conn) Reconnect() error {
 		c.sshClient.Close()
 		c.sshClient = nil
 	}
-	c.mu.Unlock()
 
-	// Recreate done channel for new keepalive loop
+	// Recreate done channel under the lock so keepaliveLoop sees the new one
 	c.done = make(chan struct{})
+	c.mu.Unlock()
 
 	backoff := []time.Duration{
 		1 * time.Second,
@@ -278,21 +287,33 @@ func (c *Conn) Reconnect() error {
 		30 * time.Second,
 	}
 
+	var lastErr error
 	for i, delay := range backoff {
 		if err := c.Connect(); err == nil {
+			c.mu.Lock()
+			c.reconnecting = false
+			c.mu.Unlock()
 			return nil
+		} else {
+			lastErr = err
 		}
 
 		if i < len(backoff)-1 {
 			select {
 			case <-time.After(delay):
 			case <-c.done:
+				c.mu.Lock()
+				c.reconnecting = false
+				c.mu.Unlock()
 				return fmt.Errorf("reconnection cancelled")
 			}
 		}
 	}
 
-	return fmt.Errorf("reconnection failed after %d attempts", len(backoff))
+	c.mu.Lock()
+	c.reconnecting = false
+	c.mu.Unlock()
+	return fmt.Errorf("reconnection failed after %d attempts: %w", len(backoff), lastErr)
 }
 
 func (c *Conn) buildSSHConfig() (*ssh.ClientConfig, error) {
@@ -371,6 +392,12 @@ func (c *Conn) agentAuth() ssh.AuthMethod {
 	if err != nil {
 		return nil
 	}
+	c.mu.Lock()
+	if c.agentConn != nil {
+		c.agentConn.Close()
+	}
+	c.agentConn = conn
+	c.mu.Unlock()
 	agentClient := agent.NewClient(conn)
 	return ssh.PublicKeysCallback(agentClient.Signers)
 }

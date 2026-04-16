@@ -14,7 +14,8 @@ yarn-error.log*
 *~
 artifacts/
 /lookit
-.beads/
+.beads/*
+!.beads/issues.jsonl
 
 # Beads / Dolt files (added by bd init)
 .dolt/

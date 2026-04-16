@@ -185,6 +185,10 @@ func (s *Server) handleGetDocument(ctx context.Context, req mcp.CallToolRequest,
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
+	if entry.Size > 10*1024*1024 {
+		return mcp.NewToolResultError("file too large (>10MB)"), nil
+	}
+
 	data, err := afero.ReadFile(s.idx.Fs(), absPath)
 	if err != nil {
 		return mcp.NewToolResultError("read error: " + err.Error()), nil
@@ -349,6 +353,10 @@ func (s *Server) handleGetDocStructure(ctx context.Context, req mcp.CallToolRequ
 	absPath, err := s.validatePath(args.File)
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	if entry.Size > 10*1024*1024 {
+		return mcp.NewToolResultError("file too large (>10MB)"), nil
 	}
 
 	data, err := afero.ReadFile(s.idx.Fs(), absPath)
