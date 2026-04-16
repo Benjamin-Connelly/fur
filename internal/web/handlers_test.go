@@ -872,6 +872,534 @@ func TestHandleDirectoryEmpty(t *testing.T) {
 	}
 }
 
+// --- handleAPIDocument tests ---
+
+func TestHandleAPIDocumentReturnsJSON(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=README.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+	ct := rec.Header().Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+
+	var result struct {
+		File         string `json:"file"`
+		Size         int64  `json:"size"`
+		IsMarkdown   bool   `json:"isMarkdown"`
+		Headings     []struct {
+			Level int    `json:"level"`
+			Text  string `json:"text"`
+			Slug  string `json:"slug"`
+			Line  int    `json:"line"`
+		} `json:"headings"`
+		ForwardLinks []struct {
+			Source string `json:"source"`
+			Target string `json:"target"`
+			Text   string `json:"text"`
+		} `json:"forwardLinks"`
+		Backlinks []json.RawMessage `json:"backlinks"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+
+	if result.File != "README.md" {
+		t.Errorf("file = %q, want README.md", result.File)
+	}
+	if !result.IsMarkdown {
+		t.Error("isMarkdown should be true for README.md")
+	}
+	if result.Size == 0 {
+		t.Error("size should be > 0")
+	}
+}
+
+func TestHandleAPIDocumentHeadings(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=README.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	var result struct {
+		Headings []struct {
+			Level int    `json:"level"`
+			Text  string `json:"text"`
+			Slug  string `json:"slug"`
+		} `json:"headings"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result.Headings) == 0 {
+		t.Fatal("expected at least one heading")
+	}
+	if result.Headings[0].Text != "Hello" {
+		t.Errorf("heading text = %q, want Hello", result.Headings[0].Text)
+	}
+	if result.Headings[0].Slug != "hello" {
+		t.Errorf("heading slug = %q, want hello", result.Headings[0].Slug)
+	}
+	if result.Headings[0].Level != 1 {
+		t.Errorf("heading level = %d, want 1", result.Headings[0].Level)
+	}
+}
+
+func TestHandleAPIDocumentForwardLinks(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=README.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	var result struct {
+		ForwardLinks []struct {
+			Source string `json:"source"`
+			Target string `json:"target"`
+			Text   string `json:"text"`
+		} `json:"forwardLinks"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result.ForwardLinks) == 0 {
+		t.Fatal("expected at least one forward link")
+	}
+	if result.ForwardLinks[0].Target != "docs/guide.md" {
+		t.Errorf("forward link target = %q, want docs/guide.md", result.ForwardLinks[0].Target)
+	}
+}
+
+func TestHandleAPIDocumentMissingFileParam(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestHandleAPIDocumentEmptyFileParam(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestHandleAPIDocumentPathTraversal(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	traversalPaths := []string{
+		"../etc/passwd",
+		"../../etc/shadow",
+		"docs/../../etc/passwd",
+		"..%2f..%2fetc/passwd",
+		"README.md/../../../etc/passwd",
+	}
+
+	for _, path := range traversalPaths {
+		req := httptest.NewRequest("GET", "/__api/document?file="+path, nil)
+		rec := httptest.NewRecorder()
+		s.handleAPIDocument(rec, req)
+
+		if rec.Code != http.StatusForbidden && rec.Code != http.StatusNotFound {
+			t.Errorf("path %q: status = %d, want 403 or 404", path, rec.Code)
+		}
+	}
+}
+
+func TestHandleAPIDocumentNotFound(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=nonexistent.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}
+
+func TestHandleAPIDocumentNonMarkdownFile(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=main.go", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+
+	var result struct {
+		File       string `json:"file"`
+		IsMarkdown bool   `json:"isMarkdown"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if result.IsMarkdown {
+		t.Error("isMarkdown should be false for .go file")
+	}
+}
+
+func TestHandleAPIDocumentNilLinkGraph(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	s.links = nil
+
+	req := httptest.NewRequest("GET", "/__api/document?file=README.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+
+	var result struct {
+		ForwardLinks []json.RawMessage `json:"forwardLinks"`
+		Backlinks    []json.RawMessage `json:"backlinks"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if result.ForwardLinks != nil {
+		t.Error("forwardLinks should be null when link graph is nil")
+	}
+	if result.Backlinks != nil {
+		t.Error("backlinks should be null when link graph is nil")
+	}
+}
+
+func TestHandleAPIDocumentDuplicateHeadingSlugs(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "dupes.md"), []byte("# Same\n\nText.\n\n# Same\n\nMore text.\n"), 0o644)
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+	idx := index.New(dir)
+	idx.Build()
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=dupes.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	var result struct {
+		Headings []struct {
+			Slug string `json:"slug"`
+		} `json:"headings"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result.Headings) < 2 {
+		t.Fatal("expected at least 2 headings")
+	}
+	if result.Headings[0].Slug == result.Headings[1].Slug {
+		t.Errorf("duplicate headings should get unique slugs, both got %q", result.Headings[0].Slug)
+	}
+	if result.Headings[1].Slug != "same-1" {
+		t.Errorf("second slug = %q, want same-1", result.Headings[1].Slug)
+	}
+}
+
+// --- handleAPITasks tests ---
+
+func TestHandleAPITasksReturnsJSON(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "todo.md"), []byte("# Tasks\n\n- [ ] Buy milk\n- [x] Done item\n- [ ] Write tests\n"), 0o644)
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+	idx := index.New(dir)
+	idx.Build()
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/tasks", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPITasks(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+	ct := rec.Header().Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+
+	var result []struct {
+		File    string `json:"File"`
+		Line    int    `json:"Line"`
+		Text    string `json:"Text"`
+		Checked bool   `json:"Checked"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result) != 3 {
+		t.Fatalf("expected 3 tasks, got %d", len(result))
+	}
+}
+
+func TestHandleAPITasksPendingFilter(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "todo.md"), []byte("# Tasks\n\n- [ ] Pending one\n- [x] Done one\n- [ ] Pending two\n"), 0o644)
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+	idx := index.New(dir)
+	idx.Build()
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/tasks?pending=true", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPITasks(rec, req)
+
+	var result []struct {
+		Text    string `json:"Text"`
+		Checked bool   `json:"Checked"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result) != 2 {
+		t.Fatalf("expected 2 pending tasks, got %d", len(result))
+	}
+	for _, task := range result {
+		if task.Checked {
+			t.Errorf("pending filter returned checked task: %q", task.Text)
+		}
+	}
+}
+
+func TestHandleAPITasksNoTasks(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/tasks", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPITasks(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+
+	ct := rec.Header().Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+}
+
+func TestHandleAPITasksWithPriority(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "tasks.md"), []byte("# Work\n\n- [ ] !high Fix production bug\n- [ ] !low Update docs\n"), 0o644)
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+	idx := index.New(dir)
+	idx.Build()
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/tasks", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPITasks(rec, req)
+
+	var result []struct {
+		Text     string `json:"Text"`
+		Priority string `json:"Priority"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result) != 2 {
+		t.Fatalf("expected 2 tasks, got %d", len(result))
+	}
+
+	priorities := map[string]bool{}
+	for _, r := range result {
+		priorities[r.Priority] = true
+	}
+	if !priorities["high"] {
+		t.Error("expected a high priority task")
+	}
+	if !priorities["low"] {
+		t.Error("expected a low priority task")
+	}
+}
+
+func TestHandleAPITasksMultipleFiles(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "sub"), 0o755)
+	os.WriteFile(filepath.Join(dir, "a.md"), []byte("- [ ] Task A\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "sub", "b.md"), []byte("- [ ] Task B\n"), 0o644)
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+	idx := index.New(dir)
+	idx.Build()
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/tasks", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPITasks(rec, req)
+
+	var result []struct {
+		File string `json:"File"`
+		Text string `json:"Text"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(result) != 2 {
+		t.Fatalf("expected 2 tasks from 2 files, got %d", len(result))
+	}
+
+	files := map[string]bool{}
+	for _, r := range result {
+		files[r.File] = true
+	}
+	if !files["a.md"] {
+		t.Error("expected task from a.md")
+	}
+	if !files["sub/b.md"] {
+		t.Error("expected task from sub/b.md")
+	}
+}
+
+// --- handleAPIFiles additional tests ---
+
+func TestHandleAPIFilesNoMatchFuzzy(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/files?q=zzzznonexistent", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIFiles(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+
+	var entries []index.FileEntry
+	if err := json.Unmarshal(rec.Body.Bytes(), &entries); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("expected 0 results for nonsense query, got %d", len(entries))
+	}
+}
+
+// --- handleAPIGraph additional tests ---
+
+func TestHandleAPIGraphContentType(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/graph", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIGraph(rec, req)
+
+	ct := rec.Header().Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+}
+
+func TestHandleAPIGraphNilLinkGraph(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	s.links = nil
+
+	req := httptest.NewRequest("GET", "/__api/graph", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIGraph(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+
+	var data struct {
+		Nodes []interface{} `json:"nodes"`
+		Links []interface{} `json:"links"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &data); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+}
+
+// --- Full mux API routing ---
+
+func TestFullMuxAPIRouting(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "notes.md"), []byte("# Notes\n\n- [ ] Todo item\n"), 0o644)
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+	idx := index.New(dir)
+	idx.Build()
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	handler := s.middleware(s.mux)
+
+	tests := []struct {
+		path       string
+		wantStatus int
+		wantCT     string
+	}{
+		{"/__api/files", 200, "application/json"},
+		{"/__api/search?q=", 200, "application/json"},
+		{"/__api/graph", 200, "application/json"},
+		{"/__api/document?file=notes.md", 200, "application/json"},
+		{"/__api/tasks", 200, "application/json"},
+	}
+
+	for _, tt := range tests {
+		req := httptest.NewRequest("GET", tt.path, nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != tt.wantStatus {
+			t.Errorf("GET %s: status = %d, want %d", tt.path, rec.Code, tt.wantStatus)
+		}
+		ct := rec.Header().Get("Content-Type")
+		if !strings.Contains(ct, tt.wantCT) {
+			t.Errorf("GET %s: Content-Type = %q, want %s", tt.path, ct, tt.wantCT)
+		}
+	}
+}
+
 // newCancelContext creates a cancellable context for testing blocking handlers.
 func newCancelContext(r *http.Request) (context.Context, context.CancelFunc) {
 	return context.WithCancel(r.Context())
