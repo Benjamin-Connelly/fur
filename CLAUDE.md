@@ -33,7 +33,16 @@ internal/
     watcher.go                  # fsnotify with 100ms debounce
   tui/
     model.go                    # Root Bubble Tea model, split-pane layout
-    dispatch.go                 # Update() and all handle*Key() methods (1174 lines)
+    dispatch.go                 # Update() central message dispatcher
+    handle_normal.go            # handleNormalKey() — normal mode keybindings
+    handle_filelist.go          # handleFileListKey() — file list navigation
+    handle_preview.go           # handlePreviewKey(), search, visual mode, scrollToLink
+    handle_filter.go            # handleFilterKey(), applyFilter()
+    handle_command.go           # handleCommandKey() — command palette input
+    handle_links.go             # handleLinkSelectKey(), handleFollowLink()
+    handle_panels.go            # handleSidePanelKey() — TOC/backlinks/bookmarks/git
+    handle_heading.go           # handleHeadingJumpKey(), headingJumpView, filterHeadingJump
+    handle_util.go              # navigateToPath(), openInEditor(), clearStatusAfter()
     navigation.go               # Link follow, heading jump, theme cycling
     preview_load.go             # loadPreview(), file type handlers
     filelist.go                 # File list panel with fuzzy filter
@@ -61,7 +70,6 @@ internal/
   remote/
     remote.go                   # SCP-style path parsing, Target type
     conn.go                     # SSH connection (ssh-agent, key files, ~/.ssh/config)
-    sync.go                     # SFTP sync (legacy, mostly dead code — live path uses SFTPFs)
     sftpfs.go                   # afero.Fs implementation over SFTP
   manpages/
     manpages.go                 # Embedded man page installer
@@ -130,7 +138,7 @@ go build -o fur ./cmd/fur
 source <(fur completion bash)
 
 # Test
-go test ./...                    # 560 tests across 14 packages
+go test ./...                    # 478 tests across 14 packages
 
 # Cross-compile
 GOOS=linux GOARCH=arm64 go build -o fur-linux-arm64 ./cmd/fur
@@ -154,7 +162,7 @@ GOOS=darwin GOARCH=arm64 go build -o fur-darwin-arm64 ./cmd/fur
 - `render.Slugify()` is the single source of truth for anchor slugs (web and TUI both use it).
 - `Index.ValidatePath()` is the shared path security check (web and MCP both delegate to it).
 - Version is `var` not `const` (ldflags -X compatibility). Build info: `-X main.commit=... -X main.date=...`.
-- Remote mode uses direct SFTP reads via SFTPFs. The Syncer/cache code in sync.go is dead code.
+- Remote mode uses direct SFTP reads via SFTPFs.
 
 
 ## Beads Issue Tracker
