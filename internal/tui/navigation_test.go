@@ -398,4 +398,3 @@ func TestFindRenderedLine_FallsBackToLastMatch(t *testing.T) {
 		t.Errorf("fallback should return last match at line 2, got %d", got)
 	}
 }
-

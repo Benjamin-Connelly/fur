@@ -37,10 +37,10 @@ type PreviewModel struct {
 	visualEnd    int // max(anchor, cursor)
 
 	// Preview search
-	searchMode    bool
-	searchQuery   string
-	searchMatches []int // line indices that match
-	searchCurrent int   // index into searchMatches (current match)
+	searchMode     bool
+	searchQuery    string
+	searchMatches  []int // line indices that match
+	searchCurrent  int   // index into searchMatches (current match)
 	searchHistory  []string
 	searchHistIdx  int  // -1 = editing new query, 0+ = browsing history
 	searchRegex    bool // true = regex mode, false = substring

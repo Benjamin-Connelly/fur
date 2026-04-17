@@ -6,77 +6,93 @@ Set Width 1280
 Set Height 760
 Set Theme "Catppuccin Mocha"
 Set Padding 20
-Set Framerate 30
-Set TypingSpeed 40ms
+Set Framerate 24
+Set TypingSpeed 35ms
 
 # -------------------------------------------------------------
-# Setup (hidden): build a fresh binary for the demo
+# Setup (hidden): build binary, load banner helpers
 # -------------------------------------------------------------
 Hide
 Type "export PATH=/usr/local/go/bin:$PATH"
 Enter
-Type "go build -o /tmp/fur-demo ./cmd/fur && clear"
+Type "go build -o /tmp/fur-demo ./cmd/fur"
 Enter
-Sleep 5s
+Sleep 4s
+Type "source demo-banner.sh && clear"
+Enter
+Sleep 200ms
+
+# Title card
+Type "title_card"
+Enter
 Show
+Sleep 3.5s
 
-# -------------------------------------------------------------
-# Launch fur on the demo directory
-# -------------------------------------------------------------
-Type "/tmp/fur-demo demo/"
-Sleep 400ms
+# =============================================================
+# Chapter 1 — navigation: filter, link picker, history
+# =============================================================
+Hide
+Type "banner 'Fuzzy filter · link picker · history' '/ query Enter  —  f pick  —  Backspace back'"
 Enter
-Sleep 2.5s
+Show
+Sleep 3s
+Hide
+Type "/tmp/fur-demo demo/"
+Enter
+Show
+Sleep 2s
 
-# -------------------------------------------------------------
-# 1. Browse the file tree (j/k)
-# -------------------------------------------------------------
-Down
-Sleep 300ms
-Down
-Sleep 300ms
-Down
-Sleep 300ms
-Up
-Sleep 400ms
-Up
-Sleep 700ms
-
-# -------------------------------------------------------------
-# 2. Fuzzy filter — `/` then typed query, Enter opens the match
-# -------------------------------------------------------------
+# fuzzy filter to README.md
 Type "/"
 Sleep 300ms
 Type "read"
 Sleep 1s
 Enter
+Sleep 700ms
+Enter
+Sleep 1.8s
+Down@60ms 8
 Sleep 800ms
+
+# link picker — f surfaces every link, Down/Enter to follow
+Type "f"
+Sleep 1.6s
+Down
+Sleep 500ms
 Enter
 Sleep 2s
-Down@60ms 5
-Sleep 800ms
-Down@60ms 5
-Sleep 1.2s
 
-# -------------------------------------------------------------
-# 3. Link picker — `f` surfaces every link with j/k + Enter
-# -------------------------------------------------------------
-Type "f"
-Sleep 1.5s
-Down
-Sleep 400ms
+# history — Backspace walks the stack
+Backspace
+Sleep 1.8s
+Hide
+Type "q"
+Sleep 300ms
+
+# =============================================================
+# Chapter 2 — panels and command palette
+# =============================================================
+Type "banner 'TOC · backlinks · command palette' 't  —  b  —  : broken'"
 Enter
-Sleep 2.5s
+Show
+Sleep 3s
+Hide
+Type "/tmp/fur-demo demo/"
+Enter
+Show
+Sleep 2s
 
-# -------------------------------------------------------------
-# 4. Scroll through architecture.md
-# -------------------------------------------------------------
-Down@60ms 10
-Sleep 1.2s
+# open architecture.md
+Type "/"
+Sleep 300ms
+Type "arch"
+Sleep 900ms
+Enter
+Sleep 700ms
+Enter
+Sleep 1.8s
 
-# -------------------------------------------------------------
-# 5. Table of contents — `t` opens the TOC panel, Enter jumps
-# -------------------------------------------------------------
+# TOC panel — Enter jumps preview to heading
 Type "t"
 Sleep 1.8s
 Down
@@ -88,25 +104,37 @@ Sleep 1.2s
 Escape
 Sleep 500ms
 
-# -------------------------------------------------------------
-# 6. Navigation history — Backspace walks the breadcrumb stack
-# -------------------------------------------------------------
-Backspace
-Sleep 1.8s
-
-# -------------------------------------------------------------
-# 7. Backlinks — `b` lists every file that references this one
-# -------------------------------------------------------------
+# backlinks panel
 Type "b"
-Sleep 2.5s
+Sleep 2.2s
 Escape
 Sleep 500ms
 
-# -------------------------------------------------------------
-# 8. Data preview — CSV rendered as a table
-# -------------------------------------------------------------
-Escape
+# command palette — : broken lists broken link targets
+Type ":"
+Sleep 400ms
+Type "broken"
+Sleep 1.1s
+Enter
+Sleep 2.5s
+Hide
+Type "q"
 Sleep 300ms
+
+# =============================================================
+# Chapter 3 — data and code previews
+# =============================================================
+Type "banner 'Data previews · syntax highlighting' 'CSV tables  ·  JSON pretty-print  ·  50+ languages'"
+Enter
+Show
+Sleep 3s
+Hide
+Type "/tmp/fur-demo demo/"
+Enter
+Show
+Sleep 2s
+
+# CSV as a table
 Type "/"
 Sleep 300ms
 Type "metrics"
@@ -116,11 +144,9 @@ Sleep 700ms
 Enter
 Sleep 2.5s
 
-# -------------------------------------------------------------
-# 9. Data preview — JSON pretty-printed and highlighted
-# -------------------------------------------------------------
+# JSON pretty-printed
 Escape
-Sleep 300ms
+Sleep 250ms
 Type "/"
 Sleep 300ms
 Type "config"
@@ -130,11 +156,9 @@ Sleep 700ms
 Enter
 Sleep 2.5s
 
-# -------------------------------------------------------------
-# 10. Syntax-highlighted Go source (50+ languages via Chroma)
-# -------------------------------------------------------------
+# Go source with syntax highlighting
 Escape
-Sleep 300ms
+Sleep 250ms
 Type "/"
 Sleep 300ms
 Type "server"
@@ -143,46 +167,72 @@ Enter
 Sleep 700ms
 Enter
 Sleep 2.5s
+Hide
+Type "q"
+Sleep 300ms
 
-# -------------------------------------------------------------
-# 11. Global heading jump — Ctrl+G fuzzy-picks across all files
-# -------------------------------------------------------------
+# =============================================================
+# Chapter 4 — search and jump
+# =============================================================
+Type "banner 'Global heading jump · full-text search' 'Ctrl+G fuzzy  —  /  then Tab (content mode)'"
+Enter
+Show
+Sleep 3s
+Hide
+Type "/tmp/fur-demo demo/"
+Enter
+Show
+Sleep 2s
+
+# global heading jump
 Ctrl+G
 Sleep 500ms
 Type "contrib"
 Sleep 1s
 Enter
-Sleep 2.5s
+Sleep 2.2s
 
-# -------------------------------------------------------------
-# 12. Command palette — `:broken` surfaces broken link targets
-# -------------------------------------------------------------
-Type ":"
-Sleep 400ms
-Type "broken"
-Sleep 1.2s
-Enter
-Sleep 2.5s
-
-# -------------------------------------------------------------
-# 13. Full-text search — `/` then Tab toggles to content mode
-# -------------------------------------------------------------
+# full-text search via filter + Tab
 Escape
-Sleep 300ms
+Sleep 250ms
 Type "/"
 Sleep 300ms
 Tab
 Sleep 400ms
 Type "mermaid"
-Sleep 1.6s
+Sleep 1.4s
 Enter
-Sleep 900ms
+Sleep 800ms
 Enter
-Sleep 2.5s
+Sleep 2.2s
+Hide
+Type "q"
+Sleep 300ms
 
-# -------------------------------------------------------------
-# 14. Theme cycling — Ctrl+T walks auto → dark → light
-# -------------------------------------------------------------
+# =============================================================
+# Chapter 5 — themes and help
+# =============================================================
+Type "banner 'Themes · help overlay' 'Ctrl+T cycle  —  ? keybindings'"
+Enter
+Show
+Sleep 3s
+Hide
+Type "/tmp/fur-demo demo/"
+Enter
+Show
+Sleep 2s
+
+# open any file
+Type "/"
+Sleep 300ms
+Type "read"
+Sleep 800ms
+Enter
+Sleep 500ms
+Enter
+Sleep 1.5s
+
+# cycle themes
 Ctrl+T
 Sleep 1.4s
 Ctrl+T
@@ -190,14 +240,17 @@ Sleep 1.4s
 Ctrl+T
 Sleep 1.2s
 
-# -------------------------------------------------------------
-# 15. Help overlay — `?` toggles the keybinding reference
-# -------------------------------------------------------------
+# help overlay
 Type "?"
 Sleep 3s
 Escape
 Sleep 500ms
-
-# Quit
+Hide
 Type "q"
-Sleep 500ms
+Sleep 300ms
+
+# End card
+Type "end_card"
+Enter
+Show
+Sleep 4s

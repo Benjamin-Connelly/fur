@@ -891,10 +891,10 @@ func TestHandleAPIDocumentReturnsJSON(t *testing.T) {
 	}
 
 	var result struct {
-		File         string `json:"file"`
-		Size         int64  `json:"size"`
-		IsMarkdown   bool   `json:"isMarkdown"`
-		Headings     []struct {
+		File       string `json:"file"`
+		Size       int64  `json:"size"`
+		IsMarkdown bool   `json:"isMarkdown"`
+		Headings   []struct {
 			Level int    `json:"level"`
 			Text  string `json:"text"`
 			Slug  string `json:"slug"`

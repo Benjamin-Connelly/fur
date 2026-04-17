@@ -71,8 +71,12 @@ type sftpFile struct {
 	*sftp.File
 }
 
-func (f *sftpFile) Readdir(count int) ([]os.FileInfo, error)  { return nil, errors.New("not a directory") }
-func (f *sftpFile) Readdirnames(count int) ([]string, error)  { return nil, errors.New("not a directory") }
+func (f *sftpFile) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, errors.New("not a directory")
+}
+func (f *sftpFile) Readdirnames(count int) ([]string, error) {
+	return nil, errors.New("not a directory")
+}
 func (f *sftpFile) Sync() error                               { return nil }
 func (f *sftpFile) Truncate(size int64) error                 { return errReadOnly }
 func (f *sftpFile) WriteString(s string) (ret int, err error) { return 0, errReadOnly }
@@ -137,14 +141,16 @@ func (d *sftpDir) Readdirnames(count int) ([]string, error) {
 	return names, err
 }
 
-func (d *sftpDir) Read(p []byte) (int, error)                   { return 0, errors.New("is a directory") }
-func (d *sftpDir) ReadAt(p []byte, off int64) (int, error)      { return 0, errors.New("is a directory") }
-func (d *sftpDir) Seek(offset int64, whence int) (int64, error) { return 0, errors.New("is a directory") }
-func (d *sftpDir) Write(p []byte) (int, error)                  { return 0, errReadOnly }
-func (d *sftpDir) WriteAt(p []byte, off int64) (int, error)     { return 0, errReadOnly }
-func (d *sftpDir) WriteString(s string) (ret int, err error)    { return 0, errReadOnly }
+func (d *sftpDir) Read(p []byte) (int, error)              { return 0, errors.New("is a directory") }
+func (d *sftpDir) ReadAt(p []byte, off int64) (int, error) { return 0, errors.New("is a directory") }
+func (d *sftpDir) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("is a directory")
+}
+func (d *sftpDir) Write(p []byte) (int, error)               { return 0, errReadOnly }
+func (d *sftpDir) WriteAt(p []byte, off int64) (int, error)  { return 0, errReadOnly }
+func (d *sftpDir) WriteString(s string) (ret int, err error) { return 0, errReadOnly }
 func (d *sftpDir) Sync() error                               { return nil }
-func (d *sftpDir) Truncate(size int64) error                  { return errReadOnly }
+func (d *sftpDir) Truncate(size int64) error                 { return errReadOnly }
 
 // WalkFunc is the callback for Walk.
 type WalkFunc func(path string, info os.FileInfo, err error) error

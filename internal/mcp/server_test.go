@@ -2,11 +2,11 @@ package mcp
 
 import (
 	"context"
+	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	mcplib "github.com/mark3labs/mcp-go/mcp"
 
 	"github.com/Benjamin-Connelly/fur/internal/index"
 )
@@ -404,4 +404,3 @@ func textContent(result *mcplib.CallToolResult) string {
 	}
 	return tc.Text
 }
-

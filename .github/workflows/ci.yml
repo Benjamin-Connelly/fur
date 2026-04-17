@@ -64,8 +64,8 @@ jobs:
           CGO_ENABLED: '0'
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: go build -o lookit-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/lookit
+        run: go build -o fur-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/fur
       - uses: actions/upload-artifact@v4
         with:
-          name: lookit-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: lookit-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: fur-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: fur-${{ matrix.goos }}-${{ matrix.goarch }}

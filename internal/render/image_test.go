@@ -41,9 +41,9 @@ func makeJPEG(t *testing.T, w, h int) []byte {
 
 func TestDetectImageProtocol(t *testing.T) {
 	tests := []struct {
-		name     string
-		env      map[string]string
-		want     ImageProtocol
+		name string
+		env  map[string]string
+		want ImageProtocol
 	}{
 		{
 			name: "kitty via TERM",

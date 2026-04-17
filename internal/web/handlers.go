@@ -649,10 +649,10 @@ func (s *Server) handleAPIDocument(w http.ResponseWriter, r *http.Request) {
 	// Extract links (forward + backlinks)
 	type linkJSON struct {
 		Source   string `json:"source"`
-		Target  string `json:"target"`
-		Text    string `json:"text"`
-		Line    int    `json:"line,omitempty"`
-		Broken  bool   `json:"broken,omitempty"`
+		Target   string `json:"target"`
+		Text     string `json:"text"`
+		Line     int    `json:"line,omitempty"`
+		Broken   bool   `json:"broken,omitempty"`
 		Fragment string `json:"fragment,omitempty"`
 	}
 	var fwd, back []linkJSON
