@@ -8,7 +8,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.5.7
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
-	github.com/charmbracelet/glamour v0.10.0
+	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-git/go-git/v5 v5.17.2
@@ -16,8 +16,8 @@ require (
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	github.com/yuin/goldmark v1.7.8
-	github.com/yuin/goldmark-emoji v1.0.5
+	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark-emoji v1.0.6
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/crypto v0.49.0
 	golang.org/x/image v0.39.0
