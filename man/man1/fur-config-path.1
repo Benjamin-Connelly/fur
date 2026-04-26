@@ -2,25 +2,20 @@
 .TH "FUR" "1" "Apr 2026" "fur v1.0.1" ""
 
 .SH NAME
-fur-doctor - Check environment and diagnose issues
+fur-config-path - Print the resolved config file path
 
 
 .SH SYNOPSIS
-\fBfur doctor [flags]\fP
+\fBfur config path [flags]\fP
 
 
 .SH DESCRIPTION
-Run diagnostic checks on your environment and report results.
-
-.PP
-Checks: Go version, Git version, git repo detection, .gitignore presence,
-terminal size and capabilities, config file loading, markdown file count,
-large file warnings, and wkhtmltopdf availability (for PDF export).
+Print the resolved config file path
 
 
 .SH OPTIONS
 \fB-h\fP, \fB--help\fP[=false]
-	help for doctor
+	help for path
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -44,14 +39,8 @@ large file warnings, and wkhtmltopdf availability (for PDF export).
 	color theme (light|dark|auto|ascii)
 
 
-.SH EXAMPLE
-.EX
-  fur doctor
-.EE
-
-
 .SH SEE ALSO
-\fBfur(1)\fP
+\fBfur-config(1)\fP
 
 
 .SH HISTORY

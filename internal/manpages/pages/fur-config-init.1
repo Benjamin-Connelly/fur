@@ -2,25 +2,29 @@
 .TH "FUR" "1" "Apr 2026" "fur v1.0.1" ""
 
 .SH NAME
-fur-doctor - Check environment and diagnose issues
+fur-config-init - Write a starter config.yaml at ~/.config/fur/config.yaml
 
 
 .SH SYNOPSIS
-\fBfur doctor [flags]\fP
+\fBfur config init [flags]\fP
 
 
 .SH DESCRIPTION
-Run diagnostic checks on your environment and report results.
+Write a default config.yaml at ~/.config/fur/config.yaml.
 
 .PP
-Checks: Go version, Git version, git repo detection, .gitignore presence,
-terminal size and capabilities, config file loading, markdown file count,
-large file warnings, and wkhtmltopdf availability (for PDF export).
+Without --force the command refuses to overwrite an existing file.
+With --force the existing file is renamed to config.yaml.bak before
+the new file is written.
 
 
 .SH OPTIONS
+\fB--force\fP[=false]
+	overwrite existing config (creates config.yaml.bak)
+
+.PP
 \fB-h\fP, \fB--help\fP[=false]
-	help for doctor
+	help for init
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -46,12 +50,13 @@ large file warnings, and wkhtmltopdf availability (for PDF export).
 
 .SH EXAMPLE
 .EX
-  fur doctor
+  fur config init
+  fur config init --force
 .EE
 
 
 .SH SEE ALSO
-\fBfur(1)\fP
+\fBfur-config(1)\fP
 
 
 .SH HISTORY

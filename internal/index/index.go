@@ -32,6 +32,7 @@ type Stats struct {
 // Options configures the indexing behavior.
 type Options struct {
 	IgnorePatterns []string // additional glob patterns to ignore
+	ShowHidden     bool     // when true, surface dotfiles/dotdirs (VCS metadata still skipped)
 }
 
 type Indexer interface {
@@ -113,6 +114,16 @@ func NewWithFs(root string, fs afero.Fs) *Index {
 	}
 }
 
+// NewWithFsAndOptions creates a new Index with a custom filesystem and options.
+func NewWithFsAndOptions(root string, fs afero.Fs, opts Options) *Index {
+	return &Index{
+		root:   root,
+		fs:     fs,
+		byPath: make(map[string]*FileEntry),
+		opts:   opts,
+	}
+}
+
 // Fs returns the filesystem used by this index.
 func (idx *Index) Fs() afero.Fs {
 	return idx.fs
@@ -148,11 +159,17 @@ func (idx *Index) Build() error {
 
 		name := info.Name()
 
-		// Skip hidden directories (.git, .hg, etc.)
-		if info.IsDir() && path != idx.root {
-			if hiddenDirs[name] || strings.HasPrefix(name, ".") {
+		// Always skip VCS metadata dirs — never useful to browse here.
+		if info.IsDir() && path != idx.root && hiddenDirs[name] {
+			return filepath.SkipDir
+		}
+
+		// Hidden dotfiles/dotdirs are filtered unless explicitly opted in.
+		if path != idx.root && !idx.opts.ShowHidden && strings.HasPrefix(name, ".") {
+			if info.IsDir() {
 				return filepath.SkipDir
 			}
+			return nil
 		}
 
 		rel, err := filepath.Rel(idx.root, path)

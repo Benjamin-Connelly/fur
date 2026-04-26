@@ -177,6 +177,72 @@ func TestCreateDefault_Exists(t *testing.T) {
 	}
 }
 
+func TestCreateDefaultForce_New(t *testing.T) {
+	tmpHome := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", origHome)
+
+	path, backup, err := CreateDefaultForce()
+	if err != nil {
+		t.Fatalf("CreateDefaultForce() error: %v", err)
+	}
+	if path == "" {
+		t.Fatal("expected non-empty path")
+	}
+	if backup != "" {
+		t.Errorf("expected no backup for fresh install, got %q", backup)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading written config: %v", err)
+	}
+	if !strings.Contains(string(data), "show_hidden") {
+		t.Error("default template should mention show_hidden")
+	}
+}
+
+func TestCreateDefaultForce_Overwrites(t *testing.T) {
+	tmpHome := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", origHome)
+
+	configDir := filepath.Join(tmpHome, ".config", "fur")
+	os.MkdirAll(configDir, 0o755)
+	original := []byte("theme: dark\n")
+	configPath := filepath.Join(configDir, "config.yaml")
+	os.WriteFile(configPath, original, 0o644)
+
+	path, backup, err := CreateDefaultForce()
+	if err != nil {
+		t.Fatalf("CreateDefaultForce() error: %v", err)
+	}
+	if path != configPath {
+		t.Errorf("expected path %q, got %q", configPath, path)
+	}
+	if backup != configPath+".bak" {
+		t.Errorf("expected backup at %q, got %q", configPath+".bak", backup)
+	}
+	backupData, err := os.ReadFile(backup)
+	if err != nil {
+		t.Fatalf("reading backup: %v", err)
+	}
+	if string(backupData) != string(original) {
+		t.Errorf("backup should preserve original content, got %q", backupData)
+	}
+	newData, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("reading new config: %v", err)
+	}
+	if string(newData) == string(original) {
+		t.Error("new config should differ from original")
+	}
+	if !strings.Contains(string(newData), "show_hidden") {
+		t.Error("new config should contain show_hidden")
+	}
+}
+
 func TestValidate_AsciiTheme(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Theme = "ascii"
