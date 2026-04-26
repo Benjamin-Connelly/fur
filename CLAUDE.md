@@ -132,7 +132,11 @@ go build -o fur ./cmd/fur
 # Config
 ./fur --theme dark               # override theme
 ./fur --keymap vim               # override keybindings
+./fur --show-hidden              # surface dotfiles/dotdirs (.git always hidden)
 ./fur -c /path/to/config.yaml    # custom config file
+./fur config init                # write default ~/.config/fur/config.yaml
+./fur config path                # print resolved config path
+./fur config show                # print active merged config
 
 # Shell completion
 source <(fur completion bash)

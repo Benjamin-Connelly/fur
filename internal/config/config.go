@@ -42,6 +42,11 @@ type Config struct {
 	// Debug enables verbose logging
 	Debug bool `mapstructure:"debug"`
 
+	// ShowHidden surfaces dotfiles and dotdirs in listings, search, and the
+	// link graph. Internal VCS directories (.git/.hg/.svn/.bzr) stay filtered
+	// regardless because browsing them is never useful here.
+	ShowHidden bool `mapstructure:"show_hidden"`
+
 	// Remote holds named remote host configurations
 	Remotes map[string]RemoteConfig `mapstructure:"remotes"`
 }
@@ -94,6 +99,7 @@ func (c *Config) String() string {
 		c.Server.Host, c.Server.Port, !c.Server.NoHTTPS, c.Server.Open)
 	fmt.Fprintf(&b, "git:        enabled=%t status=%t remote=%s\n",
 		c.Git.Enabled, c.Git.ShowStatus, c.Git.Remote)
+	fmt.Fprintf(&b, "show_hidden: %t\n", c.ShowHidden)
 	if len(c.Ignore) > 0 {
 		fmt.Fprintf(&b, "ignore:     %s\n", strings.Join(c.Ignore, ", "))
 	}
@@ -227,6 +233,42 @@ func Watch(cfgFile string, onChange func(*Config)) {
 	v.WatchConfig()
 }
 
+// DefaultConfigYAML is the starter config.yaml content written by
+// CreateDefault and 'fur config init'. Exported so tests and the CLI
+// can share the same canonical template.
+const DefaultConfigYAML = `# fur configuration
+# See: https://github.com/Benjamin-Connelly/fur
+
+# Theme: light, dark, auto, or ascii
+theme: auto
+
+# Keybinding preset: default, vim, or emacs
+keymap: default
+
+# Show dotfiles and dotdirs (e.g. .gitignore, .github/) in listings.
+# .git/.hg/.svn/.bzr stay hidden regardless.
+show_hidden: false
+
+# Web server settings
+server:
+  port: 7777
+  host: localhost
+  no_https: false
+  # Auto-open the browser when 'fur serve' starts. Skipped under SSH.
+  open: false
+
+# Git integration
+git:
+  enabled: true
+  show_status: true
+  remote: origin
+
+# Additional ignore patterns (beyond .gitignore)
+# ignore:
+#   - "*.tmp"
+#   - "vendor/"
+`
+
 // CreateDefault writes a default config file to ~/.config/fur/config.yaml
 // if one does not already exist. Returns the path written, or empty string if
 // a config already exists.
@@ -246,39 +288,43 @@ func CreateDefault() (string, error) {
 		return "", fmt.Errorf("creating config dir: %w", err)
 	}
 
-	content := `# fur configuration
-# See: https://github.com/Benjamin-Connelly/fur
-
-# Theme: light, dark, or auto
-theme: auto
-
-# Keybinding preset: default, vim, or emacs
-keymap: default
-
-# Web server settings
-server:
-  port: 7777
-  host: localhost
-  no_https: false
-  open: false
-
-# Git integration
-git:
-  enabled: true
-  show_status: true
-  remote: origin
-
-# Additional ignore patterns (beyond .gitignore)
-# ignore:
-#   - "*.tmp"
-#   - "vendor/"
-`
-
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(DefaultConfigYAML), 0o644); err != nil {
 		return "", fmt.Errorf("writing config: %w", err)
 	}
 
 	return configPath, nil
+}
+
+// CreateDefaultForce writes the default config to ~/.config/fur/config.yaml,
+// overwriting any existing file. If a config already exists, it is renamed
+// to config.yaml.bak (clobbering an older .bak) before the new file is
+// written. Returns (newPath, backupPath). backupPath is empty when no prior
+// config existed.
+func CreateDefaultForce() (string, string, error) {
+	configDir, err := ConfigDir()
+	if err != nil {
+		return "", "", fmt.Errorf("determining config dir: %w", err)
+	}
+
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		return "", "", fmt.Errorf("creating config dir: %w", err)
+	}
+
+	configPath := filepath.Join(configDir, "config.yaml")
+	backupPath := ""
+
+	if _, err := os.Stat(configPath); err == nil {
+		backupPath = configPath + ".bak"
+		if err := os.Rename(configPath, backupPath); err != nil {
+			return "", "", fmt.Errorf("backing up existing config: %w", err)
+		}
+	}
+
+	if err := os.WriteFile(configPath, []byte(DefaultConfigYAML), 0o644); err != nil {
+		return "", backupPath, fmt.Errorf("writing config: %w", err)
+	}
+
+	return configPath, backupPath, nil
 }
 
 // ConfigDir returns the fur configuration directory.

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `show_hidden` config key and `--show-hidden` persistent flag. When set, dotfiles and dotdirs are surfaced in listings, search, the link graph, and the file watcher. `.git`, `.hg`, `.svn`, and `.bzr` remain filtered regardless.
+- `fur config init` writes `~/.config/fur/config.yaml` from a documented template (use `--force` to overwrite; the existing file is preserved as `config.yaml.bak`).
+- `fur config path` prints the resolved config path; `fur config show` prints the active merged config.
+
+### Changed
+- Default behavior unifies dotfile and dotdir filtering. Previously, dotdirs were hidden but dotfiles like `.gitignore` appeared at root. Now both are filtered by default. Set `show_hidden: true` (or pass `--show-hidden`) to restore visibility.
+- SFTP remote walker no longer applies its own dotfile filter — the indexer is the single source of truth, so local and remote sessions behave identically.
+
 ## v1.0.1
 
 Maintenance release. CI drift cleanup, demo improvements, and one latent bug fix.

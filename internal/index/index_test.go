@@ -111,6 +111,65 @@ func TestRebuild(t *testing.T) {
 	}
 }
 
+func TestShowHidden(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "visible"), 0o755)
+	os.MkdirAll(filepath.Join(dir, ".hidden_dir"), 0o755)
+	os.MkdirAll(filepath.Join(dir, ".git"), 0o755)
+	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# r"), 0o644)
+	os.WriteFile(filepath.Join(dir, ".gitignore"), []byte("foo"), 0o644)
+	os.WriteFile(filepath.Join(dir, ".hidden_dir", "note.md"), []byte("# n"), 0o644)
+	os.WriteFile(filepath.Join(dir, ".git", "config"), []byte(""), 0o644)
+
+	t.Run("default hides dotfiles and dotdirs", func(t *testing.T) {
+		idx := New(dir)
+		if err := idx.Build(); err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if idx.Lookup(".gitignore") != nil {
+			t.Error(".gitignore should be hidden by default")
+		}
+		if idx.Lookup(".hidden_dir") != nil {
+			t.Error(".hidden_dir should be hidden by default")
+		}
+		if idx.Lookup(filepath.Join(".hidden_dir", "note.md")) != nil {
+			t.Error("files inside .hidden_dir should not be indexed by default")
+		}
+		if idx.Lookup("README.md") == nil {
+			t.Error("README.md should always be indexed")
+		}
+	})
+
+	t.Run("ShowHidden surfaces dotfiles and dotdirs", func(t *testing.T) {
+		idx := NewWithOptions(dir, Options{ShowHidden: true})
+		if err := idx.Build(); err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if idx.Lookup(".gitignore") == nil {
+			t.Error(".gitignore should be indexed when ShowHidden=true")
+		}
+		if idx.Lookup(".hidden_dir") == nil {
+			t.Error(".hidden_dir should be indexed when ShowHidden=true")
+		}
+		if idx.Lookup(filepath.Join(".hidden_dir", "note.md")) == nil {
+			t.Error("files inside .hidden_dir should be indexed when ShowHidden=true")
+		}
+	})
+
+	t.Run("VCS metadata stays hidden even with ShowHidden", func(t *testing.T) {
+		idx := NewWithOptions(dir, Options{ShowHidden: true})
+		if err := idx.Build(); err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+		if idx.Lookup(".git") != nil {
+			t.Error(".git should always be skipped")
+		}
+		if idx.Lookup(filepath.Join(".git", "config")) != nil {
+			t.Error("contents of .git should never be indexed")
+		}
+	})
+}
+
 func TestIgnorePatterns(t *testing.T) {
 	dir := setupTestDir(t)
 	os.WriteFile(filepath.Join(dir, "temp.log"), []byte("log"), 0o644)

@@ -258,12 +258,17 @@ fur @alias                    # Named remote from config
   --keymap vim|emacs|default     # Keybinding preset
   --theme dark|light|auto|ascii  # Color theme
   --no-color                     # Alias for --theme ascii
+  --show-hidden                  # Surface dotfiles/dotdirs (.git/.hg/.svn/.bzr always hidden)
   --version, -V                  # Print version
 fur serve [path]              # Web server
   --port, -p <port>              # Server port (default: 7777)
   --open                         # Open browser after starting
   --no-https                     # Disable HTTPS
   --css <path>                   # Custom CSS file
+fur config init               # Write ~/.config/fur/config.yaml from a documented template
+  --force                        # Overwrite existing config (creates config.yaml.bak)
+fur config path               # Print resolved config file path
+fur config show               # Print active merged config (file + env + flags)
 fur cat <file>                # Render markdown or image to terminal
 fur export [path]             # Export markdown to HTML
   --format html|pdf              # Output format (PDF requires chromium or wkhtmltopdf)
@@ -285,6 +290,7 @@ keymap: default      # default, vim, emacs
 mouse: false         # enable mouse wheel scrolling
 reading_guide: false # persistent reading guide bar
 scrolloff: 5         # cursor margin (lines above/below)
+show_hidden: false   # surface dotfiles/dotdirs; .git/.hg/.svn/.bzr always hidden
 
 server:
   port: 7777

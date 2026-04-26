@@ -41,6 +41,15 @@ var (
 var cfg *config.Config
 var plugins *plugin.Registry
 
+// indexOpts builds index.Options from the loaded config. Centralised so
+// every index constructor in the CLI sees the same settings.
+func indexOpts() index.Options {
+	return index.Options{
+		IgnorePatterns: cfg.Ignore,
+		ShowHidden:     cfg.ShowHidden,
+	}
+}
+
 var rootCmd = &cobra.Command{
 	Use:     "fur [path]",
 	Short:   "Dual-mode markdown navigator with inter-document link navigation",
@@ -128,7 +137,7 @@ TUI keybindings (press ? for full help):
 			return err
 		}
 
-		idx := index.New(root)
+		idx := index.NewWithOptions(root, indexOpts())
 		_ = plugins.Run(plugin.HookBeforeIndex, &plugin.HookContext{FilePath: root})
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
@@ -206,7 +215,7 @@ ETag caching, and skips auto-opening the browser when an SSH session is detected
 			cfg.Server.Port = port
 		}
 
-		idx := index.New(root)
+		idx := index.NewWithOptions(root, indexOpts())
 		_ = plugins.Run(plugin.HookBeforeIndex, &plugin.HookContext{FilePath: root})
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
@@ -388,7 +397,7 @@ is "fur-export" in the current directory.`,
 			return fmt.Errorf("unsupported format: %s", formatStr)
 		}
 
-		idx := index.New(root)
+		idx := index.NewWithOptions(root, indexOpts())
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
 		}
@@ -426,7 +435,7 @@ Use --json for machine-readable output (nodes and edges with metadata).`,
 			return err
 		}
 
-		idx := index.New(root)
+		idx := index.NewWithOptions(root, indexOpts())
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
 		}
@@ -526,7 +535,7 @@ Tasks are extracted from markdown checkbox syntax:
 			return err
 		}
 
-		idx := index.New(root)
+		idx := index.NewWithOptions(root, indexOpts())
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
 		}
@@ -590,7 +599,7 @@ Configure in Claude Code's MCP settings:
 			return err
 		}
 
-		idx := index.New(root)
+		idx := index.NewWithOptions(root, indexOpts())
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
 		}
@@ -621,6 +630,85 @@ var versionCmd = &cobra.Command{
 		fmt.Printf("  built:   %s\n", date)
 		fmt.Printf("  go:      %s\n", runtime.Version())
 		fmt.Printf("  os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+	},
+}
+
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Inspect and manage fur configuration",
+	Long: `Inspect and manage the fur configuration file at ~/.config/fur/config.yaml.
+
+Subcommands:
+  init   Write a starter config.yaml with all keys documented.
+  path   Print the resolved config file path.
+  show   Print the active config (file + flags merged).`,
+}
+
+var configInitCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Write a starter config.yaml at ~/.config/fur/config.yaml",
+	Long: `Write a default config.yaml at ~/.config/fur/config.yaml.
+
+Without --force the command refuses to overwrite an existing file.
+With --force the existing file is renamed to config.yaml.bak before
+the new file is written.`,
+	Example: `  fur config init
+  fur config init --force`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		force, _ := cmd.Flags().GetBool("force")
+
+		if force {
+			path, backup, err := config.CreateDefaultForce()
+			if err != nil {
+				return err
+			}
+			if backup != "" {
+				fmt.Printf("backed up existing config to %s\n", backup)
+			}
+			fmt.Printf("wrote default config to %s\n", path)
+			return nil
+		}
+
+		path, err := config.CreateDefault()
+		if err != nil {
+			return err
+		}
+		if path == "" {
+			existing, derr := config.ConfigDir()
+			if derr == nil {
+				fmt.Fprintf(os.Stderr, "config already exists at %s/config.yaml (use --force to overwrite)\n", existing)
+			} else {
+				fmt.Fprintln(os.Stderr, "config already exists (use --force to overwrite)")
+			}
+			return nil
+		}
+		fmt.Printf("wrote default config to %s\n", path)
+		return nil
+	},
+}
+
+var configPathCmd = &cobra.Command{
+	Use:   "path",
+	Short: "Print the resolved config file path",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir, err := config.ConfigDir()
+		if err != nil {
+			return err
+		}
+		fmt.Println(filepath.Join(dir, "config.yaml"))
+		return nil
+	},
+}
+
+var configShowCmd = &cobra.Command{
+	Use:   "show",
+	Short: "Print the active config (file + flags merged)",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Print(cfg.String())
+		return nil
 	},
 }
 
@@ -847,6 +935,7 @@ func init() {
 	rootCmd.PersistentFlags().String("theme", "", "color theme (light|dark|auto|ascii)")
 	rootCmd.PersistentFlags().Bool("debug", false, "enable verbose logging")
 	rootCmd.PersistentFlags().Bool("no-color", false, "disable colors (ascii theme)")
+	rootCmd.PersistentFlags().Bool("show-hidden", false, "show dotfiles and dotdirs (.git/.hg/.svn/.bzr always hidden)")
 
 	rootCmd.Flags().String("keymap", "", "keybinding preset (default|vim|emacs)")
 	rootCmd.Flags().String("remote", "", "remote host (SSH config alias or user@host)")
@@ -869,6 +958,11 @@ func init() {
 
 	completionCmd.Flags().Bool("install", false, "auto-detect shell and install without prompts")
 
+	configInitCmd.Flags().Bool("force", false, "overwrite existing config (creates config.yaml.bak)")
+	configCmd.AddCommand(configInitCmd)
+	configCmd.AddCommand(configPathCmd)
+	configCmd.AddCommand(configShowCmd)
+
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(catCmd)
 	rootCmd.AddCommand(exportCmd)
@@ -876,6 +970,7 @@ func init() {
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(tasksCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(completionCmd)
 	rootCmd.AddCommand(genManCmd)
@@ -905,6 +1000,10 @@ func loadConfig(cmd *cobra.Command, args []string) error {
 	}
 	if noColor, _ := cmd.Flags().GetBool("no-color"); noColor {
 		cfg.Theme = "ascii"
+	}
+	if cmd.Flags().Lookup("show-hidden") != nil && cmd.Flags().Changed("show-hidden") {
+		showHidden, _ := cmd.Flags().GetBool("show-hidden")
+		cfg.ShowHidden = showHidden
 	}
 
 	// Merge serve-specific flags
@@ -1026,11 +1125,11 @@ func runRemote(target *remote.Target) error {
 		// Single file: create index with just this entry
 		initialFile = filepath.Base(root)
 		root = filepath.Dir(root)
-		idx = index.NewWithFs(root, sftpFs)
+		idx = index.NewWithFsAndOptions(root, sftpFs, indexOpts())
 		idx.AddFile(resolved.Path, initialFile, info.Size(), info.ModTime())
 	} else {
 		// Directory: walk via SFTP
-		idx = index.NewWithFs(root, sftpFs)
+		idx = index.NewWithFsAndOptions(root, sftpFs, indexOpts())
 		if err := idx.Build(); err != nil {
 			return fmt.Errorf("building index: %w", err)
 		}

@@ -150,14 +150,19 @@ func (w *Watcher) doBuild() {
 	}
 }
 
-// maybeWatchDir adds a new directory to the watcher if it exists and is not hidden.
+// maybeWatchDir adds a new directory to the watcher if it exists and is not
+// filtered. VCS metadata dirs are always skipped; other dotdirs respect the
+// index's ShowHidden option.
 func (w *Watcher) maybeWatchDir(path string) {
 	info, err := w.index.Fs().Stat(path)
 	if err != nil || !info.IsDir() {
 		return
 	}
 	name := filepath.Base(path)
-	if strings.HasPrefix(name, ".") || hiddenDirs[name] {
+	if hiddenDirs[name] {
+		return
+	}
+	if !w.index.opts.ShowHidden && strings.HasPrefix(name, ".") {
 		return
 	}
 	if err := w.watcher.Add(path); err != nil {
@@ -169,10 +174,19 @@ func (w *Watcher) addRecursive(root string) error {
 	entries := w.index.Entries()
 	dirs := make(map[string]bool)
 	dirs[root] = true
+	showHidden := w.index.opts.ShowHidden
 	for _, e := range entries {
-		if e.IsDir && !strings.HasPrefix(filepath.Base(e.Path), ".") {
-			dirs[e.Path] = true
+		if !e.IsDir {
+			continue
 		}
+		base := filepath.Base(e.Path)
+		if hiddenDirs[base] {
+			continue
+		}
+		if !showHidden && strings.HasPrefix(base, ".") {
+			continue
+		}
+		dirs[e.Path] = true
 	}
 	for dir := range dirs {
 		if err := w.watcher.Add(dir); err != nil {
