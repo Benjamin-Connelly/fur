@@ -29,3 +29,5 @@ artifacts/
 .claude-flow/
 .mcp.json
 coverage.out
+.claude/
+.playwright-mcp/
