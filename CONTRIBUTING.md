@@ -21,7 +21,7 @@ go test ./...
 
 ## Requirements
 
-- Go 1.26+
+- Go 1.25+
 - No CGO dependencies
 
 ## Architecture

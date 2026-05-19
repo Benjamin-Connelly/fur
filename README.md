@@ -14,7 +14,7 @@ Zero config. TUI and web modes. Full-text search. Syntax highlighting for 50+ la
 # Homebrew (macOS/Linux)
 brew install Benjamin-Connelly/fur/fur
 
-# From source (requires Go 1.26+)
+# From source (requires Go 1.25+)
 go install github.com/Benjamin-Connelly/fur/cmd/fur@latest
 
 # Or clone and build
@@ -335,7 +335,7 @@ GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o fur-darwin-arm64 ./cmd/fur
 GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o fur-linux-arm64 ./cmd/fur
 ```
 
-Requires Go 1.26+. Pure Go, no CGO.
+Requires Go 1.25+. Pure Go, no CGO.
 
 ## Contributing
 
