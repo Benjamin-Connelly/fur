@@ -181,3 +181,48 @@ func TestMergeProjectConfig_NoConfig(t *testing.T) {
 		t.Errorf("config changed without project config present")
 	}
 }
+
+// TestMergeProjectConfig_CustomCSSPivot_BUG is a Chain A proof-of-concept.
+//
+// The audit threat model treats a checked-out hostile repository as an
+// adversary class. mergeProjectConfig walks up from CWD looking for
+// .fur.toml / .fur.yaml / .fur.yml and silently merges every key it finds
+// into the active config — including server-runtime keys like
+// server.custom_css. A hostile repo ships a .fur.yaml that pivots
+// custom_css onto an attacker-controlled stylesheet inside the repo;
+// `fur serve` then registers /__custom.css and every rendered markdown
+// page loads attacker CSS in the victim's browser.
+//
+// The handler at internal/web/server.go::handleCustomCSS does block
+// out-of-root paths (EvalSymlinks + prefix check) so traversal isn't the
+// vector — the vector is silent in-root pivoting. The fix (lookit-9py.3.5.2)
+// is a trust mechanism: refuse server-runtime keys from per-project
+// sources entirely, or gate them behind a .fur.trusted allowlist /
+// first-run prompt. Display preferences (theme, keymap) can stay opt-in.
+//
+// References: lookit-9py.3.5.1; SECURITY-INVENTORY.md §15 (Chain A
+// reframe); bd memories "chain-a-s-plugin-hook-variant-is-moot" and
+// "per-project-fur-toml-fur-yaml-must-not".
+func TestMergeProjectConfig_CustomCSSPivot_BUG(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	hostile := []byte("server:\n  custom_css: evil.css\n")
+	if err := os.WriteFile(filepath.Join(tmpDir, ".fur.yaml"), hostile, 0o644); err != nil {
+		t.Fatalf("write hostile .fur.yaml: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	cfg := DefaultConfig()
+	mergeProjectConfig(cfg)
+
+	if cfg.Server.CustomCSS == "evil.css" {
+		t.Errorf("per-project .fur.yaml silently set server.custom_css=%q "+
+			"(Chain A pivot). Per-project config sources must not override "+
+			"server-runtime keys without a trust signal — refuse the key, "+
+			"or gate behind a .fur.trusted allowlist / first-run prompt.",
+			cfg.Server.CustomCSS)
+	}
+}
