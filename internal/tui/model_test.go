@@ -87,6 +87,45 @@ func TestModel_Init(t *testing.T) {
 	}
 }
 
+// TestModel_SelectFile_SingleFileMode verifies that passing a file path
+// triggers single-file mode (file list hidden, focus on preview) regardless of
+// how many other files exist in the parent directory. Regression test for
+// lookit-egj — the old heuristic only enabled single-file mode when fileCount
+// <= 1, leaving multi-file parent directories stuck on the file list panel.
+func TestModel_SelectFile_SingleFileMode(t *testing.T) {
+	m := testModel(t) // testModel populates README.md, main.go, docs/guide.md
+	m.SelectFile("README.md")
+
+	if !m.singleFile {
+		t.Error("SelectFile should enable single-file mode regardless of sibling count")
+	}
+	if m.focus != PanelPreview {
+		t.Errorf("focus = %v, want PanelPreview", m.focus)
+	}
+	if m.pendingSelect != "README.md" {
+		t.Errorf("pendingSelect = %q, want %q", m.pendingSelect, "README.md")
+	}
+
+	// Cursor on file list should still point at README.md so Tab into the
+	// list lands on the right entry.
+	if m.fileList.cursor >= len(m.fileList.visible) {
+		t.Fatalf("cursor %d out of range (visible=%d)", m.fileList.cursor, len(m.fileList.visible))
+	}
+	if got := m.fileList.visible[m.fileList.cursor].entry.RelPath; got != "README.md" {
+		t.Errorf("file list cursor on %q, want README.md", got)
+	}
+
+	// Init must dispatch a FileSelectedMsg so the preview auto-loads.
+	cmd := m.Init()
+	if cmd == nil {
+		t.Fatal("Init returned nil; expected FileSelectedMsg dispatch")
+	}
+	msg := cmd()
+	if _, ok := msg.(FileSelectedMsg); !ok {
+		t.Errorf("Init cmd produced %T, want FileSelectedMsg", msg)
+	}
+}
+
 func TestModel_Init_WithMouse(t *testing.T) {
 	m := testModel(t)
 	m.cfg.Mouse = true

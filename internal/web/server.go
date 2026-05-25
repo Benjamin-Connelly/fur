@@ -29,16 +29,24 @@ import (
 
 // Server is the HTTP server for web mode.
 type Server struct {
-	cfg     *config.Config
-	idx     index.Indexer
-	links   *index.LinkGraph
-	plugins *plugin.Registry
-	code    *render.CodeRenderer
-	md      goldmark.Markdown
-	fs      afero.Fs
-	mux     *http.ServeMux
-	server  *http.Server
-	sse     *SSEBroker
+	cfg         *config.Config
+	idx         index.Indexer
+	links       *index.LinkGraph
+	plugins     *plugin.Registry
+	code        *render.CodeRenderer
+	md          goldmark.Markdown
+	fs          afero.Fs
+	mux         *http.ServeMux
+	server      *http.Server
+	sse         *SSEBroker
+	initialFile string // optional: file to land on at startup (sets printed URL and --open target)
+}
+
+// SetInitialFile configures the file the server points at on startup. The
+// printed URL and the --open browser target append this path. Empty means
+// land on the directory index (default).
+func (s *Server) SetInitialFile(relPath string) {
+	s.initialFile = relPath
 }
 
 // SSEBroker manages Server-Sent Events for live reload.
@@ -146,9 +154,14 @@ func (s *Server) Start() error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
+	startURL := fmt.Sprintf("http://%s", addr)
+	if s.initialFile != "" {
+		startURL = startURL + "/" + strings.TrimPrefix(s.initialFile, "/")
+	}
+
 	errCh := make(chan error, 1)
 	go func() {
-		fmt.Printf("fur serving http://%s\n", addr)
+		fmt.Printf("fur serving %s\n", startURL)
 		errCh <- s.server.ListenAndServe()
 	}()
 
@@ -157,11 +170,10 @@ func (s *Server) Start() error {
 	if s.cfg.Server.Open && isSSH {
 		fmt.Println("SSH session detected, skipping browser open")
 	} else if s.cfg.Server.Open {
-		url := fmt.Sprintf("http://%s", addr)
 		go func() {
 			// Small delay to let the server start
 			time.Sleep(200 * time.Millisecond)
-			_ = exec.Command("xdg-open", url).Start()
+			_ = exec.Command("xdg-open", startURL).Start()
 		}()
 	}
 

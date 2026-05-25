@@ -205,7 +205,7 @@ ETag caching, and skips auto-opening the browser when an SSH session is detected
   fur serve --no-https`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		root, _, err := resolveRoot(args)
+		root, initialFile, err := resolveRoot(args)
 		if err != nil {
 			return err
 		}
@@ -235,6 +235,9 @@ ETag caching, and skips auto-opening the browser when an SSH session is detected
 		links.BuildFromIndex(idx)
 
 		srv := web.New(cfg, idx, links, plugins)
+		if initialFile != "" {
+			srv.SetInitialFile(initialFile)
+		}
 
 		watcher, err := index.NewWatcher(idx, links, srv.OnFileChange)
 		if err != nil {
