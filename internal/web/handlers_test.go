@@ -1029,6 +1029,84 @@ func TestHandleAPIDocumentPathTraversal(t *testing.T) {
 	}
 }
 
+// TestHandleAPIDocumentSymlinkEscapeKPOC is a Chain K proof-of-concept.
+//
+// The handler is documented to delegate path security to Index.ValidatePath,
+// but currently only performs an inline strings.Contains(filePath, "..") check
+// followed by idx.Lookup. A markdown-named symlink inside the serve root whose
+// target sits outside the root passes both checks: the path contains no "..",
+// and Index.Build (which walks via lstat and treats the symlink as a regular
+// file) registers it under its in-root relative path. afero.ReadFile then
+// follows the symlink at open() time and returns the target's bytes, whose
+// headings leak through the JSON response.
+//
+// Fix: route the request through Index.ValidatePath, which calls
+// filepath.EvalSymlinks and rejects targets outside idx.Root().
+//
+// References: lookit-9py.3.15.1; SECURITY-INVENTORY.md §15 and §16; bd memory
+// "every-web-handler-accepting-a-path-shaped-input".
+func TestHandleAPIDocumentSymlinkEscapeKPOC(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+
+	const canary = "SECRET-K-POC-CANARY-9YP-3-15-1"
+	secretPath := filepath.Join(outside, "secret.md")
+	if err := os.WriteFile(secretPath, []byte("# "+canary+"\n\nleaked\n"), 0o600); err != nil {
+		t.Fatalf("write secret: %v", err)
+	}
+
+	// A benign in-root file so Index.Build has something to walk besides the
+	// symlink. Not strictly required, but mirrors a realistic served repo.
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# ok\n"), 0o644); err != nil {
+		t.Fatalf("write README: %v", err)
+	}
+
+	escapePath := filepath.Join(root, "escape.md")
+	if err := os.Symlink(secretPath, escapePath); err != nil {
+		// Windows requires elevation for symlinks; the audit targets
+		// linux/darwin per CLAUDE.md, but degrade gracefully if the
+		// kernel refuses.
+		t.Skipf("os.Symlink not supported in this environment: %v", err)
+	}
+
+	cfg := config.DefaultConfig()
+	cfg.Git.Enabled = false
+
+	idx := index.New(root)
+	if err := idx.Build(); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	if idx.Lookup("escape.md") == nil {
+		t.Fatalf("setup precondition: symlink escape.md should be indexed under root; "+
+			"got nil. Without this entry, the bypass cannot be demonstrated. root=%q", root)
+	}
+
+	s := New(cfg, idx, index.NewLinkGraph(), nil)
+	defer s.sse.Stop()
+
+	req := httptest.NewRequest("GET", "/__api/document?file=escape.md", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPIDocument(rec, req)
+
+	body := rec.Body.String()
+
+	// Primary assertion: the request must not succeed. Index.ValidatePath
+	// rejects with "path escapes index root", which the handler should map
+	// to 403 (Forbidden) or 404 (Not Found). Today the handler returns 200.
+	if rec.Code != http.StatusForbidden && rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 403 or 404; handler bypassed Index.ValidatePath", rec.Code)
+	}
+
+	// Secondary assertion: even if a future refactor returns a non-200
+	// status while still reading the target file (e.g., reads then errors
+	// on serialization), the response body must never carry the target's
+	// content. Heading extraction is the leak channel today.
+	if strings.Contains(body, canary) {
+		t.Errorf("response body contains symlink target content (canary %q present); "+
+			"handler followed the symlink past the serve root", canary)
+	}
+}
+
 func TestHandleAPIDocumentNotFound(t *testing.T) {
 	s, _ := setupTestServer(t)
 	defer s.sse.Stop()
