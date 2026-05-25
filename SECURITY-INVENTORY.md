@@ -419,21 +419,42 @@ Aggregate: **~120 unit tests + 9 fuzz targets + ~26 golden fixtures + the teates
 
 6. **`install.sh` is broken** — file a separate cleanup bead (not a security issue but visible to anyone reading the README; risk is reputational + UX).
 
-## 14. Open questions for review
+## 14. Phase 0 review answers (resolved 2026-05-25)
 
-Items that need a human decision before Phase 1 begins:
+1. **`SECURITY.md` — real, now.** Use GitHub Private Vulnerability Reporting (free toggle in repo Security settings) with email fallback, 90-day coordinated disclosure default, explicit scope (in: binary behavior; out: OS-level host misconfiguration), no bounty. Filed as **`lookit-bg0`** (non-audit, parallel work, P2, off master).
+2. **`install.sh` — rewrite, don't delete.** README still discovers it; lookit references make it actively misleading (worse than absent). Bundled with §3 into **`lookit-61w`** — single "stale-lookit cleanup" PR off master. Not on audit branch.
+3. **`AGENTS.md` rename — separate cleanup PR.** Same bead as `lookit-61w`. Keeps audit-branch diffs focused on security work; preserves "one reviewable unit per bead" discipline.
+4. **`internal/web/templates` — keep as data; test via rendered output.** No `go:embed` refactor. New bead pattern in Phase 1.3: `internal/web/templates_test.go` renders each template with synthetic data, parses output with `golang.org/x/net/html`, asserts structural invariants (no `<script>` in unexpected places, every `href` HTML-escaped, every user-data attribute in a quoted context, CSP nonce propagation correct). Adversarial fixtures from Chain D + Chain K feed in. Folded into existing 1.3 bead (`P1_GOLDEN`).
+5. **Chain E — demoted to P1, kept as regression guard.** Priority measures urgency, not severity-if-true. ProxyCommand isn't honored on master today; the bug doesn't exist. The PoC becomes a *passing* regression-guard test that asserts current behavior. The "fix" bead (`E_FIX`) is **superseded** by a `bd remember` invariant ("fur deliberately reads only User/Hostname/Port/IdentityFile from ~/.ssh/config — ProxyCommand and Match exec are excluded by design. Any PR expanding the SSH config allowlist requires explicit security review."). The P0 slot freed here is reassigned to Chain K (§15).
+6. **Tooling — pre-confirm Go-native; defer the rest.** Pre-approved now: `govulncheck`, `staticcheck`, `gosec`. Pinned via **`lookit-9py.2.10`** (new bead) using `tools/tools.go` blank imports so `go.mod` carries the versions and CI installs are reproducible. Deferred to one-by-one confirmation when Phase 2.3 lands: `semgrep` (Python; use Docker image), `osv-scanner` (Go but newish; version-pin at use), `syft`+`grype` (Anchore Docker images, CI-only). `P2_TOOLS` now depends on `lookit-9py.2.10`.
 
-1. **`SECURITY.md` content** — do we want a real `SECURITY.md` (with disclosure email, GPG key, scope) or a stub that points to `docs/audit-prompt.md`? Defaults to stub.
-2. **`install.sh` disposition** — delete entirely (matches the "go install" distribution intent of `lookit-n48`), or rewrite to invoke `go install` from source. Recommend delete; file a follow-up bead.
-3. **`AGENTS.md` rename** — currently references the old `lookit` repo/binary throughout. Phase 0 leaves this alone; should be a separate cleanup bead during Phase 1.
-4. **`internal/web/templates` coverage** — embed dir, no tests today. Treat as data (no coverage gate) or extract template rendering into a testable function? Recommend: keep as data; cover via Phase 1.5 integration tests.
-5. **Chain E priority** — current finding (no ProxyCommand honored) suggests P1 is fine; spec is silent on demoting. Keep at P0 as a regression-guard with elevated visibility, **or** demote to P1 to match the actual exposure. Recommend keep at P0; the PoC test is the cheap insurance.
-6. **Tooling install (Phase 2.3)** — `govulncheck`, `staticcheck`, `gosec`, `semgrep`, `osv-scanner`, `syft`, `grype`. All are trusted upstream (golang.org/x or established OSS), but each `go install` / brew is its own confirmation. Should we pre-confirm the slate now or one-by-one when 2.3 starts? Recommend one-by-one with explicit AskUserQuestion for each.
+## 15. Rebalancing applied to the bead graph
 
-## Closure criteria
+| Change | Beads affected | Reason |
+|---|---|---|
+| **Chain K → P0** | `CHAIN_K` (lookit-9py.3.15), `K_POC` (.3.15.1), `K_FIX` (.3.15.2) | Phase 0 found `handleAPIDocument` + `handleCustomCSS` both bypass the chokepoint. Not a "test for traversal" finding — a *systemic violation of a claimed chokepoint*. Active vulnerability on master today. |
+| **Chain E → P1, regression-guard label** | `CHAIN_E` (lookit-9py.3.9), `E_POC` (.3.9.1) retitled "regression guard" | ProxyCommand not honored on master; PoC is a passing test that locks in current behavior rather than a red exploit demo. |
+| **Chain E Fix closed (superseded)** | `E_FIX` (lookit-9py.3.9.2) closed with --force | Replaced by a `bd remember` invariant. The memory does more long-term work than a one-shot fix bead. |
+| **Phase 1.1 (cmd/fur unit) → P0** | `P1_UNIT` (lookit-9py.2.1) | 9.4% coverage on the CLI entry point is unacceptable; promoted to match Phase 1.5/1.6 priority. |
+| **Chain A reframe** | `CHAIN_A` (lookit-9py.3.5) retitled "hostile-repo per-project config pivot via custom_css"; `A_POC` (.3.5.1) notes updated | Phase 0 verified the plugin-hook variant is moot. The real attack surface is `server.custom_css` override via `.fur.yaml`. |
+| **Chain L composition** | `L_POC` (lookit-9py.3.16.1) notes updated | PoC includes L+K combined chain: env-var pivot of `custom_css` flowing through the chokepoint-bypassing `handleCustomCSS`. |
+| **New hardening bead** | `HARDEN_VPENFORCE` (lookit-9py.4.9), depends on `K_POC` | P0. Deliverable: runtime test enumerating every web handler accepting a path-shaped input, asserting each delegates to `Index.ValidatePath` BEFORE any filesystem access. Turns CLAUDE.md's aspirational claim into an enforced invariant. |
+| **New Phase 1 bead** | `TOOLS_PIN` (lookit-9py.2.10), `P2_TOOLS` now depends on it | Pin `govulncheck`/`staticcheck`/`gosec` via `tools/tools.go`. Unblocks 80% of Phase 2.3 tooling immediately. |
+| **Parallel cleanup beads (off audit graph)** | `lookit-bg0` (SECURITY.md), `lookit-61w` (stale-lookit) | Non-audit parallel work; lives off master to keep audit-branch diff focused. |
 
-This document is the deliverable for `lookit-9py.1` (Phase 0). Closure flow:
+### New persistent memories stamped (Phase 0 review)
 
-1. **Human review.** Read this file end-to-end; resolve §14 questions.
-2. **No bead closure yet** — Phase 0 stays in-progress until review approves the inventory.
-3. After approval: `bd close lookit-9py.1 "PR #X: SECURITY-INVENTORY.md merged"`. Phase 1 + Phase 2 leaves unblock automatically.
+- *"Every web handler accepting a path-shaped input MUST delegate to `Index.ValidatePath()`. No inline containment, no `strings.Contains('..')` checks. Enforced by handler-enumeration test in `internal/web/` (see HARDEN_VPENFORCE bead)."*
+- *"fur deliberately reads only User/Hostname/Port/IdentityFile from `~/.ssh/config` — ProxyCommand and Match exec are excluded by design. Any PR expanding the SSH config allowlist requires explicit security review. Regression guard: lookit-9py.3.9.1."*
+- *"Chain A's plugin-hook variant is moot (configDir hardcoded). Chain A's real attack surface is per-project `.fur.toml/.yaml` overriding `server.custom_css`. Chain L composes via `FUR_SERVER_CUSTOM_CSS` env override of the same setting."*
+- *"Audit Phase 1.1 (cmd/fur unit tests) is P0, not P1: current coverage is 9.4%."*
+- *"Audit tools split: Go-native (govulncheck/staticcheck/gosec) pinned via tools/tools.go; semgrep via Docker; osv-scanner version-pinned at use; syft+grype CI-only Docker."*
+
+## 16. Closure
+
+This inventory is the deliverable for `lookit-9py.1` (Phase 0). The review gate (PR #17) is approved with the §14 decisions and §15 rebalancing applied. Next:
+
+1. **Merge PR #17** → master + audit branch get the inventory + audit prompt + bead graph.
+2. **Close `lookit-9py.1`** with the PR ref.
+3. **Start Chain M PoC and Chain K PoC in parallel** (both cheap red tests; both demonstrate active bugs against master; landing them in the same session is the moment to confirm the team is genuinely fine with red `master`).
+4. **File `lookit-bg0` (SECURITY.md) and `lookit-61w` (stale-lookit cleanup)** as separate small PRs off master, in parallel with the audit. These should land before any chain PoC merges so the visible red tests have a private-reporting path documented.
