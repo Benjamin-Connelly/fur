@@ -230,6 +230,32 @@ func HeadingSlugs(source string) map[string]bool {
 	return slugs
 }
 
+// HeadingSlugMap returns a slug -> heading-text mapping for all headings in
+// the source. Duplicate slugs are deduped GitHub-style ("heading", "heading-1",
+// "heading-2"); the first heading at each base slug retains the bare slug.
+//
+// The dedupe is currently source-order-dependent: two documents containing
+// the same set of headings in different orders produce different
+// slug -> text mappings. See TestHeadingSlugMap_SourceOrderIndependent_BUG
+// in markdown_test.go for the regression locking this fact in until the
+// Chain M fix lands a deterministic, source-order-independent tiebreak.
+func HeadingSlugMap(source string) map[string]string {
+	headings := ExtractHeadings(source)
+	result := make(map[string]string, len(headings))
+	counts := make(map[string]int)
+	for _, h := range headings {
+		base := Slugify(h.Text)
+		n := counts[base]
+		counts[base]++
+		slug := base
+		if n > 0 {
+			slug = base + "-" + strconv.Itoa(n)
+		}
+		result[slug] = h.Text
+	}
+	return result
+}
+
 // ExtractLinks returns all links from markdown source.
 func ExtractLinks(source string) []Link {
 	src := []byte(source)

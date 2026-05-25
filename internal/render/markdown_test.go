@@ -77,6 +77,54 @@ func TestHeadingSlugs_Empty(t *testing.T) {
 	}
 }
 
+// TestHeadingSlugMap_SourceOrderIndependent_BUG is a Chain M proof-of-concept.
+//
+// `Slugify("Quick Start")` and `Slugify("Quick-Start")` both produce the
+// slug "quick-start". The current dedupe in HeadingSlugMap (and HeadingSlugs,
+// and the inlined dedupe inside internal/web/handlers.go::handleAPIDocument)
+// is first-seen-wins, so the slug "quick-start" maps to a different heading
+// depending on which colliding heading comes first in the source.
+//
+// Concretely, swapping the order of two colliding headings swaps which one
+// owns the bare slug. An in-body anchor link `[link](#quick-start)` lands on
+// a different heading depending on source ordering — an anchor-hijack primitive
+// for an adversary that controls the source (hostile repo, content-adversary
+// upload, plus the related cross-platform desync where filesystem-derived
+// link targets disagree with what the renderer chose).
+//
+// Fix: introduce a deterministic tiebreak independent of source order — e.g.,
+// sort colliding headings by their original text (NFKC-normalized) before
+// assigning numeric suffixes, or stable-hash both slug + full text. Either
+// makes HeadingSlugMap(s1)["quick-start"] == HeadingSlugMap(s2)["quick-start"]
+// regardless of source ordering.
+//
+// References: lookit-9py.3.17.1; docs/audit-prompt.md (Chain M); bd memory
+// "slug-collision-dedupe-must-be-deterministic-and-independent".
+func TestHeadingSlugMap_SourceOrderIndependent_BUG(t *testing.T) {
+	s1 := "# Quick Start\n\nintro\n\n# Quick-Start\n\nsetup\n"
+	s2 := "# Quick-Start\n\nsetup\n\n# Quick Start\n\nintro\n"
+
+	m1 := HeadingSlugMap(s1)
+	m2 := HeadingSlugMap(s2)
+
+	// Sanity preconditions — make the test's premise auditable.
+	if _, ok := m1["quick-start"]; !ok {
+		t.Fatalf("setup: m1 missing slug %q; got %v", "quick-start", m1)
+	}
+	if _, ok := m2["quick-start"]; !ok {
+		t.Fatalf("setup: m2 missing slug %q; got %v", "quick-start", m2)
+	}
+
+	if m1["quick-start"] != m2["quick-start"] {
+		t.Errorf("slug %q resolves to different heading text depending on "+
+			"source order: s1[%q]=%q vs s2[%q]=%q. Dedupe must be "+
+			"deterministic and source-order-independent (Chain M).",
+			"quick-start",
+			"quick-start", m1["quick-start"],
+			"quick-start", m2["quick-start"])
+	}
+}
+
 func TestNewMarkdownRenderer(t *testing.T) {
 	themes := []string{"dark", "light", "auto", "ascii"}
 	for _, theme := range themes {
