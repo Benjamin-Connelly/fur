@@ -196,26 +196,16 @@ func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins 
 	}
 }
 
-// SelectFile pre-selects a file by relative path on startup.
-// In single-file mode (1 non-dir entry), hides the file list and
-// focuses the preview pane for full-width content viewing.
-// The preview auto-loads via Init().
+// SelectFile pre-selects a file by relative path on startup and enters
+// single-file mode: the file list is hidden by default and focus starts on
+// the preview pane (full-width). Press Tab to reveal the file list and
+// navigate siblings. The preview auto-loads via Init().
 // Must be called before Run().
 func (m *Model) SelectFile(relPath string) {
 	m.fileList.SelectByPath(relPath)
 	m.pendingSelect = relPath
-
-	// Count non-directory entries to detect single-file mode
-	fileCount := 0
-	for _, e := range m.idx.Entries() {
-		if !e.IsDir {
-			fileCount++
-		}
-	}
-	if fileCount <= 1 {
-		m.singleFile = true
-		m.focus = PanelPreview
-	}
+	m.singleFile = true
+	m.focus = PanelPreview
 }
 
 // SetRemoteInfo updates the remote connection display state.

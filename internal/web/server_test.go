@@ -39,6 +39,21 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	return s, dir
 }
 
+// TestSetInitialFile verifies the server stores the initial-file pointer used
+// by Start() to compute the printed URL and --open browser target. Regression
+// test for lookit-egj: `fur serve ./some-file.md` should land on the file,
+// not the directory index.
+func TestSetInitialFile(t *testing.T) {
+	s, _ := setupTestServer(t)
+	if s.initialFile != "" {
+		t.Errorf("default initialFile = %q, want empty", s.initialFile)
+	}
+	s.SetInitialFile("docs/guide.md")
+	if s.initialFile != "docs/guide.md" {
+		t.Errorf("initialFile = %q, want %q", s.initialFile, "docs/guide.md")
+	}
+}
+
 // --- SSEBroker tests ---
 
 func TestNewSSEBroker(t *testing.T) {

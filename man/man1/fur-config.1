@@ -2,20 +2,26 @@
 .TH "FUR" "1" "May 2026" "fur v1.0.1" ""
 
 .SH NAME
-fur-version - Print version, build, and runtime information
+fur-config - Inspect and manage fur configuration
 
 
 .SH SYNOPSIS
-\fBfur version [flags]\fP
+\fBfur config [flags]\fP
 
 
 .SH DESCRIPTION
-Print version, build, and runtime information
+Inspect and manage the fur configuration file at ~/.config/fur/config.yaml.
+
+.PP
+Subcommands:
+  init   Write a starter config.yaml with all keys documented.
+  path   Print the resolved config file path.
+  show   Print the active config (file + flags merged).
 
 
 .SH OPTIONS
 \fB-h\fP, \fB--help\fP[=false]
-	help for version
+	help for config
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -40,7 +46,7 @@ Print version, build, and runtime information
 
 
 .SH SEE ALSO
-\fBfur(1)\fP
+\fBfur(1)\fP, \fBfur-config-init(1)\fP, \fBfur-config-path(1)\fP, \fBfur-config-show(1)\fP
 
 
 .SH HISTORY

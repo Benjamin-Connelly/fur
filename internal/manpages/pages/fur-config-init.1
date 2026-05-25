@@ -2,20 +2,29 @@
 .TH "FUR" "1" "May 2026" "fur v1.0.1" ""
 
 .SH NAME
-fur-version - Print version, build, and runtime information
+fur-config-init - Write a starter config.yaml at ~/.config/fur/config.yaml
 
 
 .SH SYNOPSIS
-\fBfur version [flags]\fP
+\fBfur config init [flags]\fP
 
 
 .SH DESCRIPTION
-Print version, build, and runtime information
+Write a default config.yaml at ~/.config/fur/config.yaml.
+
+.PP
+Without --force the command refuses to overwrite an existing file.
+With --force the existing file is renamed to config.yaml.bak before
+the new file is written.
 
 
 .SH OPTIONS
+\fB--force\fP[=false]
+	overwrite existing config (creates config.yaml.bak)
+
+.PP
 \fB-h\fP, \fB--help\fP[=false]
-	help for version
+	help for init
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -39,8 +48,15 @@ Print version, build, and runtime information
 	color theme (light|dark|auto|ascii)
 
 
+.SH EXAMPLE
+.EX
+  fur config init
+  fur config init --force
+.EE
+
+
 .SH SEE ALSO
-\fBfur(1)\fP
+\fBfur-config(1)\fP
 
 
 .SH HISTORY

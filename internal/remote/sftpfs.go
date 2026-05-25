@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -184,9 +183,6 @@ func (s *SFTPFs) walk(path string, info os.FileInfo, fn WalkFunc) error {
 
 	for _, entry := range entries {
 		name := entry.Name()
-		if strings.HasPrefix(name, ".") {
-			continue
-		}
 		child := path + "/" + name
 		if err := s.walk(child, entry, fn); err != nil {
 			if err == filepath.SkipDir {
