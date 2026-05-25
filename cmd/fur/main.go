@@ -23,7 +23,6 @@ import (
 	"github.com/Benjamin-Connelly/fur/internal/export"
 	"github.com/Benjamin-Connelly/fur/internal/index"
 	"github.com/Benjamin-Connelly/fur/internal/manpages"
-	mcppkg "github.com/Benjamin-Connelly/fur/internal/mcp"
 	"github.com/Benjamin-Connelly/fur/internal/plugin"
 	"github.com/Benjamin-Connelly/fur/internal/remote"
 	"github.com/Benjamin-Connelly/fur/internal/render"
@@ -558,60 +557,6 @@ Tasks are extracted from markdown checkbox syntax:
 	},
 }
 
-var mcpCmd = &cobra.Command{
-	Use:   "mcp [path]",
-	Short: "Start MCP server for AI agent integration",
-	Long: `Start a Model Context Protocol (MCP) server on stdin/stdout. This exposes
-fur's documentation index as tools that AI agents (Claude Code, Cursor,
-etc.) can call.
-
-Available tools:
-  search_docs        Fuzzy or fulltext search across files
-  get_document       Read a file's content as plain text
-  get_related_docs   Find forward links and backlinks for a file
-  check_doc_health   Report broken links and pending tasks
-  get_doc_structure  Extract headings with anchor slugs
-
-Configure in Claude Code's MCP settings:
-  {
-    "mcpServers": {
-      "docs": {
-        "command": "fur",
-        "args": ["mcp", "/path/to/docs"]
-      }
-    }
-  }`,
-	Example: `  fur mcp ~/docs
-  fur mcp .`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		root, _, err := resolveRoot(args)
-		if err != nil {
-			return err
-		}
-
-		idx := index.New(root)
-		if err := idx.Build(); err != nil {
-			return fmt.Errorf("building index: %w", err)
-		}
-
-		// Build fulltext index for content search
-		cacheDir, _ := os.UserCacheDir()
-		if cacheDir != "" {
-			cacheDir = filepath.Join(cacheDir, "fur")
-		}
-		_ = idx.BuildFulltext(cacheDir)
-		defer idx.CloseFulltext()
-
-		mcpLinks := index.NewLinkGraph()
-		mcpLinks.BuildFromIndex(idx)
-		mcpLinks.ValidateFragments(idx)
-
-		srv := mcppkg.New(idx, mcpLinks)
-		return srv.Serve()
-	},
-}
-
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version, build, and runtime information",
@@ -875,7 +820,6 @@ func init() {
 	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(tasksCmd)
-	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(completionCmd)
 	rootCmd.AddCommand(genManCmd)

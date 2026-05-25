@@ -19,7 +19,7 @@ Dual-mode markdown navigator: TUI (Bubble Tea) and web (stdlib net/http). Inter-
 ## Directory Structure
 
 ```
-cmd/fur/main.go                 # CLI entry: Cobra commands (root, serve, cat, export, graph, tasks, doctor, mcp, version, completion, gen-man)
+cmd/fur/main.go                 # CLI entry: Cobra commands (root, serve, cat, export, graph, tasks, doctor, version, completion, gen-man)
 internal/
   config/
     config.go                   # Viper config loader, validation, watch, defaults, config migration
@@ -62,8 +62,6 @@ internal/
     markdown.go                 # Glamour wrapper, heading extraction, Slugify
     code.go                     # Chroma wrapper (terminal + HTML)
     image.go                    # Image protocol rendering (iTerm2, Kitty, Sixel)
-  mcp/
-    server.go                   # MCP server: 5 tools (search, get_document, related, health, structure)
   git/
     git.go                      # go-git: repo, status, branches, log, remotes
     permalink.go                # URL generation (GitHub/GitLab/Bitbucket/Gitea/Codeberg)
@@ -85,8 +83,6 @@ internal/
 **TUI mode** (default): Bubble Tea app with split-pane layout. Left panel is a fuzzy-searchable file list, right panel is a rendered preview (Glamour for markdown, Chroma terminal256 for code). Side panels for TOC, backlinks, bookmarks, git info. Command palette via `:`. Link navigation with history stack.
 
 **Web mode** (`fur serve`): stdlib `net/http` server. Goldmark renders markdown to HTML with GFM extensions (instance on Server struct). Chroma provides syntax highlighting with CSS classes. SSE endpoint (`/__events`) for live reload. API endpoints: `/__api/files` (fuzzy search), `/__api/search` (Bleve fulltext, fallback to git grep/grep), `/__api/graph`, `/__api/document`, `/__api/tasks`. Security headers, ETag caching, request logging.
-
-**MCP mode** (`fur mcp`): Model Context Protocol server exposing the index and link graph as tools for AI agents. 5 tools: search_docs, get_document, get_related_docs, check_doc_health, get_doc_structure. Path validation shared with web via `Index.ValidatePath()`.
 
 **Index**: In-memory file tree with `.gitignore` parsing (manual, no external dep). Bidirectional link graph tracks forward links and backlinks between markdown files. Supports standard `[text](target)` and `[[wikilink]]` syntax. fsnotify watcher with 100ms debounce rebuilds index and link graph on changes. Bleve fulltext index at `~/.cache/fur/index.bleve`.
 
@@ -127,7 +123,6 @@ go build -o fur ./cmd/fur
 ./fur tasks                      # extract TODOs from markdown
 ./fur doctor                     # environment diagnostics
 ./fur version                    # version, commit, Go version, OS/arch
-./fur mcp .                      # start MCP server
 
 # Config
 ./fur --theme dark               # override theme
@@ -160,7 +155,7 @@ GOOS=darwin GOARCH=arm64 go build -o fur-darwin-arm64 ./cmd/fur
 - Task extraction recognizes `!high`/`!medium`/`!low` priority, `#tag`, `@due(YYYY-MM-DD)`.
 - SSH auth: ssh-agent → key files → ~/.ssh/config. Agent connection tracked and closed properly.
 - `render.Slugify()` is the single source of truth for anchor slugs (web and TUI both use it).
-- `Index.ValidatePath()` is the shared path security check (web and MCP both delegate to it).
+- `Index.ValidatePath()` is the shared path security check (web delegates to it).
 - Version is `var` not `const` (ldflags -X compatibility). Build info: `-X main.commit=... -X main.date=...`.
 - Remote mode uses direct SFTP reads via SFTPFs.
 

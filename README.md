@@ -142,37 +142,6 @@ fur @docs                        # Named remote from config
 - **Doctor** — 9 environment checks with colored output
 - **Man pages** — `fur gen-man` generates troff man pages
 
-### MCP Server
-
-fur exposes its documentation index as an [MCP](https://modelcontextprotocol.io/) server for AI agents.
-
-```bash
-fur mcp ~/docs     # Start MCP server on stdin/stdout
-```
-
-**Tools:**
-
-| Tool | Description |
-|------|-------------|
-| `search_docs` | Fuzzy filename or Bleve fulltext search |
-| `get_document` | Read file content (with size guard and binary detection) |
-| `get_related_docs` | Forward links, backlinks, or both for a file |
-| `check_doc_health` | Broken links, broken anchors, and pending tasks |
-| `get_doc_structure` | Heading tree with anchor slugs and line numbers |
-
-**Claude Code configuration** (`.claude/settings.json`):
-
-```json
-{
-  "mcpServers": {
-    "fur": {
-      "command": "fur",
-      "args": ["mcp", "."]
-    }
-  }
-}
-```
-
 ## Keybindings
 
 ### Default / Vim
