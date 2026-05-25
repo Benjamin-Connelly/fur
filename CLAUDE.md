@@ -209,6 +209,19 @@ bd close <id>         # Complete work
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+## Dogfooding Policy
+
+Hosaka and ryuk run the latest `origin/master` build of fur. The deploy script is `scripts/dogfood.sh`:
+
+- Compares each host's installed commit (from `fur version`) against `origin/master`.
+- If behind, cross-compiles linux/amd64 with version ldflags in a detached worktree and scp's to `~/go/bin/fur` on each host. Working-tree state never leaks into the binary.
+- Idempotent: no-op when all hosts are current. Unreachable hosts are warned, not fatal.
+- Fleet list lives in the `HOSTS=(...)` array at the top of the script.
+
+**Claude session-start behavior:** After the standard git/beads init in this repo, run `bash scripts/dogfood.sh` once and surface the one-line result (e.g., `dogfood: deployed d1a1864 to hosaka, ryuk` or `dogfood: all reachable hosts current`). If it fails, warn but don't block the session — file a `bd` issue if the same host fails twice in a row.
+
+**Manual trigger:** `bash scripts/dogfood.sh` any time.
+
 <!-- BEGIN FLEET STANZA v:1 -->
 ## Personal Fleet Context
 
