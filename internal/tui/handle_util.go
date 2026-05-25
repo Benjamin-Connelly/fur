@@ -2,7 +2,6 @@ package tui
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -65,7 +64,7 @@ func (m *Model) openInEditor() (tea.Model, tea.Cmd) {
 		editor = "vi"
 	}
 
-	c := exec.Command(editor, filePath)
+	c := EditorCmd(editor, filePath)
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
