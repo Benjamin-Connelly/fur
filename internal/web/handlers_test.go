@@ -1072,7 +1072,12 @@ func TestHandleAPIDocumentSymlinkEscapeKPOC(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Git.Enabled = false
 
-	idx := index.New(root)
+	// Force the escaping symlink into the index (FollowSymlinks) so this test
+	// exercises the handler-layer defense in isolation. Index-layer symlink
+	// containment (Chain B, lookit-9py.3.6) would otherwise drop the entry
+	// before the handler ever sees it — the two defenses are independent and
+	// both must hold.
+	idx := index.NewWithOptions(root, index.Options{FollowSymlinks: true})
 	if err := idx.Build(); err != nil {
 		t.Fatalf("Build: %v", err)
 	}

@@ -33,6 +33,12 @@ type Stats struct {
 type Options struct {
 	IgnorePatterns []string // additional glob patterns to ignore
 	ShowHidden     bool     // when true, surface dotfiles/dotdirs (VCS metadata still skipped)
+	// FollowSymlinks, when true, indexes symlinks whose target resolves
+	// outside the index root. Off by default: under the audit threat model a
+	// directory adversary can plant a symlink (e.g. notes.md -> ~/.ssh/id_rsa)
+	// that the file list would otherwise surface and the preview/serve path
+	// would read out of root. See lookit-9py.3.6 (Chain B) / .4.7.
+	FollowSymlinks bool
 }
 
 type Indexer interface {
@@ -152,6 +158,9 @@ func (idx *Index) Build() error {
 
 	gitignore := loadGitignore(idx.fs, idx.root)
 
+	// Symlink containment only applies to OS-backed roots (see walkFn).
+	_, osBacked := idx.fs.(*afero.OsFs)
+
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -192,6 +201,21 @@ func (idx *Index) Build() error {
 
 		// Check custom ignore patterns
 		if idx.matchesIgnorePatterns(rel) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Symlink containment (Chain B / hardening 4.7). Walk uses Lstat, so a
+		// symlink is reported as itself (we never descend into symlinked
+		// dirs). A symlink whose resolved target escapes the root is a
+		// directory-adversary escape vector: it would appear in the file list
+		// and the preview/serve path that opens entry.Path would follow it out
+		// of root. Skip escaping symlinks unless the operator opts in. Only
+		// applied to OS-backed roots — filepath.EvalSymlinks resolves against
+		// the local filesystem, so it is meaningless for SFTP/in-memory roots.
+		if osBacked && !idx.opts.FollowSymlinks && info.Mode()&os.ModeSymlink != 0 && idx.symlinkEscapes(path) {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
@@ -304,10 +328,31 @@ func (idx *Index) ValidatePath(relPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("file not found")
 	}
-	if !strings.HasPrefix(resolved, idx.root+string(filepath.Separator)) && resolved != idx.root {
+	if !withinRoot(idx.root, resolved) {
 		return "", fmt.Errorf("path escapes index root")
 	}
-	return absPath, nil
+	// Return the symlink-resolved path so callers open the same bytes that
+	// were validated, closing the TOCTOU/re-follow window between this check
+	// and the caller's os.Open.
+	return resolved, nil
+}
+
+// withinRoot reports whether resolved is the root itself or lies beneath it.
+func withinRoot(root, resolved string) bool {
+	return resolved == root || strings.HasPrefix(resolved, root+string(filepath.Separator))
+}
+
+// symlinkEscapes reports whether the symlink at path resolves to a target
+// outside the index root. A symlink that cannot be resolved (dangling, or a
+// resolution error) is treated as an escape so it is skipped rather than
+// surfaced. Only meaningful for OS-backed filesystems; callers gate on the
+// symlink mode bit before invoking it.
+func (idx *Index) symlinkEscapes(path string) bool {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return true
+	}
+	return !withinRoot(idx.root, resolved)
 }
 
 // AddFile adds a single file entry to the index without walking.
