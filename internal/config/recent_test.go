@@ -181,3 +181,107 @@ func TestMergeProjectConfig_NoConfig(t *testing.T) {
 		t.Errorf("config changed without project config present")
 	}
 }
+
+// TestMergeProjectConfig_CustomCSSPivot is the Chain A regression guard.
+//
+// The audit threat model treats a checked-out hostile repository as an
+// adversary class. mergeProjectConfig walks up from CWD looking for
+// .fur.{toml,yaml,yml} and merges found settings into the active config.
+// Before the allowlist fix it merged *every* key — including
+// server.custom_css — so a hostile repo could ship a .fur.yaml pivoting
+// custom_css onto an attacker-controlled stylesheet; `fur serve` then
+// served that CSS into the victim's browser on every rendered page.
+//
+// The fix restricts per-project sources to a display/UX allowlist
+// (projectConfigAllowlist). server.* must never be honored from a
+// per-project file. References: lookit-9py.3.5 / .3.5.2; SECURITY-INVENTORY
+// §15; bd memory "chain-a-s-plugin-hook-variant-is-moot".
+func TestMergeProjectConfig_CustomCSSPivot(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	hostile := []byte("server:\n  custom_css: evil.css\n  host: 0.0.0.0\n")
+	if err := os.WriteFile(filepath.Join(tmpDir, ".fur.yaml"), hostile, 0o644); err != nil {
+		t.Fatalf("write hostile .fur.yaml: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	cfg := DefaultConfig()
+	origHost := cfg.Server.Host
+	mergeProjectConfig(cfg)
+
+	if cfg.Server.CustomCSS != "" {
+		t.Errorf("per-project .fur.yaml set server.custom_css=%q (Chain A pivot); "+
+			"per-project sources must not override server-runtime keys", cfg.Server.CustomCSS)
+	}
+	if cfg.Server.Host != origHost {
+		t.Errorf("per-project .fur.yaml set server.host=%q (Chain A bind pivot); "+
+			"want unchanged %q", cfg.Server.Host, origHost)
+	}
+}
+
+// TestMergeProjectConfig_RemotesPivot guards the SSH-remote pivot: a hostile
+// repo must not be able to inject a named remote (which could carry an
+// attacker host/user) via per-project config.
+func TestMergeProjectConfig_RemotesPivot(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	hostile := []byte("remotes:\n  evil:\n    host: attacker.example\n    user: root\n    path: /\n")
+	if err := os.WriteFile(filepath.Join(tmpDir, ".fur.yaml"), hostile, 0o644); err != nil {
+		t.Fatalf("write hostile .fur.yaml: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	cfg := DefaultConfig()
+	mergeProjectConfig(cfg)
+
+	if len(cfg.Remotes) != 0 {
+		t.Errorf("per-project .fur.yaml injected remotes %v (Chain A pivot); "+
+			"per-project sources must not define remotes", cfg.Remotes)
+	}
+}
+
+// TestMergeProjectConfig_AllowlistedKeysStillApply confirms the allowlist
+// fix did not break legitimate display/UX overrides.
+func TestMergeProjectConfig_AllowlistedKeysStillApply(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	yaml := []byte("theme: dark\nkeymap: vim\nshow_hidden: true\nscrolloff: 9\nreading_guide: true\nmouse: true\nignore:\n  - \"*.tmp\"\n")
+	if err := os.WriteFile(filepath.Join(tmpDir, ".fur.yaml"), yaml, 0o644); err != nil {
+		t.Fatalf("write .fur.yaml: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origDir)
+
+	cfg := DefaultConfig()
+	mergeProjectConfig(cfg)
+
+	if cfg.Theme != "dark" {
+		t.Errorf("theme: got %q want dark", cfg.Theme)
+	}
+	if cfg.Keymap != "vim" {
+		t.Errorf("keymap: got %q want vim", cfg.Keymap)
+	}
+	if !cfg.ShowHidden {
+		t.Error("show_hidden: got false want true")
+	}
+	if cfg.ScrollOff != 9 {
+		t.Errorf("scrolloff: got %d want 9", cfg.ScrollOff)
+	}
+	if !cfg.ReadingGuide {
+		t.Error("reading_guide: got false want true")
+	}
+	if !cfg.Mouse {
+		t.Error("mouse: got false want true")
+	}
+	if len(cfg.Ignore) != 1 || cfg.Ignore[0] != "*.tmp" {
+		t.Errorf("ignore: got %v want [*.tmp]", cfg.Ignore)
+	}
+}
