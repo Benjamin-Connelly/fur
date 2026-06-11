@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Security
+- **Web server refuses non-loopback binds by default.** `fur serve` now
+  errors out if `server.host` resolves to a non-loopback address (`0.0.0.0`,
+  a LAN IP, an external hostname) unless `--listen-public` is passed, which
+  also prints a reachability warning. Previously any `server.host` value
+  (including via `FUR_SERVER_HOST`) bound silently, exposing the file,
+  search, and document APIs — and thus the whole browsed tree — to other
+  hosts and users on the network (audit Chain C).
 - **Symlink containment.** The indexer no longer surfaces symlinks whose
   target resolves outside the browse root. Previously a directory adversary
   could plant `notes.md -> ~/.ssh/id_rsa` inside a browsed tree and have the

@@ -75,6 +75,11 @@ type ServerConfig struct {
 	NoHTTPS   bool   `mapstructure:"no_https"`
 	Open      bool   `mapstructure:"open"`
 	CustomCSS string `mapstructure:"custom_css"`
+	// ListenPublic must be set explicitly (via --listen-public) before fur
+	// will bind the web server to a non-loopback address. Without it, a
+	// non-loopback Host is refused so a co-located or remote adversary cannot
+	// reach the server and read the browsed tree (audit Chain C).
+	ListenPublic bool `mapstructure:"listen_public"`
 }
 
 // GitConfig holds git integration settings.

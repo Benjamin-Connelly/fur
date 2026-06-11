@@ -905,6 +905,7 @@ func init() {
 	serveCmd.Flags().Bool("open", false, "open browser after starting")
 	serveCmd.Flags().Bool("no-https", false, "disable HTTPS even if certs exist")
 	serveCmd.Flags().String("css", "", "path to custom CSS file")
+	serveCmd.Flags().Bool("listen-public", false, "allow binding to a non-loopback address (exposes files to the network)")
 
 	catCmd.Flags().Bool("json", false, "output as JSON (file, size, format, content)")
 
@@ -979,6 +980,9 @@ func loadConfig(cmd *cobra.Command, args []string) error {
 		}
 		if css, _ := cmd.Flags().GetString("css"); css != "" {
 			cfg.Server.CustomCSS = css
+		}
+		if listenPublic, _ := cmd.Flags().GetBool("listen-public"); listenPublic {
+			cfg.Server.ListenPublic = true
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -138,9 +139,46 @@ func (s *Server) OnFileChange(relPath string) {
 	s.sse.Notify(relPath)
 }
 
+// isLoopbackHost reports whether host binds only the loopback interface.
+// The empty host is treated as loopback because fur defaults Server.Host to
+// "localhost"; an empty value reaching here would otherwise mean "all
+// interfaces", which is exactly what we refuse without an explicit opt-in.
+func isLoopbackHost(host string) bool {
+	switch host {
+	case "", "localhost", "127.0.0.1", "::1":
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	// A non-localhost hostname can resolve to any interface; treat as public.
+	return false
+}
+
+// ValidateBind refuses to bind a non-loopback host unless the operator has
+// explicitly opted in with listenPublic. Exposing the browser UI to the
+// network lets a co-located or remote adversary enumerate and read the
+// entire browsed tree over the file/search/document APIs (audit Chain C).
+func ValidateBind(host string, listenPublic bool) error {
+	if listenPublic || isLoopbackHost(host) {
+		return nil
+	}
+	return fmt.Errorf("refusing to bind web server to non-loopback address %q: "+
+		"this exposes the browsed files to other hosts and users on the network. "+
+		"Re-run with --listen-public if that is intended", host)
+}
+
 // Start begins listening on the configured port and handles graceful shutdown.
 func (s *Server) Start() error {
+	if err := ValidateBind(s.cfg.Server.Host, s.cfg.Server.ListenPublic); err != nil {
+		return err
+	}
+
 	addr := fmt.Sprintf("%s:%d", s.cfg.Server.Host, s.cfg.Server.Port)
+
+	if s.cfg.Server.ListenPublic && !isLoopbackHost(s.cfg.Server.Host) {
+		fmt.Fprintf(os.Stderr, "warning: --listen-public is set; serving on %s is reachable by other hosts on the network\n", addr)
+	}
 
 	s.server = &http.Server{
 		Addr:         addr,
