@@ -1,6 +1,7 @@
 package index
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -69,15 +70,20 @@ func NewFulltextIndex(cacheDir string) (*FulltextIndex, error) {
 	indexPath := filepath.Join(cacheDir, "index.bleve")
 	ft.path = indexPath
 
-	// Try opening existing index first
+	// Try opening existing index first. Re-tighten perms on open: an index
+	// created by an older fur (0o755) or left loose by a co-located adversary
+	// would otherwise stay world-readable. The Bleve index mirrors the content
+	// of every browsed file, so on a multi-user box loose perms are a
+	// cross-user disclosure (audit Chains F and H).
 	idx, err := bleve.Open(indexPath)
 	if err == nil {
+		secureCachePerms(cacheDir, indexPath)
 		ft.idx = idx
 		return ft, nil
 	}
 
-	// Create the cache directory if needed
-	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+	// Create the cache directory if needed, owner-only (0700).
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
 		return nil, err
 	}
 
@@ -88,8 +94,42 @@ func NewFulltextIndex(cacheDir string) (*FulltextIndex, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Bleve creates its store with the process umask (typically 0o755);
+	// clamp the cache dir and the index tree to owner-only.
+	secureCachePerms(cacheDir, indexPath)
 	ft.idx = idx
 	return ft, nil
+}
+
+// secureCachePerms clamps the fur cache directory and the Bleve index tree to
+// owner-only access (0700 dirs, 0600 files). Best-effort: permission errors
+// are ignored because a usable-but-loose cache still beats refusing to run,
+// and the disclosure risk is the operator's own home directory.
+//
+// The cache dir is clamped first so that, before we descend, no other user
+// can traverse in to swap a symlink; the index tree is then walked through an
+// os.Root so every chmod is root-scoped and cannot follow a symlink out of
+// the cache (avoids the WalkDir+Chmod TOCTOU class).
+func secureCachePerms(cacheDir, indexPath string) {
+	_ = os.Chmod(cacheDir, 0o700)
+
+	root, err := os.OpenRoot(indexPath)
+	if err != nil {
+		return
+	}
+	defer root.Close()
+
+	_ = fs.WalkDir(root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			_ = root.Chmod(p, 0o700)
+		} else {
+			_ = root.Chmod(p, 0o600)
+		}
+		return nil
+	})
 }
 
 // BuildFrom reads all markdown files from the file index and batch-indexes them.

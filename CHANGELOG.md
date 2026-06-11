@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Security
+- **Cache and state files are owner-only.** The Bleve fulltext cache
+  (`~/.cache/fur/index.bleve`) — which mirrors the content of every browsed
+  file — and its parent directory are now clamped to `0700`/`0600`, including
+  re-tightening a loosely-permissioned cache left by an older fur. The
+  recent-files list (`recent.json`) is written `0600` via an atomic temp +
+  rename. Previously these were `0755`/`0644`, exposing browsed content and
+  history to other users on a shared box (audit Chains F and H).
 - **SSH config exec directives are never honored (regression-guarded).** fur
   reads only `User`, `Hostname`, `Port`, and `IdentityFile` from `~/.ssh/config`
   and dials directly over TCP. `ProxyCommand`, `ProxyJump`, `LocalCommand`, and
