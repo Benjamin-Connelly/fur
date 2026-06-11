@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Security
+- **SSH config exec directives are never honored (regression-guarded).** fur
+  reads only `User`, `Hostname`, `Port`, and `IdentityFile` from `~/.ssh/config`
+  and dials directly over TCP. `ProxyCommand`, `ProxyJump`, `LocalCommand`, and
+  `Match exec` are ignored, so a planted `~/.ssh/config` cannot turn a
+  remote-browse into command execution (audit Chain E). A new test guards the
+  key allowlist and the absence of any exec/proxy path.
 - **Strict script CSP.** `script-src` no longer allows `'unsafe-inline'`. All
   of fur's own scripts (theme toggle, live-reload, Mermaid bootstrap, link
   graph) are now external files under `/__static`, so an injected inline
