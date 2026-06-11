@@ -54,7 +54,7 @@ func (r *RecentFiles) Save() error {
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(configDir, 0o755); err != nil {
+		if err := os.MkdirAll(configDir, 0o700); err != nil {
 			return err
 		}
 		r.path = filepath.Join(configDir, "recent.json")
@@ -63,5 +63,28 @@ func (r *RecentFiles) Save() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(r.path, data, 0o644)
+	// 0600: the recent-files list is a record of what the user has browsed —
+	// not world-readable on a shared box (audit Chain F / hardening 4.6).
+	// Atomic write via a temp file + rename in the same dir so a concurrent
+	// reader never sees a half-written file and a symlink swap can't redirect
+	// the final write.
+	dir := filepath.Dir(r.path)
+	tmp, err := os.CreateTemp(dir, ".recent-*.json")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // no-op if the rename below succeeds
+	if err := tmp.Chmod(0o600); err != nil {
+		tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, r.path)
 }
