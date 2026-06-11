@@ -26,6 +26,38 @@ Or set a default in `~/.config/fur/config.yaml`:
 theme: nord
 ```
 
+## Gallery
+
+A curated selection, each rendering [`sample.md`](./sample.md). Light themes set
+foreground colors only and assume a light terminal background; the shots below
+use each theme's base color as the window background to show it as intended.
+
+### catppuccin-mocha
+
+![catppuccin-mocha](./img/catppuccin-mocha.png)
+
+### catppuccin-latte
+
+![catppuccin-latte](./img/catppuccin-latte.png)
+
+### dracula
+
+![dracula](./img/dracula.png)
+
+### nord
+
+![nord](./img/nord.png)
+
+### gruvbox
+
+![gruvbox](./img/gruvbox.png)
+
+### tokyonight-night
+
+![tokyonight-night](./img/tokyonight-night.png)
+
+> Regenerate with [`generate.sh`](./generate.sh) (needs `fur`, [freeze](https://github.com/charmbracelet/freeze), and `google-chrome`).
+
 ## Available themes
 
 | Name | Mode | Family |
