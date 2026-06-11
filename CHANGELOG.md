@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Security
+- **Symlink containment.** The indexer no longer surfaces symlinks whose
+  target resolves outside the browse root. Previously a directory adversary
+  could plant `notes.md -> ~/.ssh/id_rsa` inside a browsed tree and have the
+  TUI preview or `fur serve` read the out-of-root target (audit Chain B). Pass
+  `--follow-symlinks` (or set `follow_symlinks: true`) to restore the old
+  behavior. `Index.ValidatePath` now also returns the symlink-resolved path so
+  callers open exactly the bytes that were validated.
 - **Per-project config is now restricted to a display/UX allowlist.** A
   `.fur.{toml,yaml,yml}` discovered by walking up from CWD may only override
   `theme`, `keymap`, `show_hidden`, `ignore`, `scrolloff`, `reading_guide`,

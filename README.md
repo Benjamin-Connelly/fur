@@ -228,6 +228,7 @@ fur @alias                    # Named remote from config
   --theme <name>                 # auto, dark, light, ascii, or a named theme (see docs/themes)
   --no-color                     # Alias for --theme ascii
   --show-hidden                  # Surface dotfiles/dotdirs (.git/.hg/.svn/.bzr always hidden)
+  --follow-symlinks              # Index symlinks whose target escapes the browse root (off by default)
   --version, -V                  # Print version
 fur serve [path]              # Web server
   --port, -p <port>              # Server port (default: 7777)

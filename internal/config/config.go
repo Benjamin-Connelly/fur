@@ -49,6 +49,13 @@ type Config struct {
 	// regardless because browsing them is never useful here.
 	ShowHidden bool `mapstructure:"show_hidden"`
 
+	// FollowSymlinks indexes symlinks whose target resolves outside the
+	// browse root. Off by default: a directory adversary could otherwise
+	// plant a symlink (e.g. notes.md -> ~/.ssh/id_rsa) that the file list
+	// would surface and the preview/serve path would read out of root.
+	// Deliberately excluded from the per-project allowlist.
+	FollowSymlinks bool `mapstructure:"follow_symlinks"`
+
 	// Remote holds named remote host configurations
 	Remotes map[string]RemoteConfig `mapstructure:"remotes"`
 }

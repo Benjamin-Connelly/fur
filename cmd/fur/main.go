@@ -46,6 +46,7 @@ func indexOpts() index.Options {
 	return index.Options{
 		IgnorePatterns: cfg.Ignore,
 		ShowHidden:     cfg.ShowHidden,
+		FollowSymlinks: cfg.FollowSymlinks,
 	}
 }
 
@@ -894,6 +895,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("debug", false, "enable verbose logging")
 	rootCmd.PersistentFlags().Bool("no-color", false, "disable colors (ascii theme)")
 	rootCmd.PersistentFlags().Bool("show-hidden", false, "show dotfiles and dotdirs (.git/.hg/.svn/.bzr always hidden)")
+	rootCmd.PersistentFlags().Bool("follow-symlinks", false, "index symlinks whose target escapes the browse root (off by default)")
 
 	rootCmd.Flags().String("keymap", "", "keybinding preset (default|vim|emacs)")
 	rootCmd.Flags().String("remote", "", "remote host (SSH config alias or user@host)")
@@ -961,6 +963,10 @@ func loadConfig(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Lookup("show-hidden") != nil && cmd.Flags().Changed("show-hidden") {
 		showHidden, _ := cmd.Flags().GetBool("show-hidden")
 		cfg.ShowHidden = showHidden
+	}
+	if cmd.Flags().Lookup("follow-symlinks") != nil && cmd.Flags().Changed("follow-symlinks") {
+		followSymlinks, _ := cmd.Flags().GetBool("follow-symlinks")
+		cfg.FollowSymlinks = followSymlinks
 	}
 
 	// Merge serve-specific flags
