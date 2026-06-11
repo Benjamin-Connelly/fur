@@ -40,16 +40,6 @@
     {{end}}
   </aside>
 </div>
-<script>
-(function(){
-  const es = new EventSource("/__events");
-  es.onmessage = function(e) {
-    const path = e.data;
-    if (path === "{{.RelPath}}" || path === "*") {
-      location.reload();
-    }
-  };
-})();
-</script>
+<div id="fur-livereload" data-relpath="{{.RelPath}}" hidden></div>
 {{end}}
 {{template "base" .}}
