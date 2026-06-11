@@ -277,7 +277,14 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		// Security headers
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://d3js.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
+		// script-src drops 'unsafe-inline' (audit Chain D / hardening 4.4): all
+		// of fur's own scripts are now external files under /__static, so an
+		// injected inline <script> in rendered content will not execute. The
+		// jsdelivr/d3js hosts remain for the Mermaid and D3 libraries (loaded
+		// from /__static/*.js module/script files). style-src keeps
+		// 'unsafe-inline' for now — inline <style> and style attributes are
+		// still in use and CSS injection is lower-severity (tracked separately).
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://d3js.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 

@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Security
+- **Strict script CSP.** `script-src` no longer allows `'unsafe-inline'`. All
+  of fur's own scripts (theme toggle, live-reload, Mermaid bootstrap, link
+  graph) are now external files under `/__static`, so an injected inline
+  `<script>` in rendered content cannot execute (audit Chain D). The Mermaid
+  bootstrap also pins `securityLevel: 'strict'`, sanitizing diagram HTML and
+  disabling click/script handlers. `cdn.jsdelivr.net` and `d3js.org` remain
+  allowlisted for the Mermaid and D3 libraries.
 - **Web server refuses non-loopback binds by default.** `fur serve` now
   errors out if `server.host` resolves to a non-loopback address (`0.0.0.0`,
   a LAN IP, an external hostname) unless `--listen-public` is passed, which
