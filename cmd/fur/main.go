@@ -102,7 +102,7 @@ TUI keybindings (press ? for full help):
 			if len(data) == 0 {
 				return nil
 			}
-			mdRenderer, err := render.NewMarkdownRenderer(cfg.Theme, 80)
+			mdRenderer, err := render.NewMarkdownRenderer(cfg.Theme, renderWidth())
 			if err != nil {
 				return fmt.Errorf("creating renderer: %w", err)
 			}
@@ -257,6 +257,16 @@ ETag caching, and skips auto-opening the browser when an SSH session is detected
 	},
 }
 
+// renderWidth returns the markdown wrap width for one-shot rendering (cat and
+// piped stdin): the current terminal width when stdout is a TTY, or 80 as a
+// fallback when output is piped to a file or pager.
+func renderWidth() int {
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w >= 20 {
+		return w
+	}
+	return 80
+}
+
 var catCmd = &cobra.Command{
 	Use:   "cat <file>",
 	Short: "Render markdown or image to terminal",
@@ -333,7 +343,7 @@ Use --json for machine-readable output (file path, size, format, content).`,
 			return nil
 		}
 
-		mdRenderer, err := render.NewMarkdownRenderer(cfg.Theme, 80)
+		mdRenderer, err := render.NewMarkdownRenderer(cfg.Theme, renderWidth())
 		if err != nil {
 			return fmt.Errorf("creating renderer: %w", err)
 		}

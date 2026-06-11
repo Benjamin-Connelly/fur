@@ -8,6 +8,8 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // Config holds all application configuration.
@@ -75,13 +77,12 @@ type GitConfig struct {
 	Remote     string `mapstructure:"remote"`
 }
 
-var validThemes = map[string]bool{"light": true, "dark": true, "auto": true, "ascii": true}
 var validKeymaps = map[string]bool{"default": true, "vim": true, "emacs": true}
 
 // Validate checks that config values are within allowed ranges.
 func (c *Config) Validate() error {
-	if !validThemes[c.Theme] {
-		return fmt.Errorf("invalid theme %q: must be light, dark, or auto", c.Theme)
+	if !theme.IsValid(c.Theme) {
+		return fmt.Errorf("invalid theme %q: see `fur config show` or the docs for valid theme names", c.Theme)
 	}
 	if !validKeymaps[c.Keymap] {
 		return fmt.Errorf("invalid keymap %q: must be default, vim, or emacs", c.Keymap)
@@ -239,7 +240,11 @@ func Watch(cfgFile string, onChange func(*Config)) {
 const DefaultConfigYAML = `# fur configuration
 # See: https://github.com/Benjamin-Connelly/fur
 
-# Theme: light, dark, auto, or ascii
+# Theme: auto, dark, light, ascii, or a named theme:
+#   catppuccin-mocha/-macchiato/-frappe/-latte, gruvbox, gruvbox-light,
+#   dracula, nord, solarized-dark, solarized-light,
+#   rose-pine/-moon/-dawn, tokyonight-night/-storm/-moon/-day.
+# Cycle live with ctrl+t in the TUI.
 theme: auto
 
 # Keybinding preset: default, vim, or emacs

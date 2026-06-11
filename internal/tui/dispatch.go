@@ -82,8 +82,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.recalcLayout()
-		return m, nil
+		return m, m.recalcAndReflow()
+
+	case reflowMsg:
+		return m.loadPreview(msg.Entry)
+
+	case setThemeMsg:
+		return m, m.SetTheme(msg.Name)
 
 	case FileSelectedMsg:
 		m.showingHelp = false
@@ -105,6 +110,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.focus = PanelPreview
 		m.status.SetMode(m.modeString())
 		m.buildPreviewLinks()
+		m.restorePreviewScroll()
 		return m, nil
 
 	case LinkFollowMsg:
@@ -142,6 +148,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.scrollToFragment(m.pendingFragment, msg.rawSource)
 			m.pendingFragment = ""
 		}
+		m.restorePreviewScroll()
 		return m, nil
 
 	case clearStatusMsg:

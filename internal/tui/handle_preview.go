@@ -32,11 +32,11 @@ func (m *Model) handlePreviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.preview.ToggleReadingGuide()
 		return m, nil
 	case "pgup", "ctrl+u":
-		m.preview.ScrollUp(m.preview.height / 2)
+		m.preview.ScrollUp(m.preview.pageLines())
 		m.preview.CursorTo(m.preview.scroll + m.preview.scrolloff)
 		return m, nil
 	case "pgdown", "ctrl+d":
-		m.preview.ScrollDown(m.preview.height / 2)
+		m.preview.ScrollDown(m.preview.pageLines())
 		m.preview.CursorTo(m.preview.scroll + m.preview.height - m.preview.scrolloff - 1)
 		return m, nil
 	case "u":

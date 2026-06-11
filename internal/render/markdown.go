@@ -12,6 +12,8 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
+
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // Heading represents a markdown heading extracted from source.
@@ -33,25 +35,32 @@ type MarkdownRenderer struct {
 	renderer *glamour.TermRenderer
 	theme    string
 	width    int
+	wikiFg   string // wikilink foreground (palette teal), empty for ascii
 	fs       afero.Fs
 }
 
 // NewMarkdownRenderer creates a markdown renderer with the given theme and width.
-func NewMarkdownRenderer(theme string, width int) (*MarkdownRenderer, error) {
-	styleName := resolveTheme(theme)
+func NewMarkdownRenderer(themeName string, width int) (*MarkdownRenderer, error) {
+	opts := []glamour.TermRendererOption{glamour.WithWordWrap(width)}
+	wikiFg := ""
+	if themeName == "ascii" {
+		opts = append(opts, glamour.WithStandardStyle("notty"))
+	} else {
+		p := theme.Resolve(themeName)
+		opts = append(opts, glamour.WithStyles(theme.GlamourStyle(p)))
+		wikiFg = p.Teal
+	}
 
-	r, err := glamour.NewTermRenderer(
-		glamour.WithStandardStyle(styleName),
-		glamour.WithWordWrap(width),
-	)
+	r, err := glamour.NewTermRenderer(opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &MarkdownRenderer{
 		renderer: r,
-		theme:    theme,
+		theme:    themeName,
 		width:    width,
+		wikiFg:   wikiFg,
 		fs:       afero.NewOsFs(),
 	}, nil
 }
@@ -61,31 +70,15 @@ func (r *MarkdownRenderer) SetFs(fs afero.Fs) {
 	r.fs = fs
 }
 
-// resolveTheme maps theme names to Glamour style names, with auto-detection.
-func resolveTheme(theme string) string {
-	switch theme {
-	case "light":
-		return "light"
-	case "ascii":
-		return "notty"
-	case "auto":
-		if lipgloss.HasDarkBackground() {
-			return "dark"
-		}
-		return "light"
-	default:
-		return "dark"
-	}
-}
-
 // wikiLinkRe matches [[target]] and [[target|display]] in rendered output.
 var wikiLinkRe = regexp.MustCompile(`\[\[([^\]]+)\]\]`)
 
 // highlightWikilinks colorizes wikilink syntax in rendered output.
-func highlightWikilinks(rendered string) string {
-	linkStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("81")).
-		Bold(true)
+func highlightWikilinks(rendered, fg string) string {
+	linkStyle := lipgloss.NewStyle().Bold(true)
+	if fg != "" {
+		linkStyle = linkStyle.Foreground(lipgloss.Color(fg))
+	}
 
 	return wikiLinkRe.ReplaceAllStringFunc(rendered, func(match string) string {
 		inner := match[2 : len(match)-2] // strip [[ and ]]
@@ -101,11 +94,15 @@ func highlightWikilinks(rendered string) string {
 // Render converts markdown to styled terminal output.
 // On error, returns the raw source as fallback.
 func (r *MarkdownRenderer) Render(source string) (string, error) {
+	// Glamour preserves source soft-breaks inside list items; unwrap them so
+	// list text reflows to the pane width like ordinary paragraphs.
+	source = unwrapSoftBreaks(source)
 	out, err := r.renderer.Render(source)
 	if err != nil {
 		return source, nil
 	}
-	out = highlightWikilinks(out)
+	out = spaceListItems(out)
+	out = highlightWikilinks(out, r.wikiFg)
 	return out, nil
 }
 

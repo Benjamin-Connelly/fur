@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // ansiStripRe strips ANSI escape sequences for plain-text matching in search.
@@ -45,6 +47,9 @@ type PreviewModel struct {
 	searchHistIdx  int  // -1 = editing new query, 0+ = browsing history
 	searchRegex    bool // true = regex mode, false = substring
 	searchRegexErr bool // true if current regex failed to compile
+
+	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
+	ui theme.UI
 }
 
 // NewPreviewModel creates a preview pane.
@@ -208,6 +213,16 @@ func (m *PreviewModel) maxScroll() int {
 		return 0
 	}
 	return max
+}
+
+// pageLines is the scroll distance for a full-page jump (ctrl+u/d, pgup/pgdn):
+// a viewport height minus two lines of context overlap, at least one line.
+func (m *PreviewModel) pageLines() int {
+	n := m.height - 2
+	if n < 1 {
+		return 1
+	}
+	return n
 }
 
 // EnterSearchMode activates search input in the preview pane.
@@ -397,7 +412,7 @@ func (m PreviewModel) gutterWidth() int {
 func (m PreviewModel) View() string {
 	if m.content == "" {
 		placeholder := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240")).
+			Foreground(m.ui.Dim).
 			Italic(true)
 		return placeholder.Render("Select a file to preview")
 	}
@@ -422,19 +437,19 @@ func (m PreviewModel) View() string {
 	copy(visible, m.lines[start:end])
 
 	// Style definitions
-	gutterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("239"))
-	gutterSelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
-	cursorGutterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("226")).Bold(true)
-	selStyle := lipgloss.NewStyle().Background(lipgloss.Color("24"))
-	readingGuideStyle := lipgloss.NewStyle().Background(lipgloss.Color("238"))
+	gutterStyle := lipgloss.NewStyle().Foreground(m.ui.Dim)
+	gutterSelStyle := lipgloss.NewStyle().Foreground(m.ui.Link).Bold(true)
+	cursorGutterStyle := lipgloss.NewStyle().Foreground(m.ui.Cursor).Bold(true)
+	selStyle := lipgloss.NewStyle().Background(m.ui.SelectBg)
+	readingGuideStyle := lipgloss.NewStyle().Background(m.ui.GuideBg)
 	linkHlStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("236")).
-		Foreground(lipgloss.Color("81"))
+		Background(m.ui.LinkBg).
+		Foreground(m.ui.Link)
 	searchMatchStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("226")).
-		Foreground(lipgloss.Color("0"))
+		Background(m.ui.SearchBg).
+		Foreground(m.ui.SearchFg)
 	searchCurGutterStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("226")).
+		Foreground(m.ui.Cursor).
 		Bold(true)
 
 	hasSearch := m.searchQuery != "" && len(m.searchMatches) > 0
@@ -458,14 +473,14 @@ func (m PreviewModel) View() string {
 		numStr := fmt.Sprintf(lineNumFmt, lineNum)
 		if isNormalCursor && m.readingGuide {
 			// Reading guide: gutter gets the guide background too
-			guideGutterStyle := cursorGutterStyle.Background(lipgloss.Color("238"))
+			guideGutterStyle := cursorGutterStyle.Background(m.ui.GuideBg)
 			b.WriteString(guideGutterStyle.Render(numStr))
 		} else if isVisualCursor || isNormalCursor {
 			b.WriteString(cursorGutterStyle.Render(numStr))
 		} else if isCurMatch {
 			b.WriteString(searchCurGutterStyle.Render(numStr))
 		} else if inSelection {
-			selGutterStyle := gutterSelStyle.Background(lipgloss.Color("24"))
+			selGutterStyle := gutterSelStyle.Background(m.ui.SelectBg)
 			b.WriteString(selGutterStyle.Render(numStr))
 		} else {
 			b.WriteString(gutterStyle.Render(numStr))
@@ -509,7 +524,7 @@ func (m PreviewModel) View() string {
 		if maxS > 0 {
 			pct = m.scroll * 100 / maxS
 		}
-		indicator := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		indicator := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		result += "\n" + indicator.Render(fmt.Sprintf("%s %d%%", strings.Repeat("─", 10), pct))
 	}
 

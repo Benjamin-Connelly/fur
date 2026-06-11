@@ -60,7 +60,7 @@ func (m *Model) handleHeadingJumpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *Model) headingJumpView() string {
 	var b strings.Builder
-	prompt := lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Bold(true)
+	prompt := lipgloss.NewStyle().Foreground(m.ui.Accent).Bold(true)
 	b.WriteString(prompt.Render("Jump to heading: ") + m.headingJumpInput)
 	b.WriteString("_\n")
 
@@ -70,7 +70,7 @@ func (m *Model) headingJumpView() string {
 		maxShow = len(filtered)
 	}
 
-	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	dimStyle := lipgloss.NewStyle().Foreground(m.ui.Dim)
 	for i := 0; i < maxShow; i++ {
 		e := filtered[i]
 		cursor := "  "
