@@ -284,7 +284,7 @@ remotes:                # Named remote hosts for SSH browsing
     path: /home/deploy/docs
 ```
 
-**Per-project config:** Place `.fur.toml` or `.fur.yaml` in your project root. fur walks up from the current directory and merges the first one found over the global config.
+**Per-project config:** Place `.fur.toml` or `.fur.yaml` in your project root. fur walks up from the current directory and merges the first one found over the global config. Because a project directory may be untrusted (a cloned repo, a shared mount), per-project files may only set display/UX keys — `theme`, `keymap`, `show_hidden`, `ignore`, `scrolloff`, `reading_guide`, `mouse`. Runtime-sensitive keys (`server.*`, `git.*`, `remotes.*`) are honored only from the global `~/.config/fur/config.yaml`.
 
 CLI flags override config: `--theme dark`, `--keymap vim`, `-c /path/to/config.yaml`.
 
