@@ -168,8 +168,29 @@ func Load(cfgFile string) (*Config, error) {
 	return cfg, nil
 }
 
+// projectConfigAllowlist is the set of config keys a per-project
+// .fur.{toml,yaml,yml} is permitted to override. A per-project file is an
+// untrusted input under the audit threat model: a victim who runs `fur`
+// inside a checked-out hostile repository must not have that repo's config
+// silently reprogram runtime-sensitive behavior. Only display/UX
+// preferences are honored; server.*, git.*, remotes.*, root, and debug are
+// deliberately excluded so a hostile repo cannot pivot custom_css onto an
+// attacker-controlled stylesheet (Chain A), rebind the web listener, or
+// redirect remotes. See SECURITY-INVENTORY.md §15 and bd lookit-9py.3.5.
+var projectConfigAllowlist = map[string]bool{
+	"theme":         true,
+	"keymap":        true,
+	"show_hidden":   true,
+	"ignore":        true,
+	"scrolloff":     true,
+	"reading_guide": true,
+	"mouse":         true,
+}
+
 // mergeProjectConfig walks up from CWD looking for .fur.toml or .fur.yaml
-// and merges any found settings into the config. Project config overrides global.
+// and merges allowlisted display/UX settings into the config. Project config
+// overrides global for those keys only; runtime-sensitive keys are ignored
+// (see projectConfigAllowlist).
 func mergeProjectConfig(cfg *Config) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -187,9 +208,7 @@ func mergeProjectConfig(cfg *Config) {
 			if err := v.ReadInConfig(); err != nil {
 				continue
 			}
-			if err := v.Unmarshal(cfg); err != nil {
-				fmt.Fprintf(os.Stderr, "warning: parsing project config %s: %v\n", path, err)
-			}
+			applyProjectAllowlist(cfg, v)
 			return // Use first found, stop walking
 		}
 		parent := filepath.Dir(dir)
@@ -197,6 +216,33 @@ func mergeProjectConfig(cfg *Config) {
 			break
 		}
 		dir = parent
+	}
+}
+
+// applyProjectAllowlist copies only allowlisted display/UX keys from a
+// per-project viper instance onto cfg. Any other key present in the
+// per-project file (notably server.*, git.*, remotes.*) is silently dropped.
+func applyProjectAllowlist(cfg *Config, v *viper.Viper) {
+	if v.IsSet("theme") && projectConfigAllowlist["theme"] {
+		cfg.Theme = v.GetString("theme")
+	}
+	if v.IsSet("keymap") && projectConfigAllowlist["keymap"] {
+		cfg.Keymap = v.GetString("keymap")
+	}
+	if v.IsSet("show_hidden") && projectConfigAllowlist["show_hidden"] {
+		cfg.ShowHidden = v.GetBool("show_hidden")
+	}
+	if v.IsSet("ignore") && projectConfigAllowlist["ignore"] {
+		cfg.Ignore = v.GetStringSlice("ignore")
+	}
+	if v.IsSet("scrolloff") && projectConfigAllowlist["scrolloff"] {
+		cfg.ScrollOff = v.GetInt("scrolloff")
+	}
+	if v.IsSet("reading_guide") && projectConfigAllowlist["reading_guide"] {
+		cfg.ReadingGuide = v.GetBool("reading_guide")
+	}
+	if v.IsSet("mouse") && projectConfigAllowlist["mouse"] {
+		cfg.Mouse = v.GetBool("mouse")
 	}
 }
 

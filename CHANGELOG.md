@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Security
+- **Per-project config is now restricted to a display/UX allowlist.** A
+  `.fur.{toml,yaml,yml}` discovered by walking up from CWD may only override
+  `theme`, `keymap`, `show_hidden`, `ignore`, `scrolloff`, `reading_guide`,
+  and `mouse`. Runtime-sensitive keys (`server.*`, `git.*`, `remotes.*`,
+  `root`, `debug`) are silently ignored from per-project sources. Previously a
+  checked-out hostile repository could ship a `.fur.yaml` that pivoted
+  `server.custom_css` onto an attacker-controlled stylesheet, rebound the web
+  listener, or injected SSH remotes (audit Chain A).
+
 ### Added
 - **Named theme system.** 19 built-in palettes — `auto`, `dark`, `light`, `ascii`, plus the Catppuccin (mocha/macchiato/frappe/latte), Gruvbox (dark/light), Dracula, Nord, Solarized (dark/light), Rosé Pine (main/moon/dawn), and TokyoNight (night/storm/moon/day) families. Each palette drives the glamour markdown body, Chroma code highlighting, and lipgloss TUI chrome from one color set. `ctrl+t` cycles through all themes at runtime; `:theme <name>` jumps to a specific one. Any theme name is valid in config and the `--theme` flag. See [docs/themes](docs/themes/).
 - `show_hidden` config key and `--show-hidden` persistent flag. When set, dotfiles and dotdirs are surfaced in listings, search, the link graph, and the file watcher. `.git`, `.hg`, `.svn`, and `.bzr` remain filtered regardless.
