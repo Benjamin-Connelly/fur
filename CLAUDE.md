@@ -209,6 +209,28 @@ bd close <id>         # Complete work
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+## Dogfooding Policy
+
+Hosaka and ryuk run the latest `origin/master` build of fur. The deploy script is `scripts/dogfood.sh`.
+
+**What the script does:**
+- Compares each host's installed commit (from `fur version`) against `origin/master`.
+- If behind, cross-compiles linux/amd64 with version ldflags in a detached worktree and scp's to `~/go/bin/fur` on each host.
+- Idempotent: no-op when all hosts are current. Unreachable hosts are warned, not fatal.
+
+**Safety features:**
+- **Canary order:** hosts deploy sequentially in `HOSTS=(...)` order; first host is the canary. If the canary's deploy or verify fails, subsequent hosts are skipped to bound blast radius.
+- **Rollback:** each deploy preserves the previous binary at `~/go/bin/fur.prev`. Revert with `ssh <host> 'mv ~/go/bin/fur.prev ~/go/bin/fur'`.
+- **Isolated build:** runs in a detached `origin/master` worktree so working-tree state never leaks into the binary.
+
+**Claude session-start behavior (human-gated, no auto-deploy):**
+1. After the standard git/beads init in this repo, run `bash scripts/dogfood.sh --check`.
+2. Exit code 0: hosts current — say nothing or one line ("dogfood: hosts current"), continue session.
+3. Exit code 2: drift exists — surface which hosts are behind and the target SHA, then use `AskUserQuestion` to confirm before running `bash scripts/dogfood.sh` to deploy. Never deploy without explicit confirmation.
+4. Exit code 1: error talking to hosts — warn the user, continue session, don't retry on a loop.
+
+**Manual trigger:** `bash scripts/dogfood.sh` any time.
+
 <!-- BEGIN FLEET STANZA v:1 -->
 ## Personal Fleet Context
 

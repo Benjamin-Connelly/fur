@@ -148,7 +148,7 @@ func (m *Model) openWithSystem(filePath string) (tea.Model, tea.Cmd) {
 		opener = "open" // macOS
 	}
 
-	c := exec.Command(opener, filePath)
+	c := OpenSystemCmd(opener, filePath)
 	return m, tea.ExecProcess(c, func(err error) tea.Msg {
 		if err != nil {
 			return StatusMsg{Text: "Open error: " + err.Error()}

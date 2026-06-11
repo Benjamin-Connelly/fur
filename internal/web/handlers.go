@@ -600,9 +600,12 @@ func (s *Server) handleAPIDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prevent path traversal
-	if strings.Contains(filePath, "..") {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+	// Delegate to the shared chokepoint. ValidatePath rejects path-traversal
+	// strings and resolves symlinks, refusing targets outside the serve root.
+	// Returns the absolute path on success so we don't recompute it.
+	absPath, err := s.idx.ValidatePath(filePath)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -612,7 +615,6 @@ func (s *Server) handleAPIDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	absPath := filepath.Join(s.idx.Root(), filePath)
 	data, err := afero.ReadFile(s.fs, absPath)
 	if err != nil {
 		http.Error(w, "failed to read file", http.StatusInternalServerError)
