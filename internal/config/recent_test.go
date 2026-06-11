@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -69,6 +71,42 @@ func TestRecentFiles_SaveAndLoad(t *testing.T) {
 	}
 	if loaded.Files[0] != "second.md" {
 		t.Errorf("first loaded should be second.md, got %q", loaded.Files[0])
+	}
+}
+
+// TestRecentFiles_SavePerms is the Chain F regression guard for the recent
+// list: the file records what the user has browsed and must not be
+// world-readable on a shared box. The write is also atomic (temp + rename).
+func TestRecentFiles_SavePerms(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission model")
+	}
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	configDir := filepath.Join(tmpHome, ".config", "fur")
+	os.MkdirAll(configDir, 0o700)
+
+	r := &RecentFiles{path: filepath.Join(configDir, "recent.json")}
+	r.Add("private-notes.md")
+	if err := r.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	info, err := os.Stat(r.path)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm&0o077 != 0 {
+		t.Errorf("recent.json mode = %o, want owner-only (Chain F)", perm)
+	}
+
+	// No leftover temp files from the atomic write.
+	entries, _ := os.ReadDir(configDir)
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".recent-") {
+			t.Errorf("leftover temp file %s from atomic write", e.Name())
+		}
 	}
 }
 
