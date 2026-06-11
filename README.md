@@ -235,6 +235,7 @@ fur serve [path]              # Web server
   --open                         # Open browser after starting
   --no-https                     # Disable HTTPS
   --css <path>                   # Custom CSS file
+  --listen-public                # Allow binding a non-loopback address (exposes files to the network)
 fur config init               # Write ~/.config/fur/config.yaml from a documented template
   --force                        # Overwrite existing config (creates config.yaml.bak)
 fur config path               # Print resolved config file path
