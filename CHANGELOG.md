@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Security
+- **Permalink builder never shells out (regression-guarded).** Permalinks are
+  built from the git remote URL with pure string manipulation over go-git
+  (no `git` subprocess), so a hostile origin URL cannot become a command
+  injection. A new guard fails if `internal/git` ever introduces `os/exec` and
+  fuzzes the normalizer with adversarial remote URLs (audit Chain I).
 - **Cache and state files are owner-only.** The Bleve fulltext cache
   (`~/.cache/fur/index.bleve`) — which mirrors the content of every browsed
   file — and its parent directory are now clamped to `0700`/`0600`, including
