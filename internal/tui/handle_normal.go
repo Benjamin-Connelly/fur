@@ -39,7 +39,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.status.SetMode(m.modeString())
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "shift+tab":
 		// Reverse cycle panels
@@ -64,7 +64,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.status.SetMode(m.modeString())
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "esc":
 		// Clear search highlights first
@@ -97,15 +97,14 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.sidePanel.Toggle(m.sidePanel.Type())
 			m.focus = PanelPreview
 			m.status.SetMode(m.modeString())
-			m.recalcLayout()
-			return m, nil
+			return m, m.recalcAndReflow()
 		}
 		// From preview: return to file list
 		if m.focus == PanelPreview {
 			m.focus = PanelFileList
 			m.status.SetMode(m.modeString())
 		}
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "/", "ctrl+k":
 		// When preview is focused, / opens preview search instead of file filter
@@ -165,8 +164,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.sidePanel.Toggle(PanelTOC)
 			m.focus = PanelPreview
 			m.status.SetMode(m.modeString())
-			m.recalcLayout()
-			return m, nil
+			return m, m.recalcAndReflow()
 		}
 		// Open TOC (or switch to it) and focus it
 		if m.sidePanel.Type() != PanelTOC {
@@ -177,8 +175,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.focus = PanelSide
 		m.status.SetMode(m.modeString())
-		m.recalcLayout()
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "b":
 		// If already focused on backlinks, close it and return to preview
@@ -186,8 +183,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.sidePanel.Toggle(PanelBacklinks)
 			m.focus = PanelPreview
 			m.status.SetMode(m.modeString())
-			m.recalcLayout()
-			return m, nil
+			return m, m.recalcAndReflow()
 		}
 		// Open backlinks (or switch to it) and focus it
 		if m.sidePanel.Type() != PanelBacklinks {
@@ -197,8 +193,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.sidePanel.SetBacklinks(backlinks)
 		m.focus = PanelSide
 		m.status.SetMode(m.modeString())
-		m.recalcLayout()
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "m":
 		if m.focus == PanelPreview && m.preview.filePath != "" {
@@ -234,16 +229,14 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.sidePanel.Toggle(PanelBookmarks)
 			m.focus = PanelPreview
 			m.status.SetMode(m.modeString())
-			m.recalcLayout()
-			return m, nil
+			return m, m.recalcAndReflow()
 		}
 		if m.sidePanel.Type() != PanelBookmarks {
 			m.sidePanel.Toggle(PanelBookmarks)
 		}
 		m.focus = PanelSide
 		m.status.SetMode(m.modeString())
-		m.recalcLayout()
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "i":
 		// If already focused on git info, close and return to preview
@@ -251,8 +244,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.sidePanel.Toggle(PanelGitInfo)
 			m.focus = PanelPreview
 			m.status.SetMode(m.modeString())
-			m.recalcLayout()
-			return m, nil
+			return m, m.recalcAndReflow()
 		}
 		if m.sidePanel.Type() != PanelGitInfo {
 			m.sidePanel.Toggle(PanelGitInfo)
@@ -260,8 +252,7 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.sidePanel.SetGitInfo(m.cfg.Root, m.preview.filePath)
 		m.focus = PanelSide
 		m.status.SetMode(m.modeString())
-		m.recalcLayout()
-		return m, nil
+		return m, m.recalcAndReflow()
 
 	case "c":
 		if m.preview.filePath == "" {

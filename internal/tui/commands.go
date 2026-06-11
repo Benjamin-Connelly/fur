@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // CommandEntry represents an entry in the command palette.
@@ -23,6 +24,9 @@ type CommandPalette struct {
 	filtered []CommandEntry
 	cursor   int
 	active   bool
+
+	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
+	ui theme.UI
 }
 
 // NewCommandPalette creates a command palette with default commands.
@@ -38,21 +42,17 @@ func (p *CommandPalette) RegisterCommands(idx index.Indexer, links *index.LinkGr
 		Action:      tea.Quit,
 	})
 
-	p.RegisterCommand(CommandEntry{
-		Name:        "theme dark",
-		Description: "Switch to dark theme",
-		Action: func() tea.Msg {
-			return StatusMsg{Text: "Theme: dark (restart to apply)"}
-		},
-	})
-
-	p.RegisterCommand(CommandEntry{
-		Name:        "theme light",
-		Description: "Switch to light theme",
-		Action: func() tea.Msg {
-			return StatusMsg{Text: "Theme: light (restart to apply)"}
-		},
-	})
+	// One live-switching command per theme (e.g. ":theme catppuccin-mocha").
+	for _, name := range theme.Names() {
+		name := name // capture
+		p.RegisterCommand(CommandEntry{
+			Name:        "theme " + name,
+			Description: "Switch to " + name + " theme",
+			Action: func() tea.Msg {
+				return setThemeMsg{Name: name}
+			},
+		})
+	}
 
 	p.RegisterCommand(CommandEntry{
 		Name:        "keymap vim",
@@ -199,7 +199,7 @@ func (p CommandPalette) View() string {
 		}
 		s += cursor + cmd.Name + " - " + cmd.Description + "\n"
 	}
-	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	hintStyle := lipgloss.NewStyle().Foreground(p.ui.Dim)
 	s += hintStyle.Render("↑/↓:navigate  ctrl+u:clear  ctrl+w:del word  :N jump to line  enter:run  esc:close")
 	return s
 }

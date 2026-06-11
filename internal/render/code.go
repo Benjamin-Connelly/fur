@@ -11,6 +11,8 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/spf13/afero"
+
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // CodeRenderer provides syntax highlighting via Chroma.
@@ -158,9 +160,9 @@ func (r *CodeRenderer) detectLexer(filename, source string) chroma.Lexer {
 }
 
 func (r *CodeRenderer) getStyle() *chroma.Style {
-	name := "monokai"
-	if r.theme == "light" {
-		name = "github"
+	name := theme.Resolve(r.theme).Chroma
+	if name == "" {
+		return styles.Fallback
 	}
 	style := styles.Get(name)
 	if style == nil {

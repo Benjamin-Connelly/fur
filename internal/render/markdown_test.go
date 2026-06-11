@@ -223,22 +223,22 @@ func TestExtractLinks(t *testing.T) {
 	}
 }
 
-func TestResolveTheme(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"light", "light"},
-		{"ascii", "notty"},
-		{"dark", "dark"},
-		{"unknown", "dark"},
-		{"", "dark"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := resolveTheme(tt.input)
-			if got != tt.want {
-				t.Errorf("resolveTheme(%q) = %q, want %q", tt.input, got, tt.want)
+func TestNewMarkdownRenderer_Themes(t *testing.T) {
+	// Every accepted theme name (named themes, the dark/light defaults, the
+	// auto/ascii pseudo-themes, plus an unknown fallback) must build a working
+	// renderer that produces non-empty output.
+	for _, name := range []string{"auto", "dark", "light", "ascii", "catppuccin-mocha", "gruvbox", "nord", "tokyonight-night", "unknown-theme"} {
+		t.Run(name, func(t *testing.T) {
+			r, err := NewMarkdownRenderer(name, 80)
+			if err != nil {
+				t.Fatalf("NewMarkdownRenderer(%q): %v", name, err)
+			}
+			out, err := r.Render("# Title\n\nA `code` span and a paragraph.\n")
+			if err != nil {
+				t.Fatalf("Render(%q): %v", name, err)
+			}
+			if !strings.Contains(out, "Title") {
+				t.Errorf("theme %q: rendered output missing heading text: %q", name, out)
 			}
 		})
 	}
@@ -272,7 +272,7 @@ func TestHighlightWikilinks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := highlightWikilinks(tt.input)
+			got := highlightWikilinks(tt.input, "81")
 			if !tt.check(got) {
 				t.Errorf("%s: got %q", tt.desc, got)
 			}

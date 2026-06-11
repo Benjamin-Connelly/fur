@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // treeLess compares two file entries for proper tree ordering:
@@ -70,6 +71,9 @@ type FileListModel struct {
 	searchMode string // "filename" or "content" — set by parent Model
 	offset     int    // scroll offset
 	height     int
+
+	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
+	ui theme.UI
 }
 
 // NewFileListModel creates a file list panel.
@@ -301,7 +305,7 @@ func (m FileListModel) viewTree() string {
 	var b strings.Builder
 
 	if len(m.visible) == 0 {
-		dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		dim := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		return dim.Render("No files found")
 	}
 
@@ -312,16 +316,16 @@ func (m FileListModel) viewTree() string {
 	}
 
 	cursorStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color("62")).
+		Foreground(m.ui.OnAccent).
+		Background(m.ui.Accent).
 		Bold(true)
 	dirStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("75")).
+		Foreground(m.ui.Dir).
 		Bold(true)
 	mdStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("114"))
+		Foreground(m.ui.Markdown)
 	normalStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("252"))
+		Foreground(m.ui.Text)
 
 	for i := m.offset; i < end; i++ {
 		node := m.visible[i]
@@ -359,7 +363,7 @@ func (m FileListModel) viewTree() string {
 		if len(m.visible)-visible > 0 {
 			pct = m.offset * 100 / (len(m.visible) - visible)
 		}
-		indicator := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		indicator := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		b.WriteString(indicator.Render(fmt.Sprintf(" %d/%d (%d%%)", m.cursor+1, len(m.visible), pct)))
 	}
 
@@ -370,7 +374,7 @@ func (m FileListModel) viewFiltered() string {
 	var b strings.Builder
 
 	filterStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("214"))
+		Foreground(m.ui.Filter)
 	modeLabel := m.searchMode
 	if modeLabel == "" {
 		modeLabel = "filename"
@@ -378,13 +382,13 @@ func (m FileListModel) viewFiltered() string {
 	if m.filtering {
 		b.WriteString(filterStyle.Render("/ "+m.filter+"_ ("+modeLabel+")") + "\n")
 	} else {
-		frozenStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		frozenStyle := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		b.WriteString(frozenStyle.Render("/ "+m.filter+" ("+modeLabel+", esc to clear)") + "\n")
 	}
 	b.WriteString(strings.Repeat("─", 20) + "\n")
 
 	if len(m.filtered) == 0 {
-		dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		dim := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		if m.filter != "" {
 			b.WriteString(dim.Render("No matches for: " + m.filter))
 		} else {
@@ -400,15 +404,15 @@ func (m FileListModel) viewFiltered() string {
 	}
 
 	cursorStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color("62")).
+		Foreground(m.ui.OnAccent).
+		Background(m.ui.Accent).
 		Bold(true)
 	normalStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("252"))
+		Foreground(m.ui.Text)
 	dirStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("75"))
+		Foreground(m.ui.Dir)
 	mdStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("114"))
+		Foreground(m.ui.Markdown)
 
 	for i := m.offset; i < end; i++ {
 		entry := m.filtered[i]
@@ -437,7 +441,7 @@ func (m FileListModel) viewFiltered() string {
 		if len(m.filtered)-visible > 0 {
 			pct = m.offset * 100 / (len(m.filtered) - visible)
 		}
-		indicator := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		indicator := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		b.WriteString(indicator.Render(fmt.Sprintf(" %d/%d (%d%%)", m.cursor+1, len(m.filtered), pct)))
 	}
 

@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // StatusBarModel renders the bottom status bar.
@@ -32,6 +34,9 @@ type StatusBarModel struct {
 	remoteDisplay string // e.g. "user@host:/path"
 	remoteState   string // "Connected", "Reconnecting", etc.
 	lastSync      string // e.g. "5s ago"
+
+	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
+	ui theme.UI
 }
 
 // NewStatusBarModel creates a status bar.
@@ -98,28 +103,28 @@ func (m StatusBarModel) contextHints() string {
 // View renders the status bar.
 func (m StatusBarModel) View() string {
 	modeStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("62")).
-		Foreground(lipgloss.Color("230")).
+		Background(m.ui.Accent).
+		Foreground(m.ui.OnAccent).
 		Bold(true).
 		Padding(0, 1)
 
 	barStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("235")).
-		Foreground(lipgloss.Color("252"))
+		Background(m.ui.StatusBg).
+		Foreground(m.ui.StatusFg)
 
 	hintStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("235")).
-		Foreground(lipgloss.Color("240"))
+		Background(m.ui.StatusBg).
+		Foreground(m.ui.Dim)
 
 	modeStr := modeStyle.Render(m.mode)
 
 	var middle string
 	if m.remoteDisplay != "" {
 		connStyle := lipgloss.NewStyle().
-			Background(lipgloss.Color("235")).
-			Foreground(lipgloss.Color("70"))
+			Background(m.ui.StatusBg).
+			Foreground(m.ui.Ok)
 		if m.remoteState == "Reconnecting" || m.remoteState == "Disconnected" {
-			connStyle = connStyle.Foreground(lipgloss.Color("203"))
+			connStyle = connStyle.Foreground(m.ui.Err)
 		}
 		middle = " " + m.remoteDisplay
 		if m.remoteState != "" {

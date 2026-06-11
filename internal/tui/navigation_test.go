@@ -5,6 +5,7 @@ import (
 
 	"github.com/Benjamin-Connelly/fur/internal/config"
 	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 func TestCycleTheme(t *testing.T) {
@@ -14,9 +15,9 @@ func TestCycleTheme(t *testing.T) {
 	}{
 		{"auto", "dark"},
 		{"dark", "light"},
-		{"light", "auto"},
-		{"unknown", "auto"},
-		{"", "auto"},
+		{"light", "catppuccin-mocha"},
+		{"unknown", "dark"},
+		{"", "dark"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.current+"->"+tt.want, func(t *testing.T) {
@@ -82,14 +83,14 @@ func TestCycleTheme_NilCmdWithoutPreview(t *testing.T) {
 
 func TestCycleTheme_FullCycle(t *testing.T) {
 	m := testModel(t)
-	m.cfg.Theme = "auto"
+	m.cfg.Theme = "dark" // a member of the cycle
 
-	m.cycleTheme()
-	m.cycleTheme()
-	m.cycleTheme()
+	for range theme.CycleOrder {
+		m.cycleTheme()
+	}
 
-	if m.cfg.Theme != "auto" {
-		t.Errorf("three cycles should return to auto, got %q", m.cfg.Theme)
+	if m.cfg.Theme != "dark" {
+		t.Errorf("cycling the full order should return to the start, got %q", m.cfg.Theme)
 	}
 }
 

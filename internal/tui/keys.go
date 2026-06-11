@@ -94,8 +94,9 @@ func Help(km KeyMap) string {
 	b.WriteString(strings.Repeat("-", 40) + "\n")
 	b.WriteString("  j/k          move cursor (with scrolloff)\n")
 	b.WriteString("  g/G          go to top/bottom\n")
-	b.WriteString("  pgup/pgdn    page up/down (preview)\n")
-	b.WriteString("  ctrl+u/d     half-page up/down\n")
+	b.WriteString("  u/d          half-page up/down\n")
+	b.WriteString("  ctrl+u/d     full page up/down\n")
+	b.WriteString("  pgup/pgdn    full page up/down\n")
 	b.WriteString("  H            toggle reading guide bar\n")
 
 	b.WriteString("\nLink Navigation (Preview)\n")
@@ -134,7 +135,7 @@ func Help(km KeyMap) string {
 
 	b.WriteString("\nGeneral\n")
 	b.WriteString(strings.Repeat("-", 40) + "\n")
-	b.WriteString("  ctrl+t       cycle theme (auto/dark/light)\n")
+	b.WriteString("  ctrl+t       cycle theme (:theme <name> to jump)\n")
 	b.WriteString("  esc          close help / back to file list\n")
 
 	b.WriteString("\nFilter Mode\n")

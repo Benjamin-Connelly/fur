@@ -78,7 +78,7 @@ Split-pane layout: collapsible file tree (left) + rendered preview (right). Side
 - **Data preview** — JSON pretty-print, CSV/TSV tables, YAML frontmatter cards
 - **Image info cards** — dimensions, size, format; `e` to open in system viewer
 - **Keybinding presets** — default, vim, emacs
-- **Themes** — light, dark, auto, ascii (no color); Ctrl+T cycles at runtime
+- **Themes** — 19 built-in palettes: `auto`, `dark`, `light`, `ascii`, plus the Catppuccin, Gruvbox, Dracula, Nord, Solarized, Rosé Pine, and TokyoNight families. Each palette drives the markdown body, code highlighting, and UI chrome together. `Ctrl+T` cycles; `:theme <name>` jumps. See [docs/themes](docs/themes/)
 - **Recent files** — persistent history across sessions
 - **Stdin pipe** — `echo '# Hello' | fur` renders piped markdown
 - **Mouse** — wheel scrolling (enable with `mouse: true` in config)
@@ -176,7 +176,7 @@ fur @docs                        # Named remote from config
 | `r` | Preview | Reload file |
 | `e` | Any | Open in `$EDITOR` (images: system viewer) |
 | `ctrl+g` | Any | Global heading jump (fuzzy picker) |
-| `ctrl+t` | Any | Cycle theme (auto → dark → light) |
+| `ctrl+t` | Any | Cycle theme (`:theme <name>` to jump to a specific one) |
 | `ctrl+r` | Search | Toggle regex search mode |
 | `:` | Any | Command palette |
 | `?` | Any | Toggle help overlay |
@@ -225,7 +225,7 @@ fur @alias                    # Named remote from config
   --remote <host>                # Remote host (SSH config alias or user@host)
   --remote-port <port>           # Remote SSH port
   --keymap vim|emacs|default     # Keybinding preset
-  --theme dark|light|auto|ascii  # Color theme
+  --theme <name>                 # auto, dark, light, ascii, or a named theme (see docs/themes)
   --no-color                     # Alias for --theme ascii
   --show-hidden                  # Surface dotfiles/dotdirs (.git/.hg/.svn/.bzr always hidden)
   --version, -V                  # Print version
@@ -254,7 +254,7 @@ cat file.md | fur             # Render piped markdown
 Global config at `~/.config/fur/config.yaml`:
 
 ```yaml
-theme: auto          # light, dark, auto, ascii
+theme: auto          # auto, dark, light, ascii, or a named theme (e.g. catppuccin-mocha, gruvbox, nord); see docs/themes
 keymap: default      # default, vim, emacs
 mouse: false         # enable mouse wheel scrolling
 reading_guide: false # persistent reading guide bar

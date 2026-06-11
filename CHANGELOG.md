@@ -3,11 +3,17 @@
 ## Unreleased
 
 ### Added
+- **Named theme system.** 19 built-in palettes — `auto`, `dark`, `light`, `ascii`, plus the Catppuccin (mocha/macchiato/frappe/latte), Gruvbox (dark/light), Dracula, Nord, Solarized (dark/light), Rosé Pine (main/moon/dawn), and TokyoNight (night/storm/moon/day) families. Each palette drives the glamour markdown body, Chroma code highlighting, and lipgloss TUI chrome from one color set. `ctrl+t` cycles through all themes at runtime; `:theme <name>` jumps to a specific one. Any theme name is valid in config and the `--theme` flag. See [docs/themes](docs/themes/).
 - `show_hidden` config key and `--show-hidden` persistent flag. When set, dotfiles and dotdirs are surfaced in listings, search, the link graph, and the file watcher. `.git`, `.hg`, `.svn`, and `.bzr` remain filtered regardless.
 - `fur config init` writes `~/.config/fur/config.yaml` from a documented template (use `--force` to overwrite; the existing file is preserved as `config.yaml.bak`).
 - `fur config path` prints the resolved config path; `fur config show` prints the active merged config.
 
 ### Changed
+- Markdown rendering now uses a palette-driven glamour style: inline code is a distinct color with **no background block** (previously a padded highlight), and bold/italic/code are visually separated.
+- List items now reflow to the pane width and have a blank line between them. Glamour preserves source soft-breaks inside list items and renders lists tight; fur unwraps soft-wrapped block text before rendering and spaces items in post-processing.
+- `cat` and piped stdin wrap markdown to the terminal width instead of a fixed 80 columns (falling back to 80 only when output is not a TTY).
+- The TUI preview reflows on terminal resize and side-panel toggles without a manual reload, preserving scroll position.
+- `ctrl+u` / `ctrl+d` now scroll a full page; `u` / `d` remain half-page.
 - Default behavior unifies dotfile and dotdir filtering. Previously, dotdirs were hidden but dotfiles like `.gitignore` appeared at root. Now both are filtered by default. Set `show_hidden: true` (or pass `--show-hidden`) to restore visibility.
 - SFTP remote walker no longer applies its own dotfile filter — the indexer is the single source of truth, so local and remote sessions behave identically.
 

@@ -11,6 +11,7 @@ import (
 	"github.com/Benjamin-Connelly/fur/internal/index"
 	"github.com/Benjamin-Connelly/fur/internal/plugin"
 	"github.com/Benjamin-Connelly/fur/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // Panel identifies which panel is currently focused.
@@ -39,6 +40,19 @@ const (
 // Message types for inter-component communication.
 type FileSelectedMsg struct {
 	Entry index.FileEntry
+}
+
+// reflowMsg re-renders the open preview at the current width without the
+// navigation side effects (recent-files, OnNavigate hook) of FileSelectedMsg.
+// Emitted on resize, panel toggles, and theme switches.
+type reflowMsg struct {
+	Entry index.FileEntry
+}
+
+// setThemeMsg switches the active theme. Emitted by the `:theme <name>` palette
+// commands so the switch happens on the model rather than in the command closure.
+type setThemeMsg struct {
+	Name string
 }
 
 type PreviewLoadedMsg struct {
@@ -74,6 +88,16 @@ type Model struct {
 	navigator  *LinkNavigator
 	sidePanel  SidePanelModel
 	cmdPalette CommandPalette
+
+	// ui holds the resolved theme chrome colors, propagated to sub-models.
+	ui theme.UI
+
+	// Reflow scroll preservation: when set, the next loaded preview restores
+	// the scroll/cursor position (clamped) instead of resetting to the top.
+	// Used so resizing or switching themes doesn't jump the reader to line 1.
+	restoreScroll bool
+	pendingScroll int
+	pendingCursor int
 
 	mode     inputMode
 	focus    Panel
@@ -173,7 +197,7 @@ func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins 
 	preview.scrolloff = cfg.ScrollOff
 	preview.readingGuide = cfg.ReadingGuide
 
-	return &Model{
+	m := &Model{
 		cfg:            cfg,
 		idx:            idx,
 		links:          links,
@@ -193,6 +217,89 @@ func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins 
 		marks:          make(map[rune]mark),
 		imageRenderer:  NewImageRenderer(),
 		searchMode:     "filename",
+	}
+	m.applyThemeChrome()
+	return m
+}
+
+// applyThemeChrome resolves the current theme's UI palette and propagates it to
+// the sub-models. Call after the theme changes.
+func (m *Model) applyThemeChrome() {
+	m.ui = theme.UIFor(m.cfg.Theme)
+	m.preview.ui = m.ui
+	m.fileList.ui = m.ui
+	m.status.ui = m.ui
+	m.cmdPalette.ui = m.ui
+}
+
+// SetTheme switches the active theme: rebuilds the markdown and code renderers
+// at the current preview width, repaints the chrome, and returns a command to
+// re-render the open preview (preserving scroll position).
+func (m *Model) SetTheme(name string) tea.Cmd {
+	if !theme.IsValid(name) {
+		return func() tea.Msg { return StatusMsg{Text: "Unknown theme: " + name} }
+	}
+	m.cfg.Theme = name
+	width := m.preview.width - 2
+	if width < 1 {
+		width = 80
+	}
+	if r, err := render.NewMarkdownRenderer(name, width); err == nil {
+		r.SetFs(m.idx.Fs())
+		m.mdRenderer = r
+	}
+	m.codeRenderer = render.NewCodeRenderer(name, true)
+	m.codeRenderer.SetFs(m.idx.Fs())
+	m.applyThemeChrome()
+	m.status.SetMessage("Theme: " + name)
+	if cmd := m.reflowCmd(); cmd != nil {
+		return cmd
+	}
+	return nil
+}
+
+// reflowCmd re-renders the open preview at the current width, preserving the
+// reader's scroll/cursor position. Returns nil when no file is open.
+func (m *Model) reflowCmd() tea.Cmd {
+	if m.preview.filePath == "" {
+		return nil
+	}
+	entry := m.idx.Lookup(m.preview.filePath)
+	if entry == nil {
+		return nil
+	}
+	m.pendingScroll = m.preview.scroll
+	m.pendingCursor = m.preview.cursorLine
+	m.restoreScroll = true
+	e := *entry
+	return func() tea.Msg { return reflowMsg{Entry: e} }
+}
+
+// recalcAndReflow recomputes the layout and, if the preview width changed,
+// returns a command to re-wrap the open preview at the new width.
+func (m *Model) recalcAndReflow() tea.Cmd {
+	old := m.preview.width
+	m.recalcLayout()
+	if m.preview.width != old {
+		return m.reflowCmd()
+	}
+	return nil
+}
+
+// restorePreviewScroll re-applies a preserved scroll/cursor after a reflow,
+// clamping to the newly rendered content. No-op unless a reflow requested it.
+func (m *Model) restorePreviewScroll() {
+	if !m.restoreScroll {
+		return
+	}
+	m.restoreScroll = false
+	m.preview.CursorTo(m.pendingCursor)
+	m.preview.scroll = m.pendingScroll
+	if max := m.preview.maxScroll(); m.preview.scroll > max {
+		m.preview.scroll = max
+	}
+	if m.preview.scroll < 0 {
+		m.preview.scroll = 0
 	}
 }
 
@@ -281,9 +388,9 @@ func (m *Model) View() string {
 		return "Loading..."
 	}
 
-	accentColor := lipgloss.Color("62")  // bright blue-purple for focused
-	dimColor := lipgloss.Color("240")    // gray for unfocused
-	borderColor := lipgloss.Color("237") // subtle separator
+	accentColor := m.ui.Accent
+	dimColor := m.ui.Dim
+	borderColor := m.ui.Border
 
 	contentHeight := m.height - 1
 
@@ -291,7 +398,7 @@ func (m *Model) View() string {
 	paneLabel := func(name string, focused bool, width int) string {
 		if focused {
 			style := lipgloss.NewStyle().
-				Foreground(lipgloss.Color("15")).
+				Foreground(m.ui.OnAccent).
 				Background(accentColor).
 				Bold(true).
 				Width(width)

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/Benjamin-Connelly/fur/internal/render"
+	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
 // ansiRe strips ANSI escape sequences for plain-text search.
@@ -210,33 +211,8 @@ func (m *Model) buildPreviewLinks() {
 	}
 }
 
-var themeOrder = []string{"auto", "dark", "light"}
-
-// cycleTheme rotates through auto → dark → light and re-renders.
+// cycleTheme advances to the next theme in theme.CycleOrder and re-renders the
+// open preview at the current width, preserving scroll position.
 func (m *Model) cycleTheme() (*Model, tea.Cmd) {
-	current := m.cfg.Theme
-	next := "auto"
-	for i, t := range themeOrder {
-		if t == current {
-			next = themeOrder[(i+1)%len(themeOrder)]
-			break
-		}
-	}
-	m.cfg.Theme = next
-	m.mdRenderer, _ = render.NewMarkdownRenderer(next, 80)
-	m.mdRenderer.SetFs(m.idx.Fs())
-	m.codeRenderer = render.NewCodeRenderer(next, true)
-	m.codeRenderer.SetFs(m.idx.Fs())
-	m.status.SetMessage("Theme: " + next)
-
-	// Re-render current preview if one is loaded
-	if m.preview.filePath != "" {
-		entry := m.idx.Lookup(m.preview.filePath)
-		if entry != nil {
-			return m, func() tea.Msg {
-				return FileSelectedMsg{Entry: *entry}
-			}
-		}
-	}
-	return m, nil
+	return m, m.SetTheme(theme.Next(m.cfg.Theme))
 }
