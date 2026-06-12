@@ -76,6 +76,7 @@ internal/
   doctor/doctor.go              # 9 environment checks with colored output
   plugin/plugin.go              # YAML hook system (prepend/append/replace)
   tasks/tasks.go                # TODO extraction (priority, tags, due dates)
+  sanitize/sanitize.go          # Terminal() — strips ANSI/control bytes from attacker-controlled strings
 ```
 
 ## Architecture

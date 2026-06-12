@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/fur/internal/index"
+	"github.com/Benjamin-Connelly/fur/internal/sanitize"
 	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
@@ -344,7 +345,7 @@ func (m FileListModel) viewTree() string {
 			icon = "   "
 		}
 
-		line := fmt.Sprintf("%s%s %s", indent, icon, node.name)
+		line := fmt.Sprintf("%s%s %s", indent, icon, sanitize.Terminal(node.name))
 
 		if i == m.cursor {
 			b.WriteString(cursorStyle.Render(line) + "\n")
@@ -423,7 +424,7 @@ func (m FileListModel) viewFiltered() string {
 			icon = "📝"
 		}
 
-		line := fmt.Sprintf(" %s %s", icon, entry.RelPath)
+		line := fmt.Sprintf(" %s %s", icon, sanitize.Terminal(entry.RelPath))
 
 		if i == m.cursor {
 			b.WriteString(cursorStyle.Render("▸"+line) + "\n")
