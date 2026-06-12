@@ -12,6 +12,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
@@ -196,7 +197,15 @@ func ExtractHeadings(source string) []Heading {
 // Slugify converts heading text to a URL-compatible anchor slug.
 // Matches GitHub's heading anchor generation: lowercase, spaces to hyphens,
 // strip non-alphanumeric except hyphens and underscores.
+//
+// Heading text is NFKC-normalized first so that visually identical headings
+// that differ only by Unicode normalization (e.g. NFC "café" vs NFD
+// "café") or compatibility form collapse to the same slug, rather than
+// silently producing twin anchors an attacker could exploit to swap which
+// heading a fragment link resolves to (audit Chain M). This is the single
+// source of truth for anchor slugs — never reimplement it.
 func Slugify(s string) string {
+	s = norm.NFKC.String(s)
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, " ", "-")
 	var b strings.Builder
@@ -208,23 +217,44 @@ func Slugify(s string) string {
 	return b.String()
 }
 
-// HeadingSlugs returns a map of slug -> true for all headings in the source.
-// Duplicate headings get GitHub-style suffixes: "heading", "heading-1", "heading-2".
-func HeadingSlugs(source string) map[string]bool {
-	headings := ExtractHeadings(source)
-	slugs := make(map[string]bool, len(headings))
+// AnchorSlugs returns the deduplicated anchor slug for each heading in source,
+// in document order (parallel to ExtractHeadings). This is the single
+// implementation of duplicate-heading disambiguation: the web TOC, the
+// /__api/document endpoint, and the TUI fragment scroller all consume it, so a
+// "#heading-1" fragment resolves to the same heading in every mode. Duplicate
+// slugs get GitHub-style suffixes ("heading", "heading-1", "heading-2"). The
+// assignment is fully determined by document order and is independent of Go
+// map iteration order.
+func AnchorSlugs(source string) []string {
+	return dedupeSlugs(ExtractHeadings(source))
+}
+
+// dedupeSlugs assigns a unique slug to each heading in order, suffixing
+// collisions deterministically.
+func dedupeSlugs(headings []Heading) []string {
+	out := make([]string, len(headings))
 	counts := make(map[string]int)
-	for _, h := range headings {
+	for i, h := range headings {
 		base := Slugify(h.Text)
 		n := counts[base]
 		counts[base]++
-		slug := base
 		if n > 0 {
-			slug = base + "-" + strconv.Itoa(n)
+			out[i] = base + "-" + strconv.Itoa(n)
+		} else {
+			out[i] = base
 		}
-		slugs[slug] = true
 	}
-	return slugs
+	return out
+}
+
+// HeadingSlugs returns a set of all (deduplicated) heading slugs in the source.
+func HeadingSlugs(source string) map[string]bool {
+	slugs := AnchorSlugs(source)
+	set := make(map[string]bool, len(slugs))
+	for _, s := range slugs {
+		set[s] = true
+	}
+	return set
 }
 
 // ExtractLinks returns all links from markdown source.
