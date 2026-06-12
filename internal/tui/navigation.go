@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -75,27 +74,26 @@ func (m *Model) handleCommandLinks() (tea.Model, tea.Cmd) {
 // Uses GitHub-style duplicate disambiguation: "heading", "heading-1", "heading-2".
 func (m *Model) scrollToFragment(fragment, rawSource string) {
 	headings := render.ExtractHeadings(rawSource)
+	slugs := render.AnchorSlugs(rawSource)
 	slug := strings.ToLower(fragment)
 
-	// Build slug -> occurrence index to disambiguate duplicates
-	counts := make(map[string]int)
+	// Match against the centralized slug assignment so the TUI resolves the
+	// same heading that the web TOC/API would for an identical fragment
+	// (audit Chain M). occurrence is the 0-based index of this heading among
+	// those sharing its base slug, used to locate the right rendered line.
 	type match struct {
 		text       string
-		occurrence int // 0-based occurrence of this heading text
+		occurrence int
 	}
 	var candidates []match
+	baseCounts := make(map[string]int)
 
-	for _, h := range headings {
+	for i, h := range headings {
 		base := slugify(h.Text)
-		n := counts[base]
-		counts[base]++
-
-		effective := base
-		if n > 0 {
-			effective = base + "-" + strconv.Itoa(n)
-		}
-		if effective == slug {
-			candidates = append(candidates, match{text: h.Text, occurrence: n})
+		occ := baseCounts[base]
+		baseCounts[base]++
+		if slugs[i] == slug {
+			candidates = append(candidates, match{text: h.Text, occurrence: occ})
 		}
 	}
 

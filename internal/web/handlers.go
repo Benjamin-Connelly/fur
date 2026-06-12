@@ -262,14 +262,17 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		return
 	}
 
-	// Extract headings for TOC
+	// Extract headings for TOC. Use the centralized AnchorSlugs so duplicate
+	// headings get the same disambiguated slugs the document API and TUI use
+	// (audit Chain M).
 	headings := render.ExtractHeadings(string(source))
+	slugs := render.AnchorSlugs(string(source))
 	var tocHeadings []tocHeading
-	for _, h := range headings {
+	for i, h := range headings {
 		tocHeadings = append(tocHeadings, tocHeading{
 			Level: h.Level,
 			Text:  h.Text,
-			Slug:  render.Slugify(h.Text),
+			Slug:  slugs[i],
 		})
 	}
 
@@ -623,27 +626,23 @@ func (s *Server) handleAPIDocument(w http.ResponseWriter, r *http.Request) {
 
 	content := string(data)
 
-	// Extract headings
+	// Extract headings. Slugs come from the centralized render.AnchorSlugs so
+	// the API, the server-side TOC, and the TUI fragment scroller all agree on
+	// duplicate disambiguation (audit Chain M).
 	headings := render.ExtractHeadings(content)
+	slugs := render.AnchorSlugs(content)
 	type headingJSON struct {
 		Level int    `json:"level"`
 		Text  string `json:"text"`
 		Slug  string `json:"slug"`
 		Line  int    `json:"line"`
 	}
-	slugCounts := make(map[string]int)
-	var hdgs []headingJSON
-	for _, h := range headings {
-		slug := render.Slugify(h.Text)
-		n := slugCounts[slug]
-		slugCounts[slug]++
-		if n > 0 {
-			slug = fmt.Sprintf("%s-%d", slug, n)
-		}
+	hdgs := make([]headingJSON, 0, len(headings))
+	for i, h := range headings {
 		hdgs = append(hdgs, headingJSON{
 			Level: h.Level,
 			Text:  h.Text,
-			Slug:  slug,
+			Slug:  slugs[i],
 			Line:  h.Line,
 		})
 	}

@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Security
+- **Anchor slugs are NFKC-normalized and centrally deduplicated.**
+  `render.Slugify` now NFKC-normalizes heading text, so headings that differ
+  only by Unicode normalization (NFC vs NFD "café") or compatibility form no
+  longer produce twin anchors. A new `render.AnchorSlugs` is the single
+  duplicate-disambiguation implementation; the web TOC, `/__api/document`, and
+  the TUI fragment scroller all consume it, so a `#heading-1` fragment
+  resolves to the same heading in every mode. Previously three independent
+  copies could diverge, enabling anchor-hijack / content-swap (audit Chain M).
 - **Environment overrides are limited to top-level keys (regression-guarded).**
   `FUR_*` variables can only override top-level config keys (`FUR_THEME`,
   `FUR_KEYMAP`, `FUR_SHOW_HIDDEN`); nested runtime-sensitive keys
