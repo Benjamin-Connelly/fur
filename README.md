@@ -135,7 +135,7 @@ fur @docs                        # Named remote from config
 - **File watcher** — fsnotify with 100ms debounce, auto-rebuilds file and search indexes
 - **Git integration** — go-git for status, branches, log, permalinks (GitHub/GitLab/Bitbucket/Gitea/Codeberg)
 - **Per-project config** — `.fur.toml` / `.fur.yaml` discovered by walking up from CWD
-- **Plugin hooks** — YAML-defined hooks for content transformation (prepend/append/replace)
+- **Plugin hooks** — YAML-defined hooks for content transformation (prepend/append/replace); loaded only from owner-owned, non-group/other-writable files in `~/.config/fur/plugins/`. Hooks never execute commands.
 - **Task extraction** — finds TODOs with priority (`!high`), tags (`#tag`), due dates (`@due(...)`)
 - **Export** — markdown to standalone HTML or PDF with embedded CSS and syntax highlighting
 - **Graph export** — `fur graph` outputs DOT format for Graphviz visualization
