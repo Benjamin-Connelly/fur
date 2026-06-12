@@ -104,9 +104,32 @@ model. All are **Fixed** on `master` with a regression test.
   prompt) is filed as `lookit-9jm` (P2) for a future opt-in beyond the current
   deny-by-default allowlist.
 
-## Tooling pass
+## Tooling pass (lookit-9py.3.2 / 2.10)
 
-See `lookit-9py.3.2`. CI runs `gofmt`, `go vet`, `golangci-lint` (with
-`gosec`, `errcheck`, `bodyclose`, `staticcheck`, `gocritic`), `govulncheck`,
-and `go test -race` across the Go 1.25/1.26 matrix and four
-`GOOS/GOARCH` targets on every PR.
+CI runs, on every PR, across the Go 1.25/1.26 matrix and four `GOOS/GOARCH`
+targets:
+
+| Tool | How | Result |
+|---|---|---|
+| `gofmt`, `go vet` | lint job | clean |
+| `golangci-lint` v2.11.4 (`gosec`, `errcheck`, `bodyclose`, `staticcheck`, `gocritic`, `unparam`, …) | lint job, pinned action | 0 issues |
+| `govulncheck` v1.2.0 | security job, **pinned** (was `@latest`) for reproducibility | see below |
+| `go test -race` | test job | clean |
+
+**govulncheck findings (2026-06-12):** two Go standard-library advisories —
+`GO-2026-5037` (`crypto/x509`) and `GO-2026-5039` (`net/textproto`) — both
+**fixed in go1.26.4**. They are remediated by the toolchain, not a code
+change; CI's `setup-go: '1.26'` resolves to the patched 1.26.x on the runner.
+No first-party or third-party-module call-path vulnerabilities.
+
+**Pinning (2.10):** rather than a `tools/tools.go` (which would pull the full
+transitive trees of gosec/staticcheck/govulncheck into `go.mod` and `go.sum`,
+contrary to the repo's minimal-dependency stance), the audit tools are pinned
+where they run: `golangci-lint` (bundling gosec + staticcheck) at `v2.11.4`
+and `govulncheck` at `v1.2.0` in the workflow.
+
+**Not run in this pass (require external installs — deferred under the
+14-day supply-chain quarantine / human-gated install policy):** `semgrep`,
+`osv-scanner`, `syft` + `grype`, ZAP/`nuclei` against the web server. These
+are dynamic/SCA scanners whose installation needs explicit approval; tracked
+as a follow-up rather than blocking the audit.
