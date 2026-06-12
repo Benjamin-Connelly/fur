@@ -5,9 +5,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"go.yaml.in/yaml/v3"
 )
+
+// ownedByCurrentUser reports whether info is owned by the current uid. On
+// platforms whose FileInfo.Sys() is not a *syscall.Stat_t (i.e. non-POSIX) it
+// returns true and the caller relies on the write-permission bits alone. fur
+// targets linux/darwin, where Stat_t is available.
+func ownedByCurrentUser(info os.FileInfo) bool {
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return true
+	}
+	return int(st.Uid) == os.Getuid()
+}
 
 // HookPoint identifies when a plugin hook fires.
 type HookPoint int
@@ -44,10 +57,13 @@ type PluginConfig struct {
 	Hooks       []HookConfig `yaml:"hooks"`
 }
 
-// HookConfig defines a hook in a YAML plugin file.
+// HookConfig defines a hook in a YAML plugin file. Hooks are content
+// transforms only — prepend, append, and replace. There is deliberately no
+// command/exec field: plugin files live in the user's config dir and are
+// loaded automatically, so an exec hook would be a code-execution sink fed by
+// any file that lands in ~/.config/fur/plugins. See lookit-9py.4.1.
 type HookConfig struct {
 	Point   string        `yaml:"point"`
-	Command string        `yaml:"command"`
 	Prepend string        `yaml:"prepend"`
 	Append  string        `yaml:"append"`
 	Replace []ReplaceRule `yaml:"replace"`
@@ -110,12 +126,43 @@ func LoadPlugins(configDir string) (*Registry, error) {
 		}
 
 		path := filepath.Join(pluginDir, entry.Name())
+
+		// Trust gate: plugin hooks inject content into every rendered document
+		// (and thus into the terminal / HTML pipeline). Only honor plugin files
+		// that the current user owns and that are not writable by group or
+		// other — a file a co-located adversary can write is not trustworthy.
+		if !trustedPluginFile(path) {
+			fmt.Fprintf(os.Stderr, "warning: skipping plugin %s: not owner-only (group/other-writable or foreign owner)\n", entry.Name())
+			continue
+		}
+
 		if err := loadPluginFile(registry, path); err != nil {
 			return nil, fmt.Errorf("loading plugin %s: %w", entry.Name(), err)
 		}
 	}
 
 	return registry, nil
+}
+
+// trustedPluginFile reports whether a plugin file is safe to load: it must be
+// a regular file, owned by the current user, and not writable by group or
+// other. On platforms without POSIX ownership the owner check is skipped and
+// only the write-permission bits are enforced. Stat errors fail closed.
+func trustedPluginFile(path string) bool {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false
+	}
+	if !info.Mode().IsRegular() {
+		return false // symlinks and irregular files are not trusted
+	}
+	if info.Mode().Perm()&0o022 != 0 {
+		return false // group- or world-writable
+	}
+	if !ownedByCurrentUser(info) {
+		return false
+	}
+	return true
 }
 
 func loadPluginFile(registry *Registry, path string) error {

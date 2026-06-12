@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Security
+- **Plugin-hook trust model.** Plugin files are loaded only if the current
+  user owns them and they are not group/other-writable (symlinks and missing
+  files are refused); untrusted files are skipped with a warning. The unused,
+  undocumented `command:` hook field — a latent code-execution sink — is
+  removed: hooks remain content transforms only (prepend/append/replace).
+  Audit Chain A / hardening 4.1.
 - **Argv-safe exec is enforced repo-wide (regression-guarded).** A new
   source-scanning guard fails the build if any `sh -c`/shell-interpreter exec
   is introduced, and pins the reviewed inventory of `exec.Command` call sites
