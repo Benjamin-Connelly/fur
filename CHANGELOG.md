@@ -87,6 +87,10 @@
 ### Fixed
 - README env-var example referenced the pre-rename `LOOKIT_*` prefix and
   implied nested keys were overridable; corrected to `FUR_*` top-level keys.
+- `ParseTarget` no longer accepts a host or user containing whitespace or
+  control bytes (e.g. a NUL); such a malformed spec now falls through to
+  local-path handling instead of reaching the SSH dialer. Found by
+  `FuzzParseTarget`.
 
 ### Added
 - **Named theme system.** 19 built-in palettes — `auto`, `dark`, `light`, `ascii`, plus the Catppuccin (mocha/macchiato/frappe/latte), Gruvbox (dark/light), Dracula, Nord, Solarized (dark/light), Rosé Pine (main/moon/dawn), and TokyoNight (night/storm/moon/day) families. Each palette drives the glamour markdown body, Chroma code highlighting, and lipgloss TUI chrome from one color set. `ctrl+t` cycles through all themes at runtime; `:theme <name>` jumps to a specific one. Any theme name is valid in config and the `--theme` flag. See [docs/themes](docs/themes/).

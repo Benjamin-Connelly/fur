@@ -84,6 +84,13 @@ func ParseTarget(s string) *Target {
 		return nil
 	}
 
+	// A host or user carrying whitespace or control bytes is never a valid
+	// remote spec; reject so it falls through to local-path handling rather
+	// than reaching the SSH dialer / config lookup with a malformed value.
+	if hasCtrlOrSpace(m[1]) || hasCtrlOrSpace(m[2]) {
+		return nil
+	}
+
 	t := &Target{
 		User: m[1],
 		Host: m[2],
@@ -102,6 +109,17 @@ func ParseTarget(s string) *Target {
 	}
 
 	return t
+}
+
+// hasCtrlOrSpace reports whether s contains any ASCII whitespace or control
+// byte (including NUL and DEL) — bytes that make a hostname/username invalid.
+func hasCtrlOrSpace(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if b := s[i]; b <= 0x20 || b == 0x7f {
+			return true
+		}
+	}
+	return false
 }
 
 // IsRemotePath returns true if the string looks like a remote path spec.
