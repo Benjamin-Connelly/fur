@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
+	github.com/charmbracelet/x/exp/teatest v0.0.0-20260311145557-c83711a11ffa
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/sahilm/fuzzy v0.1.1
@@ -25,7 +26,9 @@ require (
 )
 
 require (
+	github.com/aymanbagabas/go-udiff v0.3.1 // indirect
 	github.com/blevesearch/zapx/v17 v17.1.2 // indirect
+	github.com/charmbracelet/x/exp/golden v0.0.0-20241011142426-46044092ad91 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 )
 
