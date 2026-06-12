@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Benjamin-Connelly/fur/internal/sanitize"
 	"github.com/Benjamin-Connelly/fur/internal/theme"
 )
 
@@ -46,9 +47,11 @@ func NewStatusBarModel() StatusBarModel {
 	}
 }
 
-// SetFile updates the displayed file path.
+// SetFile updates the displayed file path. The path is sanitized of terminal
+// control sequences because a directory adversary controls file and directory
+// names (audit Chain J); filePath is display-only.
 func (m *StatusBarModel) SetFile(path string) {
-	m.filePath = path
+	m.filePath = sanitize.Terminal(path)
 }
 
 // SetMessage sets a temporary status message.

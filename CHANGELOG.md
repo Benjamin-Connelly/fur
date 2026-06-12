@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Security
+- **Filenames are sanitized of terminal control sequences before display.** A
+  new `internal/sanitize.Terminal` chokepoint strips ANSI/OSC/CSI escapes and
+  other C0/C1 control bytes from attacker-controlled strings; the TUI file
+  tree, filtered list, and status bar route filenames through it. Previously a
+  directory adversary could plant a file whose name carried an OSC/CSI
+  sequence and reprogram the victim's terminal when fur listed it (audit
+  Chain J).
 - **Permalink builder never shells out (regression-guarded).** Permalinks are
   built from the git remote URL with pure string manipulation over go-git
   (no `git` subprocess), so a hostile origin URL cannot become a command
