@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Security
+- **Argv-safe exec is enforced repo-wide (regression-guarded).** A new
+  source-scanning guard fails the build if any `sh -c`/shell-interpreter exec
+  is introduced, and pins the reviewed inventory of `exec.Command` call sites
+  so a new one cannot land without an explicit argv-safety review (hardening
+  4.2). All current sites use separated args, route filenames through
+  `safeFilenameArg`, or use a `--` separator.
 - **Anchor slugs are NFKC-normalized and centrally deduplicated.**
   `render.Slugify` now NFKC-normalizes heading text, so headings that differ
   only by Unicode normalization (NFC vs NFD "café") or compatibility form no
