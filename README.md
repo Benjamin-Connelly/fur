@@ -290,7 +290,10 @@ remotes:                # Named remote hosts for SSH browsing
 
 CLI flags override config: `--theme dark`, `--keymap vim`, `-c /path/to/config.yaml`.
 
-Environment variables: `LOOKIT_THEME`, `LOOKIT_SERVER_PORT`, etc.
+Environment variables override top-level config keys only: `FUR_THEME`,
+`FUR_KEYMAP`, `FUR_SHOW_HIDDEN`. Nested runtime-sensitive keys (`server.*`,
+`git.*`, `remotes.*`) are **not** settable via the environment — so a hostile
+shell environment cannot rebind the web listener or redirect remotes.
 
 ## Development
 

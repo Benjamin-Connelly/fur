@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Security
+- **Environment overrides are limited to top-level keys (regression-guarded).**
+  `FUR_*` variables can only override top-level config keys (`FUR_THEME`,
+  `FUR_KEYMAP`, `FUR_SHOW_HIDDEN`); nested runtime-sensitive keys
+  (`server.host`, `server.custom_css`, `remotes.*`, `git.*`) are **not**
+  env-settable, so a hostile shell environment cannot rebind the listener or
+  redirect remotes (audit Chain L). A guard pins this. Docs that claimed
+  "override any config key" (and a stale `LOOKIT_*` example) are corrected.
 - **Filenames are sanitized of terminal control sequences before display.** A
   new `internal/sanitize.Terminal` chokepoint strips ANSI/OSC/CSI escapes and
   other C0/C1 control bytes from attacker-controlled strings; the TUI file
@@ -38,10 +45,9 @@
 - **Web server refuses non-loopback binds by default.** `fur serve` now
   errors out if `server.host` resolves to a non-loopback address (`0.0.0.0`,
   a LAN IP, an external hostname) unless `--listen-public` is passed, which
-  also prints a reachability warning. Previously any `server.host` value
-  (including via `FUR_SERVER_HOST`) bound silently, exposing the file,
-  search, and document APIs — and thus the whole browsed tree — to other
-  hosts and users on the network (audit Chain C).
+  also prints a reachability warning. Previously any `server.host` value bound
+  silently, exposing the file, search, and document APIs — and thus the whole
+  browsed tree — to other hosts and users on the network (audit Chain C).
 - **Symlink containment.** The indexer no longer surfaces symlinks whose
   target resolves outside the browse root. Previously a directory adversary
   could plant `notes.md -> ~/.ssh/id_rsa` inside a browsed tree and have the
@@ -57,6 +63,10 @@
   checked-out hostile repository could ship a `.fur.yaml` that pivoted
   `server.custom_css` onto an attacker-controlled stylesheet, rebound the web
   listener, or injected SSH remotes (audit Chain A).
+
+### Fixed
+- README env-var example referenced the pre-rename `LOOKIT_*` prefix and
+  implied nested keys were overridable; corrected to `FUR_*` top-level keys.
 
 ### Added
 - **Named theme system.** 19 built-in palettes — `auto`, `dark`, `light`, `ascii`, plus the Catppuccin (mocha/macchiato/frappe/latte), Gruvbox (dark/light), Dracula, Nord, Solarized (dark/light), Rosé Pine (main/moon/dawn), and TokyoNight (night/storm/moon/day) families. Each palette drives the glamour markdown body, Chroma code highlighting, and lipgloss TUI chrome from one color set. `ctrl+t` cycles through all themes at runtime; `:theme <name>` jumps to a specific one. Any theme name is valid in config and the `--theme` flag. See [docs/themes](docs/themes/).

@@ -73,7 +73,7 @@ Remote browsing over SSH:
 Configuration:
   ~/.config/fur/config.yaml    Global config
   .fur.toml / .fur.yaml        Per-project config (auto-discovered)
-  FUR_* environment vars       Override any config key
+  FUR_* environment vars       Override top-level keys (e.g. FUR_THEME, FUR_KEYMAP)
 
 TUI keybindings (press ? for full help):
   j/k, arrows   Navigate           /          Filter files / search preview
