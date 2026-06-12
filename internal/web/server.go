@@ -145,6 +145,13 @@ func (s *Server) OnFileChange(relPath string) {
 	s.sse.Notify(relPath)
 }
 
+// Handler returns the fully-wrapped HTTP handler (routes + security-header,
+// logging, and ETag middleware) that Start serves. Exposed so the handler can
+// be driven by an httptest.Server in tests without binding a real port.
+func (s *Server) Handler() http.Handler {
+	return s.middleware(s.mux)
+}
+
 // isLoopbackHost reports whether host binds only the loopback interface.
 // The empty host is treated as loopback because fur defaults Server.Host to
 // "localhost"; an empty value reaching here would otherwise mean "all
