@@ -36,6 +36,9 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	})
 
 	s := New(cfg, idx, links, nil)
+	// Always stop the SSE broker so goleak (TestMain) sees no leak; idempotent
+	// with any explicit s.sse.Stop() the test also calls.
+	t.Cleanup(func() { s.sse.Stop() })
 	return s, dir
 }
 

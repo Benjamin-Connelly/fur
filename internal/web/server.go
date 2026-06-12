@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,6 +58,7 @@ type SSEBroker struct {
 	unregister chan chan string
 	broadcast  chan string
 	done       chan struct{}
+	stopOnce   sync.Once
 }
 
 // NewSSEBroker creates a new SSE event broker.
@@ -101,8 +103,12 @@ func (b *SSEBroker) run() {
 }
 
 // Stop shuts down the broker and closes all client connections.
+// Stop shuts down the broker's run loop. Idempotent: safe to call more than
+// once (e.g. both an explicit Stop and a graceful-shutdown path).
 func (b *SSEBroker) Stop() {
-	close(b.done)
+	b.stopOnce.Do(func() {
+		close(b.done)
+	})
 }
 
 // Notify sends a reload event to all connected clients.
