@@ -102,9 +102,9 @@ func (b *SSEBroker) run() {
 	}
 }
 
-// Stop shuts down the broker and closes all client connections.
-// Stop shuts down the broker's run loop. Idempotent: safe to call more than
-// once (e.g. both an explicit Stop and a graceful-shutdown path).
+// Stop shuts down the broker's run loop and closes all client connections.
+// Idempotent: safe to call more than once (e.g. both an explicit Stop and a
+// graceful-shutdown path).
 func (b *SSEBroker) Stop() {
 	b.stopOnce.Do(func() {
 		close(b.done)
@@ -119,6 +119,18 @@ func (b *SSEBroker) Notify(path string) {
 	}
 }
 
+// NewMarkdown builds the Goldmark instance used to render markdown to HTML in
+// web mode. It is deliberately NOT configured with html.WithUnsafe(), so raw
+// HTML in source (e.g. <script>, <iframe>) is escaped rather than passed
+// through. Exposed as a constructor so the exact web rendering config is the
+// single source of truth and can be golden-tested directly.
+func NewMarkdown() goldmark.Markdown {
+	return goldmark.New(
+		goldmark.WithExtensions(extension.GFM, highlighting.Emoji),
+		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+	)
+}
+
 // New creates a new web server.
 func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins *plugin.Registry) *Server {
 	s := &Server{
@@ -127,13 +139,10 @@ func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins 
 		links:   links,
 		plugins: plugins,
 		code:    render.NewCodeRenderer(cfg.Theme, false),
-		md: goldmark.New(
-			goldmark.WithExtensions(extension.GFM, highlighting.Emoji),
-			goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-		),
-		fs:  idx.Fs(),
-		mux: http.NewServeMux(),
-		sse: NewSSEBroker(),
+		md:      NewMarkdown(),
+		fs:      idx.Fs(),
+		mux:     http.NewServeMux(),
+		sse:     NewSSEBroker(),
 	}
 
 	s.registerRoutes()
