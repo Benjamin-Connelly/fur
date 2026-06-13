@@ -103,6 +103,11 @@
 - `fur config path` prints the resolved config path; `fur config show` prints the active merged config.
 
 ### Changed
+- The file filter (`/`) now uses a real text input: move the cursor with
+  left/right and home/end, insert mid-string, and word-delete (`ctrl+w`) —
+  previously typing only appended and backspace only trimmed the end. Filename
+  ⇄ content mode toggle (`tab`), list navigation, and `enter`/`esc` are
+  unchanged.
 - Markdown rendering now uses a palette-driven glamour style: inline code is a distinct color with **no background block** (previously a padded highlight), and bold/italic/code are visually separated.
 - List items now reflow to the pane width and have a blank line between them. Glamour preserves source soft-breaks inside list items and renders lists tight; fur unwraps soft-wrapped block text before rendering and spaces items in post-processing.
 - `cat` and piped stdin wrap markdown to the terminal width instead of a fixed 80 columns (falling back to 80 only when output is not a TTY).
