@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/Benjamin-Connelly/fur/internal/index"
@@ -33,37 +31,22 @@ func (m *Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = PanelFileList
 		m.status.SetMode("FILES")
 		return m, nil
-	case "backspace":
-		if len(m.fileList.filter) > 0 {
-			m.applyFilter(m.fileList.filter[:len(m.fileList.filter)-1])
-		}
-		return m, nil
 	case "up", "ctrl+p", "ctrl+k":
 		m.fileList.MoveUp()
 		return m, nil
 	case "down", "ctrl+n", "ctrl+j":
 		m.fileList.MoveDown()
 		return m, nil
-	case "ctrl+u":
-		m.applyFilter("")
-		return m, nil
-	case "ctrl+w":
-		// Delete last word
-		input := m.fileList.filter
-		input = strings.TrimRight(input, " ")
-		if i := strings.LastIndex(input, " "); i >= 0 {
-			m.applyFilter(input[:i+1])
-		} else {
-			m.applyFilter("")
-		}
-		return m, nil
 	default:
-		ch := msg.String()
-		// Ignore the `/` that triggered filter mode
-		if len(ch) == 1 && ch != "/" {
-			m.applyFilter(m.fileList.filter + ch)
-		}
-		return m, nil
+		// Everything else — printable runes, backspace, left/right, home/end,
+		// ctrl+w (word delete), ctrl+u (delete to start), ctrl+a/ctrl+e — is
+		// editing. Route it through the textinput, then refilter on the new
+		// value. This gives proper in-place cursor editing the old append-only
+		// string lacked.
+		ti, cmd := m.fileList.filterInput.Update(msg)
+		m.fileList.filterInput = ti
+		m.applyFilter(ti.Value())
+		return m, cmd
 	}
 }
 

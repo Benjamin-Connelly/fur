@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/fur/internal/index"
@@ -73,6 +74,11 @@ type FileListModel struct {
 	offset     int    // scroll offset
 	height     int
 
+	// filterInput backs the filter text field, giving cursor movement and
+	// in-place editing (left/right, home/end, word-delete) that the old
+	// append-only string lacked. m.filter mirrors filterInput.Value().
+	filterInput textinput.Model
+
 	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
 	ui theme.UI
 }
@@ -88,13 +94,22 @@ func NewFileListModel(idx index.Indexer) FileListModel {
 		}
 	}
 	m := FileListModel{
-		idx:       idx,
-		entries:   entries,
-		filtered:  entries,
-		collapsed: collapsed,
+		idx:         idx,
+		entries:     entries,
+		filtered:    entries,
+		collapsed:   collapsed,
+		filterInput: newFilterInput(),
 	}
 	m.buildTree()
 	return m
+}
+
+// newFilterInput builds the textinput used for the filter field. The prompt is
+// rendered separately by viewFiltered, so the input itself is prompt-less.
+func newFilterInput() textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = ""
+	return ti
 }
 
 func (m *FileListModel) buildTree() {
@@ -211,16 +226,20 @@ func (m *FileListModel) SetFilter(query string) {
 	m.offset = 0
 }
 
-// StartFilter enters filter mode.
+// StartFilter enters filter mode. A fresh textinput is assigned so the method
+// is safe even on a FileListModel built without NewFileListModel.
 func (m *FileListModel) StartFilter() {
 	m.filtering = true
 	m.filter = ""
+	m.filterInput = newFilterInput()
+	m.filterInput.Focus()
 }
 
 // ClearFilter exits filter mode and resets the list.
 func (m *FileListModel) ClearFilter() {
 	m.filtering = false
 	m.filter = ""
+	m.filterInput = newFilterInput()
 	m.filtered = m.entries
 	m.cursor = 0
 	m.offset = 0
@@ -381,7 +400,7 @@ func (m FileListModel) viewFiltered() string {
 		modeLabel = "filename"
 	}
 	if m.filtering {
-		b.WriteString(filterStyle.Render("/ "+m.filter+"_ ("+modeLabel+")") + "\n")
+		b.WriteString(filterStyle.Render("/ "+m.filterInput.View()+" ("+modeLabel+")") + "\n")
 	} else {
 		frozenStyle := lipgloss.NewStyle().Foreground(m.ui.Dim)
 		b.WriteString(frozenStyle.Render("/ "+m.filter+" ("+modeLabel+", esc to clear)") + "\n")
