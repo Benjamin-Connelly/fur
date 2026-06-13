@@ -11,7 +11,7 @@ A clear description of what the bug is.
 
 **To reproduce**
 Steps to reproduce the behavior:
-1. Run `lookit ...`
+1. Run `fur ...`
 2. Press '...'
 3. See error
 
@@ -21,7 +21,7 @@ What you expected to happen.
 **Environment**
 - OS: [e.g., Ubuntu 24.04, macOS 15]
 - Terminal: [e.g., Ghostty, kitty, iTerm2, WezTerm, gnome-terminal]
-- Lookit version: [run `lookit -V`]
+- fur version: [run `fur -V`]
 - Go version: [e.g., 1.24]
 - Mode: [TUI / Web / CLI (`cat`, `export`, etc.)]
 

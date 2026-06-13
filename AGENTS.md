@@ -1,4 +1,4 @@
-# AGENTS.md — lookit build instructions
+# AGENTS.md — fur build instructions
 
 ## Task Tracking
 
@@ -24,10 +24,10 @@ assigned in the epic for the current stage.
 
 ## Project
 
-GitHub: github.com/Benjamin-Connelly/lookit
+GitHub: github.com/Benjamin-Connelly/fur
 Language: Go
-Binary name: lookit
-Config dir: ~/.config/lookit/
+Binary name: fur
+Config dir: ~/.config/fur/
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
