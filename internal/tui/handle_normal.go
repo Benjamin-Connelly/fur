@@ -123,6 +123,8 @@ func (m *Model) handleNormalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+g":
 		m.mode = modeHeadingJump
 		m.headingJumpInput = ""
+		m.headingJumpTI = newHeadingInput()
+		m.headingJumpTI.Focus()
 		m.headingJumpItems = m.collectAllHeadings()
 		m.headingJumpCur = 0
 		m.status.SetMode("HEADING")

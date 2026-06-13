@@ -3,6 +3,7 @@ package tui
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -20,6 +21,7 @@ type CommandEntry struct {
 // CommandPalette manages the colon-mode command interface.
 type CommandPalette struct {
 	commands []CommandEntry
+	ti       textinput.Model // backs the input (cursor editing); input mirrors ti.Value()
 	input    string
 	filtered []CommandEntry
 	cursor   int
@@ -27,6 +29,14 @@ type CommandPalette struct {
 
 	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
 	ui theme.UI
+}
+
+// newCommandInput builds the prompt-less textinput backing the palette; the
+// ":" prompt is rendered by View.
+func newCommandInput() textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = ""
+	return ti
 }
 
 // NewCommandPalette creates a command palette with default commands.
@@ -118,8 +128,19 @@ func (p *CommandPalette) RegisterCommand(cmd CommandEntry) {
 func (p *CommandPalette) Open() {
 	p.active = true
 	p.input = ""
+	p.ti = newCommandInput()
+	p.ti.Focus()
 	p.filtered = p.commands
 	p.cursor = 0
+}
+
+// UpdateInput routes an edit key event to the textinput, then re-syncs the
+// input string and the filtered command list. Returns any command emitted.
+func (p *CommandPalette) UpdateInput(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+	p.ti, cmd = p.ti.Update(msg)
+	p.SetInput(p.ti.Value())
+	return cmd
 }
 
 // Close deactivates the command palette.
@@ -191,7 +212,7 @@ func (p CommandPalette) View() string {
 	if !p.active {
 		return ""
 	}
-	s := ":" + p.input + "\n"
+	s := ":" + p.ti.View() + "\n"
 	for i, cmd := range p.filtered {
 		cursor := "  "
 		if i == p.cursor {

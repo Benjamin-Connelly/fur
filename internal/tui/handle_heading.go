@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
-
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func (m *Model) handleHeadingJumpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -38,31 +38,31 @@ func (m *Model) handleHeadingJumpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.headingJumpCur++
 		}
 		return m, nil
-	case "backspace":
-		if len(m.headingJumpInput) > 0 {
-			m.headingJumpInput = m.headingJumpInput[:len(m.headingJumpInput)-1]
-			m.headingJumpCur = 0
-		}
-		return m, nil
-	case "ctrl+u":
-		m.headingJumpInput = ""
-		m.headingJumpCur = 0
-		return m, nil
 	default:
-		ch := msg.String()
-		if len(ch) == 1 {
-			m.headingJumpInput += ch
-			m.headingJumpCur = 0
-		}
-		return m, nil
+		// Editing (printable runes, backspace, left/right, home/end, ctrl+w,
+		// ctrl+u) goes to the textinput; the query mirrors its value and the
+		// cursor resets to the top of the refiltered list.
+		var cmd tea.Cmd
+		m.headingJumpTI, cmd = m.headingJumpTI.Update(msg)
+		m.headingJumpInput = m.headingJumpTI.Value()
+		m.headingJumpCur = 0
+		return m, cmd
 	}
+}
+
+// newHeadingInput builds the prompt-less textinput backing the heading-jump
+// query; the "Jump to heading: " label is rendered by headingJumpView.
+func newHeadingInput() textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = ""
+	return ti
 }
 
 func (m *Model) headingJumpView() string {
 	var b strings.Builder
 	prompt := lipgloss.NewStyle().Foreground(m.ui.Accent).Bold(true)
-	b.WriteString(prompt.Render("Jump to heading: ") + m.headingJumpInput)
-	b.WriteString("_\n")
+	b.WriteString(prompt.Render("Jump to heading: ") + m.headingJumpTI.View())
+	b.WriteString("\n")
 
 	filtered := m.filterHeadingJump()
 	maxShow := 10
