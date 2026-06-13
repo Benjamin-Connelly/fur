@@ -3,7 +3,7 @@ module github.com/Benjamin-Connelly/fur
 go 1.25.0
 
 require (
-	github.com/alecthomas/chroma/v2 v2.24.1
+	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/blevesearch/bleve/v2 v2.6.0
 	github.com/charmbracelet/bubbles v1.0.0
@@ -29,6 +29,7 @@ require (
 	github.com/aymanbagabas/go-udiff v0.3.1 // indirect
 	github.com/blevesearch/zapx/v17 v17.1.2 // indirect
 	github.com/charmbracelet/x/exp/golden v0.0.0-20241011142426-46044092ad91 // indirect
+	github.com/dlclark/regexp2/v2 v2.1.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 )
 
@@ -68,7 +69,6 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
-	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
