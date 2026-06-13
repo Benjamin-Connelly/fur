@@ -40,6 +40,17 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - run: go test -race -coverprofile=coverage.out ./...
       - run: go tool cover -func=coverage.out | tail -1
+      # Coverage ratchet (lookit-9py.2.8): fail if total statement coverage
+      # drops below the floor. Raise COVERAGE_FLOOR as lookit-9py.2.1 lifts
+      # per-package coverage toward the 85% internal / 60% cmd target.
+      - name: Coverage gate
+        env:
+          COVERAGE_FLOOR: '60'
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
+          echo "total coverage: ${total}% (floor ${COVERAGE_FLOOR}%)"
+          awk -v t="$total" -v f="$COVERAGE_FLOOR" 'BEGIN { exit (t+0 < f+0) ? 1 : 0 }' \
+            || { echo "::error::coverage ${total}% is below the ${COVERAGE_FLOOR}% floor"; exit 1; }
 
   security:
     runs-on: ubuntu-latest
