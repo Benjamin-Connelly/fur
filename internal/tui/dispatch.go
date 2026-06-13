@@ -143,6 +143,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.sidePanel.Type() == PanelTOC {
 			m.sidePanel.SetTOCFromMarkdown(msg.rawSource)
 		}
+		// Update backlinks if panel is open. Previously backlinks were only
+		// populated by the `b` keypress, so navigating to a new file (Enter,
+		// follow-link, or clicking a backlink) left the previous file's
+		// backlinks displayed.
+		if m.sidePanel.Type() == PanelBacklinks {
+			m.sidePanel.SetBacklinks(m.navigator.BacklinksAt(m.preview.filePath))
+		}
 		// Resolve pending anchor fragment
 		if m.pendingFragment != "" {
 			m.scrollToFragment(m.pendingFragment, msg.rawSource)

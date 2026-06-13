@@ -86,6 +86,9 @@ func (m *SidePanelModel) SetTOCFromMarkdown(source string) {
 // SetBacklinks updates the backlinks list from the link graph.
 func (m *SidePanelModel) SetBacklinks(links []index.Link) {
 	m.backlinks = links
+	// Reset selection: the list belongs to a (possibly) different file now, so
+	// a stale cursor index would highlight the wrong row.
+	m.cursor = 0
 }
 
 // SetGitInfo updates the git info panel content.

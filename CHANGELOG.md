@@ -85,6 +85,10 @@
   listener, or injected SSH remotes (audit Chain A).
 
 ### Fixed
+- The TUI backlinks panel now auto-refreshes when you navigate to a new file
+  (Enter, follow-link, or clicking a backlink); previously it only updated on
+  the `b` keypress and showed the prior file's backlinks. Replacing the list
+  also resets the panel selection.
 - README env-var example referenced the pre-rename `LOOKIT_*` prefix and
   implied nested keys were overridable; corrected to `FUR_*` top-level keys.
 - `ParseTarget` no longer accepts a host or user containing whitespace or
