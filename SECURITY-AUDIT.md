@@ -115,6 +115,7 @@ targets:
 | `golangci-lint` v2.11.4 (`gosec`, `errcheck`, `bodyclose`, `staticcheck`, `gocritic`, `unparam`, …) | lint job, pinned action | 0 issues |
 | `govulncheck` v1.2.0 | security job, **pinned** (was `@latest`) for reproducibility | see below |
 | `go test -race` | test job | clean |
+| coverage ratchet | test job, fails below a 60% floor (raise as 2.1 lands) | ~65% |
 
 **govulncheck findings (2026-06-12):** two Go standard-library advisories —
 `GO-2026-5037` (`crypto/x509`) and `GO-2026-5039` (`net/textproto`) — both
