@@ -99,13 +99,6 @@ func (m *Model) handlePreviewSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.preview.ExitSearchMode()
 		m.status.SetMode(m.modeString())
 		return m, nil
-	case "backspace":
-		m.preview.SearchBackspace()
-		return m, nil
-	case "ctrl+u":
-		m.preview.searchQuery = ""
-		m.preview.computeMatches()
-		return m, nil
 	case "up":
 		m.preview.SearchHistoryUp()
 		return m, nil
@@ -121,11 +114,11 @@ func (m *Model) handlePreviewSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status.SetMode(mode)
 		return m, nil
 	default:
-		ch := msg.String()
-		if len(ch) == 1 {
-			m.preview.SearchInput(rune(ch[0]))
-		}
-		return m, nil
+		// Editing (printable runes, backspace, left/right, home/end, ctrl+w,
+		// ctrl+u) goes to the search textinput, which re-syncs the query and
+		// recomputes matches.
+		cmd := m.preview.UpdateSearchInput(msg)
+		return m, cmd
 	}
 }
 

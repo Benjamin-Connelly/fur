@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Benjamin-Connelly/fur/internal/theme"
@@ -40,9 +42,10 @@ type PreviewModel struct {
 
 	// Preview search
 	searchMode     bool
-	searchQuery    string
-	searchMatches  []int // line indices that match
-	searchCurrent  int   // index into searchMatches (current match)
+	searchInput    textinput.Model // backs the query field (cursor editing)
+	searchQuery    string          // mirrors searchInput.Value()
+	searchMatches  []int           // line indices that match
+	searchCurrent  int             // index into searchMatches (current match)
 	searchHistory  []string
 	searchHistIdx  int  // -1 = editing new query, 0+ = browsing history
 	searchRegex    bool // true = regex mode, false = substring
@@ -228,10 +231,37 @@ func (m *PreviewModel) pageLines() int {
 // EnterSearchMode activates search input in the preview pane.
 func (m *PreviewModel) EnterSearchMode() {
 	m.searchMode = true
+	m.searchInput = newSearchInput()
+	m.searchInput.Focus()
 	m.searchQuery = ""
 	m.searchMatches = nil
 	m.searchCurrent = 0
 	m.searchHistIdx = -1
+}
+
+// newSearchInput builds the prompt-less textinput backing the preview search
+// field; the "/ " prompt and match count are rendered by the status bar.
+func newSearchInput() textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = ""
+	return ti
+}
+
+// SearchView returns the rendered search input (text + cursor) for the status
+// bar to display.
+func (m *PreviewModel) SearchView() string {
+	return m.searchInput.View()
+}
+
+// UpdateSearchInput routes an edit key event to the search textinput and
+// re-syncs the query + matches. Returns any command the input emits.
+func (m *PreviewModel) UpdateSearchInput(msg tea.KeyMsg) tea.Cmd {
+	var cmd tea.Cmd
+	m.searchInput, cmd = m.searchInput.Update(msg)
+	m.searchHistIdx = -1
+	m.searchQuery = m.searchInput.Value()
+	m.computeMatches()
+	return cmd
 }
 
 // ExitSearchMode deactivates search input but keeps match highlights.
@@ -260,6 +290,8 @@ func (m *PreviewModel) SearchHistoryUp() {
 	if m.searchHistIdx < len(m.searchHistory)-1 {
 		m.searchHistIdx++
 		m.searchQuery = m.searchHistory[m.searchHistIdx]
+		m.searchInput.SetValue(m.searchQuery)
+		m.searchInput.CursorEnd()
 		m.computeMatches()
 	}
 }
@@ -269,11 +301,14 @@ func (m *PreviewModel) SearchHistoryDown() {
 	if m.searchHistIdx <= 0 {
 		m.searchHistIdx = -1
 		m.searchQuery = ""
+		m.searchInput.SetValue("")
 		m.computeMatches()
 		return
 	}
 	m.searchHistIdx--
 	m.searchQuery = m.searchHistory[m.searchHistIdx]
+	m.searchInput.SetValue(m.searchQuery)
+	m.searchInput.CursorEnd()
 	m.computeMatches()
 }
 

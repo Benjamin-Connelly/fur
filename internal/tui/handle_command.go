@@ -55,33 +55,11 @@ func (m *Model) handleCommandKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "down", "ctrl+n", "ctrl+j":
 		m.cmdPalette.MoveDown()
 		return m, nil
-	case "backspace":
-		if len(m.cmdPalette.input) > 0 {
-			m.cmdPalette.SetInput(m.cmdPalette.input[:len(m.cmdPalette.input)-1])
-		}
-		return m, nil
-	case "ctrl+a":
-		// Move cursor to start (clear input) — emacs home
-		m.cmdPalette.SetInput("")
-		return m, nil
-	case "ctrl+u":
-		// Kill line — clear input (vim + emacs)
-		m.cmdPalette.SetInput("")
-		return m, nil
-	case "ctrl+w":
-		// Delete last word
-		input := m.cmdPalette.input
-		input = strings.TrimRight(input, " ")
-		if i := strings.LastIndex(input, " "); i >= 0 {
-			m.cmdPalette.SetInput(input[:i+1])
-		} else {
-			m.cmdPalette.SetInput("")
-		}
-		return m, nil
 	default:
-		if len(k) == 1 {
-			m.cmdPalette.SetInput(m.cmdPalette.input + k)
-		}
-		return m, nil
+		// Editing (printable runes, backspace, left/right, home/end, ctrl+a/e,
+		// ctrl+w word-delete, ctrl+u) goes to the textinput, which re-syncs the
+		// input string and refilters the command list.
+		cmd := m.cmdPalette.UpdateInput(msg)
+		return m, cmd
 	}
 }

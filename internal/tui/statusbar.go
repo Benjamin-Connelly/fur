@@ -23,6 +23,7 @@ type StatusBarModel struct {
 	visualRange      string
 	searchMode       bool
 	searchQuery      string
+	searchView       string // rendered search textinput (text + cursor)
 	searchMatchCount int
 	searchRegexErr   bool // true if regex failed to compile
 	filterActive     bool // true if file list has frozen filter
@@ -67,11 +68,16 @@ func (m *StatusBarModel) SetMode(mode string) {
 // contextHints returns panel-specific keybinding hints.
 func (m StatusBarModel) contextHints() string {
 	if m.searchMode {
-		if m.searchRegexErr {
-			return fmt.Sprintf("/ %s  invalid regex  ctrl-r:substring  esc:close", m.searchQuery)
+		// searchView renders the textinput (query text + cursor); fall back to
+		// the plain query if it is unset.
+		field := m.searchView
+		if field == "" {
+			field = m.searchQuery
 		}
-		hint := fmt.Sprintf("/ %s (%d matches)", m.searchQuery, m.searchMatchCount)
-		return hint + "  enter/esc:close  ctrl-r:regex  up/down:history"
+		if m.searchRegexErr {
+			return fmt.Sprintf("/ %s  invalid regex  ctrl-r:substring  esc:close", field)
+		}
+		return fmt.Sprintf("/ %s (%d matches)  enter/esc:close  ctrl-r:regex  up/down:history", field, m.searchMatchCount)
 	}
 	if m.visualMode {
 		hint := "j/k:select lines  y:copy permalink  g/G:top/bottom  esc:cancel"

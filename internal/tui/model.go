@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -121,7 +122,8 @@ type Model struct {
 	pendingFragment string
 
 	// Global heading jump state
-	headingJumpInput string
+	headingJumpInput string // mirrors headingJumpTI.Value()
+	headingJumpTI    textinput.Model
 	headingJumpItems []headingJumpEntry
 	headingJumpCur   int
 
@@ -566,6 +568,11 @@ func (m *Model) View() string {
 	// Search state for status bar
 	m.status.searchMode = m.preview.searchMode
 	m.status.searchQuery = m.preview.searchQuery
+	if m.preview.searchMode {
+		m.status.searchView = m.preview.SearchView()
+	} else {
+		m.status.searchView = ""
+	}
 	m.status.searchMatchCount = len(m.preview.searchMatches)
 	m.status.searchRegexErr = m.preview.searchRegexErr
 	// Filter state for status bar
