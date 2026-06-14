@@ -15,7 +15,7 @@ import (
 // transitively the same way.
 func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m,
-		goleak.IgnoreAnyFunction("github.com/dlclark/regexp2.runClock"),
+		goleak.IgnoreAnyFunction("github.com/dlclark/regexp2/v2.runClock"),
 		goleak.IgnoreAnyFunction("github.com/blevesearch/bleve_index_api.AnalysisWorker"),
 	)
 }
