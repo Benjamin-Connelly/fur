@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/Benjamin-Connelly/fur/internal/plugin"
@@ -160,6 +161,29 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case clearStatusMsg:
 		m.status.SetMessage("")
+		return m, nil
+
+	case RemoteInfoMsg:
+		info := msg.Info
+		m.remoteInfo = &info
+		// Start the spinner loop when entering a transient state; the
+		// spinner.TickMsg case keeps it going and stops it when the state
+		// settles.
+		if remoteStateActive(info.State) && !m.spinnerOn {
+			m.spinnerOn = true
+			return m, m.spinner.Tick
+		}
+		return m, nil
+
+	case spinner.TickMsg:
+		// Only keep ticking while the remote connection is in a transient
+		// state; otherwise let the loop stop.
+		if m.remoteInfo != nil && remoteStateActive(m.remoteInfo.State) {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
+		m.spinnerOn = false
 		return m, nil
 	}
 

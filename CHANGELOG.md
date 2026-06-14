@@ -101,6 +101,8 @@
 
 ### Added
 - `fur version` now prints the fur ASCII banner above the build info.
+- Animated spinner next to the remote connection state in the status bar while
+  reconnecting/connecting over SSH.
 - **Named theme system.** 19 built-in palettes — `auto`, `dark`, `light`, `ascii`, plus the Catppuccin (mocha/macchiato/frappe/latte), Gruvbox (dark/light), Dracula, Nord, Solarized (dark/light), Rosé Pine (main/moon/dawn), and TokyoNight (night/storm/moon/day) families. Each palette drives the glamour markdown body, Chroma code highlighting, and lipgloss TUI chrome from one color set. `ctrl+t` cycles through all themes at runtime; `:theme <name>` jumps to a specific one. Any theme name is valid in config and the `--theme` flag. See [docs/themes](docs/themes/).
 - `show_hidden` config key and `--show-hidden` persistent flag. When set, dotfiles and dotdirs are surfaced in listings, search, the link graph, and the file watcher. `.git`, `.hg`, `.svn`, and `.bzr` remain filtered regardless.
 - `fur config init` writes `~/.config/fur/config.yaml` from a documented template (use `--force` to overwrite; the existing file is preserved as `config.yaml.bak`).

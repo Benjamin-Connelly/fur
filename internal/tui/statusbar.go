@@ -35,6 +35,7 @@ type StatusBarModel struct {
 	// Remote connection state
 	remoteDisplay string // e.g. "user@host:/path"
 	remoteState   string // "Connected", "Reconnecting", etc.
+	remoteSpinner string // rendered spinner frame while reconnecting/connecting
 	lastSync      string // e.g. "5s ago"
 
 	// ui holds the active theme's chrome colors (set by Model.applyThemeChrome).
@@ -137,7 +138,11 @@ func (m StatusBarModel) View() string {
 		}
 		middle = " " + m.remoteDisplay
 		if m.remoteState != "" {
-			middle += "  " + connStyle.Render(m.remoteState)
+			state := m.remoteState
+			if m.remoteSpinner != "" {
+				state = m.remoteSpinner + " " + state
+			}
+			middle += "  " + connStyle.Render(state)
 		}
 		if m.lastSync != "" {
 			middle += "  " + m.lastSync
