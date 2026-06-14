@@ -140,8 +140,19 @@ TUI keybindings (press ? for full help):
 
 		idx := index.NewWithOptions(root, indexOpts())
 		_ = plugins.Run(plugin.HookBeforeIndex, &plugin.HookContext{FilePath: root})
-		if err := idx.Build(); err != nil {
-			return fmt.Errorf("building index: %w", err)
+		// Build the index in the background. Small trees finish well within the
+		// grace window and start the TUI with no visible delay; large trees
+		// that take longer get an animated "Building index…" spinner.
+		buildDone := make(chan error, 1)
+		go func() { buildDone <- idx.Build() }()
+		var buildErr error
+		select {
+		case buildErr = <-buildDone:
+		case <-time.After(150 * time.Millisecond):
+			buildErr = tui.ShowIndexLoading(root, buildDone)
+		}
+		if buildErr != nil {
+			return fmt.Errorf("building index: %w", buildErr)
 		}
 		_ = plugins.Run(plugin.HookAfterIndex, &plugin.HookContext{FilePath: root})
 
