@@ -77,6 +77,7 @@ internal/
   plugin/plugin.go              # YAML hook system (prepend/append/replace)
   tasks/tasks.go                # TODO extraction (priority, tags, due dates)
   sanitize/sanitize.go          # Terminal() — strips ANSI/control bytes from attacker-controlled strings
+  ui/ui.go                      # Banner() — embedded ASCII banner (go:embed banner.txt)
 e2e/                            # Separate Go module: browser-level web E2E (chromedp). Own go.mod (Go 1.26) so the browser dep never bumps the main module's Go version. Run: cd e2e && go test ./...
 ```
 

@@ -137,6 +137,10 @@ func TestVersionCommand(t *testing.T) {
 			t.Errorf("version output missing %q; got:\n%s", want, out)
 		}
 	}
+	// The ASCII banner is printed above the version info.
+	if !strings.Contains(out, "Further Reading") {
+		t.Errorf("version output missing the banner; got:\n%s", out)
+	}
 }
 
 // captureStdout redirects os.Stdout for the duration of fn and returns what was

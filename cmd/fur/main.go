@@ -28,6 +28,7 @@ import (
 	"github.com/Benjamin-Connelly/fur/internal/render"
 	"github.com/Benjamin-Connelly/fur/internal/tasks"
 	"github.com/Benjamin-Connelly/fur/internal/tui"
+	"github.com/Benjamin-Connelly/fur/internal/ui"
 	"github.com/Benjamin-Connelly/fur/internal/web"
 )
 
@@ -584,6 +585,8 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version, build, and runtime information",
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(ui.Banner())
+		fmt.Println()
 		fmt.Printf("fur %s\n", version)
 		fmt.Printf("  commit:  %s\n", commit)
 		fmt.Printf("  built:   %s\n", date)
