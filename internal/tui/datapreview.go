@@ -40,9 +40,10 @@ func formatJSON(content string) (string, bool) {
 	return string(formatted), true
 }
 
-// formatCSV parses CSV content and returns a markdown-style table.
-// Uses the given delimiter (comma for CSV, tab for TSV).
-func formatCSV(content string, delimiter rune) (string, bool) {
+// parseCSVRows parses CSV/TSV content into rows, capping at maxCSVRows+1
+// (header + maxCSVRows data rows). Returns false if not parseable as tabular
+// data. Shared by the static renderer and the interactive table builder.
+func parseCSVRows(content string, delimiter rune) ([][]string, bool) {
 	r := csv.NewReader(strings.NewReader(content))
 	r.Comma = delimiter
 	r.LazyQuotes = true
@@ -59,7 +60,7 @@ func formatCSV(content string, delimiter rune) (string, bool) {
 		if err != nil {
 			// If we can't parse even the first row, bail
 			if len(rows) == 0 {
-				return content, false
+				return nil, false
 			}
 			break
 		}
@@ -67,9 +68,18 @@ func formatCSV(content string, delimiter rune) (string, bool) {
 	}
 
 	if len(rows) == 0 {
+		return nil, false
+	}
+	return rows, true
+}
+
+// formatCSV parses CSV content and returns a markdown-style table.
+// Uses the given delimiter (comma for CSV, tab for TSV).
+func formatCSV(content string, delimiter rune) (string, bool) {
+	rows, ok := parseCSVRows(content, delimiter)
+	if !ok {
 		return content, false
 	}
-
 	return renderMarkdownTable(rows), true
 }
 

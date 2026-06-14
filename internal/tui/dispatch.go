@@ -151,6 +151,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.sidePanel.Type() == PanelBacklinks {
 			m.sidePanel.SetBacklinks(m.navigator.BacklinksAt(m.preview.filePath))
 		}
+		// Interactive data table for CSV/TSV.
+		if msg.csvRows != nil {
+			if t, ok := buildCSVTable(msg.csvRows, m.preview.height); ok {
+				m.preview.SetTable(t)
+			}
+		}
 		// Resolve pending anchor fragment
 		if m.pendingFragment != "" {
 			m.scrollToFragment(m.pendingFragment, msg.rawSource)

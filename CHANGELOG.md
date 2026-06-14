@@ -100,6 +100,9 @@
   `FuzzParseTarget`.
 
 ### Added
+- CSV/TSV files preview as an interactive `bubbles/table`: navigate rows with
+  `j`/`k`/arrows, page with `ctrl+d`/`ctrl+u`, jump with `g`/`G`, scroll
+  columns with `←`/`→`. Cells are sanitized of terminal control sequences.
 - `fur version` now prints the fur ASCII banner above the build info.
 - Animated spinner next to the remote connection state in the status bar while
   reconnecting/connecting over SSH.

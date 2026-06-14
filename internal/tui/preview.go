@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -17,12 +18,17 @@ var ansiStripRe = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
 
 // PreviewModel renders file content in the preview pane.
 type PreviewModel struct {
-	content       string
-	lines         []string
-	filePath      string
-	scroll        int
-	width         int
-	height        int
+	content  string
+	lines    []string
+	filePath string
+	scroll   int
+	width    int
+	height   int
+
+	// Interactive data table (CSV/TSV). When tableMode is true the pane renders
+	// dataTable instead of the text content and routes navigation keys to it.
+	dataTable     table.Model
+	tableMode     bool
 	highlightLine int // -1 = no highlight
 
 	// Source line tracking (for permalink generation)
@@ -60,7 +66,8 @@ func NewPreviewModel() PreviewModel {
 	return PreviewModel{highlightLine: -1}
 }
 
-// SetContent updates the preview with rendered content.
+// SetContent updates the preview with rendered content. Any active data-table
+// mode is cleared; SetTable re-enables it for tabular files.
 func (m *PreviewModel) SetContent(path, content string) {
 	m.filePath = path
 	m.content = content
@@ -69,6 +76,7 @@ func (m *PreviewModel) SetContent(path, content string) {
 	m.highlightLine = -1
 	m.visualMode = false
 	m.cursorLine = 0
+	m.tableMode = false
 	m.searchMode = false
 	m.searchQuery = ""
 	m.searchMatches = nil
@@ -444,7 +452,28 @@ func (m PreviewModel) gutterWidth() int {
 }
 
 // View renders the preview content with line numbers.
+// SetTable puts the preview into interactive data-table mode.
+func (m *PreviewModel) SetTable(t table.Model) {
+	m.dataTable = t
+	m.tableMode = true
+}
+
+// InTableMode reports whether the preview is showing an interactive table.
+func (m *PreviewModel) InTableMode() bool {
+	return m.tableMode
+}
+
+// UpdateTable forwards a key event to the data table (row navigation).
+func (m *PreviewModel) UpdateTable(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.dataTable, cmd = m.dataTable.Update(msg)
+	return cmd
+}
+
 func (m PreviewModel) View() string {
+	if m.tableMode {
+		return m.dataTable.View()
+	}
 	if m.content == "" {
 		placeholder := lipgloss.NewStyle().
 			Foreground(m.ui.Dim).
