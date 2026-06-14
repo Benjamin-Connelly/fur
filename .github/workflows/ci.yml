@@ -41,11 +41,14 @@ jobs:
       - run: go test -race -coverprofile=coverage.out ./...
       - run: go tool cover -func=coverage.out | tail -1
       # Coverage ratchet (lookit-9py.2.8): fail if total statement coverage
-      # drops below the floor. Raise COVERAGE_FLOOR as lookit-9py.2.1 lifts
-      # per-package coverage toward the 85% internal / 60% cmd target.
+      # drops below the floor. Bumped 60 -> 75 after the lookit-9py.2.1 pass
+      # lifted the whole-module total to ~78% (every internal package now has
+      # unit/table-driven tests). A few timing-sensitive tests (config.Watch,
+      # web Start/Stop) can self-skip on slow runners, so the floor keeps a
+      # ~3pt buffer below the observed total.
       - name: Coverage gate
         env:
-          COVERAGE_FLOOR: '60'
+          COVERAGE_FLOOR: '75'
         run: |
           total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
           echo "total coverage: ${total}% (floor ${COVERAGE_FLOOR}%)"
