@@ -85,6 +85,9 @@
   listener, or injected SSH remotes (audit Chain A).
 
 ### Fixed
+- Selecting a TOC entry now hands focus to the document, so navigation keys
+  continue reading from the jumped-to heading. Previously focus stayed in the
+  TOC panel and `j`/`k` kept moving the TOC cursor.
 - The TUI backlinks panel now auto-refreshes when you navigate to a new file
   (Enter, follow-link, or clicking a backlink); previously it only updated on
   the `b` keypress and showed the prior file's backlinks. Replacing the list

@@ -22,11 +22,17 @@ func (m *Model) handleSidePanelKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.navigateToPath(sel.Path, sel.Scroll)
 		}
 		if sel.Line > 0 {
-			// Scroll preview to line (TOC)
-			m.preview.scroll = sel.Line - 1
-			if m.preview.scroll < 0 {
-				m.preview.scroll = 0
+			// Jump the preview to the heading (TOC) and hand focus to the
+			// document so navigation keys continue reading from there —
+			// previously focus stayed in the TOC panel, so j/k kept moving the
+			// TOC cursor instead of scrolling the document.
+			m.preview.CursorTo(sel.Line - 1)        // clamps + places the cursor
+			m.preview.scroll = m.preview.cursorLine // heading at the top
+			if m.preview.scroll > m.preview.maxScroll() {
+				m.preview.scroll = m.preview.maxScroll()
 			}
+			m.focus = PanelPreview
+			m.status.SetMode(m.modeString())
 			return m, nil
 		}
 		return m, nil
