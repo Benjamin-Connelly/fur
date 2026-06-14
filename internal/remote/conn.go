@@ -154,7 +154,12 @@ func (c *Conn) Connect() error {
 		return fmt.Errorf("resolving remote path: %w", err)
 	}
 
-	go c.keepaliveLoop()
+	// Bind the keepalive loop to the current done channel so a later Reconnect
+	// (which swaps c.done under the lock) doesn't race this loop's select.
+	c.mu.RLock()
+	done := c.done
+	c.mu.RUnlock()
+	go c.keepaliveLoop(done)
 
 	return nil
 }
@@ -274,7 +279,15 @@ func (c *Conn) Reconnect() error {
 		c.sshClient = nil
 	}
 
-	// Recreate done channel under the lock so keepaliveLoop sees the new one
+	// Stop the existing keepalive loop before swapping the done channel —
+	// otherwise it keeps selecting on the old (never-closed) channel and
+	// leaks. Then recreate done so the post-reconnect keepalive uses it.
+	select {
+	case <-c.done:
+		// already closed
+	default:
+		close(c.done)
+	}
 	c.done = make(chan struct{})
 	c.mu.Unlock()
 
@@ -493,7 +506,7 @@ func (c *Conn) hostKeyCallback() (ssh.HostKeyCallback, error) {
 	}, nil
 }
 
-func (c *Conn) keepaliveLoop() {
+func (c *Conn) keepaliveLoop(done chan struct{}) {
 	ticker := time.NewTicker(c.keepalive)
 	defer ticker.Stop()
 
@@ -514,7 +527,7 @@ func (c *Conn) keepaliveLoop() {
 				go c.Reconnect()
 				return
 			}
-		case <-c.done:
+		case <-done:
 			return
 		}
 	}
