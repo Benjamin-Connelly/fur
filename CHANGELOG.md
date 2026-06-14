@@ -100,6 +100,10 @@
   `FuzzParseTarget`.
 
 ### Added
+- Large directory trees now show an animated "Building index…" spinner while
+  the initial walk runs, instead of a silent pause. The index builds in the
+  background; trees that index within ~150ms start the TUI with no visible
+  delay (no flash for small repos).
 - CSV/TSV files preview as an interactive `bubbles/table`: navigate rows with
   `j`/`k`/arrows, page with `ctrl+d`/`ctrl+u`, jump with `g`/`G`, scroll
   columns with `←`/`→`. Cells are sanitized of terminal control sequences.
