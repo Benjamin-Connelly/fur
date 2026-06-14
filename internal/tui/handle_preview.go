@@ -10,6 +10,16 @@ import (
 )
 
 func (m *Model) handlePreviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Interactive data table (CSV/TSV): row navigation keys drive the table;
+	// other keys (panel toggles, follow-link, etc.) fall through to the normal
+	// handling below.
+	if m.preview.InTableMode() {
+		switch msg.String() {
+		case "up", "k", "down", "j", "pgup", "pgdown", "ctrl+u", "ctrl+d", "home", "g", "end", "G", "left", "right":
+			return m, m.preview.UpdateTable(msg)
+		}
+	}
+
 	switch msg.String() {
 	case "up", "k":
 		m.preview.CursorUp()

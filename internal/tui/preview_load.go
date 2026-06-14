@@ -17,6 +17,7 @@ import (
 type previewWithSourceMsg struct {
 	preview   PreviewLoadedMsg
 	rawSource string
+	csvRows   [][]string // non-nil for CSV/TSV → render as an interactive table
 }
 
 func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
@@ -115,16 +116,19 @@ func (m *Model) loadPreview(entry index.FileEntry) (tea.Model, tea.Cmd) {
 			if ext == ".tsv" {
 				delim = '\t'
 			}
-			if table, ok := formatCSV(content, delim); ok {
+			if rows, ok := parseCSVRows(content, delim); ok {
+				// Text fallback (rendered markdown table) for non-table render
+				// paths; csvRows drives the interactive table in dispatch.
+				textTable := renderMarkdownTable(rows)
 				if mdRenderer != nil {
-					rendered, renderErr := mdRenderer.Render(table)
-					if renderErr == nil {
-						content = rendered
-					} else {
-						content = table
+					if rendered, renderErr := mdRenderer.Render(textTable); renderErr == nil {
+						textTable = rendered
 					}
-				} else {
-					content = table
+				}
+				return previewWithSourceMsg{
+					preview:   PreviewLoadedMsg{Path: entry.RelPath, Content: textTable},
+					rawSource: content,
+					csvRows:   rows,
 				}
 			}
 		} else if isTextFile(ext) {
