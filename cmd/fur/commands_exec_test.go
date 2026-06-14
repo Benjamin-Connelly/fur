@@ -142,6 +142,18 @@ func TestExec_Completion(t *testing.T) {
 
 func TestExec_GenMan(t *testing.T) {
 	home, _ := fixtureTree(t)
+	// gen-man copies pages to a "internal/manpages/pages" path relative to the
+	// working directory; chdir into the temp HOME so it doesn't pollute the
+	// source tree when the suite runs from cmd/fur.
+	origWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(home); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(origWD) })
+
 	manDir := filepath.Join(home, "man")
 	if _, err := execFur(t, home, "gen-man", manDir); err != nil {
 		t.Fatalf("gen-man: %v", err)
