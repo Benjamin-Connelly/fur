@@ -1114,12 +1114,19 @@ func runRemote(target *remote.Target) error {
 	if initialFile != "" {
 		model.SelectFile(initialFile)
 	}
+	// Initial state is set directly — this runs before the program starts, so
+	// there is no concurrency with the render loop yet.
 	model.SetRemoteInfo(&tui.RemoteInfo{
 		Display: resolved.Display(),
 		State:   conn.State().String(),
 	})
 
-	// Background: build fulltext + link graph, then poll for changes
+	p := tea.NewProgram(model, tea.WithAltScreen())
+
+	// Background: build fulltext + link graph, then poll for changes. State
+	// updates go through p.Send (not direct model mutation) so the model is
+	// only touched on the Bubble Tea update goroutine — no data race with the
+	// render loop, and it drives the reconnect spinner.
 	done := make(chan struct{})
 	defer close(done)
 	defer idx.CloseFulltext()
@@ -1135,11 +1142,11 @@ func runRemote(target *remote.Target) error {
 			select {
 			case <-ticker.C:
 				elapsed := time.Since(lastRefresh).Truncate(time.Second)
-				model.SetRemoteInfo(&tui.RemoteInfo{
+				p.Send(tui.RemoteInfoMsg{Info: tui.RemoteInfo{
 					Display:  resolved.Display(),
 					State:    conn.State().String(),
 					LastSync: fmt.Sprintf("refreshed %s ago", elapsed),
-				})
+				}})
 
 				// Rebuild index every 15s to detect remote changes
 				if time.Since(lastRefresh) >= 15*time.Second {
@@ -1155,7 +1162,6 @@ func runRemote(target *remote.Target) error {
 		}
 	}()
 
-	p := tea.NewProgram(model, tea.WithAltScreen())
 	_, err = p.Run()
 	return err
 }

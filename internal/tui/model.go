@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -138,6 +139,8 @@ type Model struct {
 
 	// Remote connection state (nil = local mode)
 	remoteInfo *RemoteInfo
+	spinner    spinner.Model
+	spinnerOn  bool // true while the spinner tick loop is running
 
 	// Single-file mode: hide file list, start in preview
 	singleFile bool
@@ -151,6 +154,20 @@ type RemoteInfo struct {
 	Display  string // "user@host:/path"
 	State    string // "Connected", "Reconnecting", "Disconnected"
 	LastSync string // "5s ago", "syncing..."
+}
+
+// RemoteInfoMsg carries a remote-connection state update from the background
+// poll goroutine into the Bubble Tea update loop. It is delivered via
+// p.Send so the model is only ever mutated on the update goroutine (no data
+// race with the render loop).
+type RemoteInfoMsg struct {
+	Info RemoteInfo
+}
+
+// remoteStateActive reports whether the remote connection is in a transient
+// state worth animating a spinner for.
+func remoteStateActive(state string) bool {
+	return state == "Reconnecting" || state == "Connecting"
 }
 
 // mark records a position for vim-style marks.
@@ -199,7 +216,11 @@ func New(cfg *config.Config, idx index.Indexer, links *index.LinkGraph, plugins 
 	preview.scrolloff = cfg.ScrollOff
 	preview.readingGuide = cfg.ReadingGuide
 
+	sp := spinner.New()
+	sp.Spinner = spinner.Dot
+
 	m := &Model{
+		spinner:        sp,
 		cfg:            cfg,
 		idx:            idx,
 		links:          links,
@@ -551,6 +572,11 @@ func (m *Model) View() string {
 		m.status.remoteDisplay = m.remoteInfo.Display
 		m.status.remoteState = m.remoteInfo.State
 		m.status.lastSync = m.remoteInfo.LastSync
+		if remoteStateActive(m.remoteInfo.State) {
+			m.status.remoteSpinner = m.spinner.View()
+		} else {
+			m.status.remoteSpinner = ""
+		}
 	}
 	m.status.visualMode = m.preview.visualMode
 	if m.preview.visualMode {
