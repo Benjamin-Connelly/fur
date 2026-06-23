@@ -89,7 +89,7 @@ e2e/                            # Separate Go module: browser-level web E2E (chr
 
 **Index**: In-memory file tree with `.gitignore` parsing (manual, no external dep). Bidirectional link graph tracks forward links and backlinks between markdown files. Supports standard `[text](target)` and `[[wikilink]]` syntax. fsnotify watcher with 100ms debounce rebuilds index and link graph on changes. Bleve fulltext index at `~/.cache/fur/index.bleve`.
 
-**Config**: Viper reads from `~/.config/fur/config.yaml`, env vars (`FUR_*`, top-level keys only — viper's AutomaticEnv has no key replacer, so nested keys like `server.host` are not env-overridable, by design), and CLI flags (flags win). Per-project config via `.fur.toml` / `.fur.yaml` (walks up from CWD). PersistentPreRunE on root command merges all sources. Live reload via `viper.WatchConfig()`. Auto-migrates from legacy `~/.config/lookit/` path.
+**Config**: Viper reads from `~/.config/fur/config.yaml`, env vars (`FUR_*`, top-level keys only — viper's AutomaticEnv has no key replacer, so nested keys like `server.host` are not env-overridable, by design), and CLI flags (flags win). Per-project config via `.fur.toml` / `.fur.yaml` (walks up from CWD). PersistentPreRunE on root command merges all sources. Live reload via `viper.WatchConfig()`.
 
 ## Conventions
 

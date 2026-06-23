@@ -390,22 +390,11 @@ func CreateDefaultForce() (string, string, error) {
 	return configPath, backupPath, nil
 }
 
-// ConfigDir returns the fur configuration directory.
-// Migrates from the legacy ~/.config/lookit path if it exists.
+// ConfigDir returns the fur configuration directory (~/.config/fur).
 func ConfigDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	newPath := filepath.Join(home, ".config", "fur")
-	legacyPath := filepath.Join(home, ".config", "lookit")
-	if _, err := os.Stat(legacyPath); err == nil {
-		if _, err := os.Stat(newPath); os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "note: migrating config from %s to %s\n", legacyPath, newPath)
-			if err := os.Rename(legacyPath, newPath); err != nil {
-				fmt.Fprintf(os.Stderr, "warning: config migration failed: %v\n", err)
-			}
-		}
-	}
-	return newPath, nil
+	return filepath.Join(home, ".config", "fur"), nil
 }
