@@ -326,11 +326,37 @@ type codePageData struct {
 	HighlightedHTML template.HTML
 }
 
+// imageContentTypes is the allowlist of extensions handleFile serves as raw
+// image bytes (with the mapped Content-Type) instead of routing through the
+// syntax highlighter. Keeping it an explicit map — rather than deferring to
+// mime.TypeByExtension — bounds exactly what handleFile will emit as a
+// non-HTML body, which is a deliberate security boundary. SVG is safe to
+// serve here because the response CSP (script-src 'self', no 'unsafe-inline')
+// blocks inline/script execution, and SVGs loaded via <img> never script.
+var imageContentTypes = map[string]string{
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif":  "image/gif",
+	".webp": "image/webp",
+	".ico":  "image/x-icon",
+	".bmp":  "image/bmp",
+	".svg":  "image/svg+xml",
+}
+
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request, relPath string) {
 	absPath := filepath.Join(s.idx.Root(), relPath)
 	source, err := afero.ReadFile(s.fs, absPath)
 	if err != nil {
 		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	// Images are served as raw bytes so <img> references in rendered markdown
+	// resolve; the ETag middleware still wraps this for caching.
+	if ct, ok := imageContentTypes[strings.ToLower(filepath.Ext(relPath))]; ok {
+		w.Header().Set("Content-Type", ct)
+		w.Write(source)
 		return
 	}
 

@@ -299,6 +299,46 @@ func TestHandleFileMissing(t *testing.T) {
 	}
 }
 
+// TestHandleFileServesImagesRaw guards the fix for the image-serving bug:
+// handleFile must emit image files as raw bytes with the right Content-Type so
+// <img> references in rendered markdown resolve, instead of routing them
+// through the syntax highlighter as an HTML code-view page.
+func TestHandleFileServesImagesRaw(t *testing.T) {
+	s, dir := setupTestServer(t)
+	defer s.sse.Stop()
+
+	// handleFile dispatches on extension, not on validating image structure,
+	// so arbitrary bytes suffice. Use the PNG signature for realism.
+	payload := "\x89PNG\r\n\x1a\n\x00rawbytes"
+	cases := map[string]string{
+		"logo.png":   "image/png",
+		"anim.gif":   "image/gif",
+		"icon.ico":   "image/x-icon",
+		"vector.svg": "image/svg+xml",
+	}
+	for name, wantCT := range cases {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(payload), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		req := httptest.NewRequest("GET", "/"+name, nil)
+		rec := httptest.NewRecorder()
+		s.handleFile(rec, req, name)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200", name, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); ct != wantCT {
+			t.Errorf("%s: Content-Type = %q, want %q", name, ct, wantCT)
+		}
+		if rec.Body.String() != payload {
+			t.Errorf("%s: body not served as raw bytes", name)
+		}
+		if strings.Contains(rec.Body.String(), "chroma") || strings.Contains(rec.Body.String(), "<!DOCTYPE") {
+			t.Errorf("%s: image must be raw, not a syntax-highlighted HTML page", name)
+		}
+	}
+}
+
 // --- handleAPIFiles tests ---
 
 func TestHandleAPIFilesReturnsJSON(t *testing.T) {
