@@ -311,10 +311,9 @@ func TestHandleFileServesImagesRaw(t *testing.T) {
 	// so arbitrary bytes suffice. Use the PNG signature for realism.
 	payload := "\x89PNG\r\n\x1a\n\x00rawbytes"
 	cases := map[string]string{
-		"logo.png":   "image/png",
-		"anim.gif":   "image/gif",
-		"icon.ico":   "image/x-icon",
-		"vector.svg": "image/svg+xml",
+		"logo.png": "image/png",
+		"anim.gif": "image/gif",
+		"icon.ico": "image/x-icon",
 	}
 	for name, wantCT := range cases {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(payload), 0o644); err != nil {
@@ -336,6 +335,30 @@ func TestHandleFileServesImagesRaw(t *testing.T) {
 		if strings.Contains(rec.Body.String(), "chroma") || strings.Contains(rec.Body.String(), "<!DOCTYPE") {
 			t.Errorf("%s: image must be raw, not a syntax-highlighted HTML page", name)
 		}
+	}
+}
+
+// TestHandleFileSVGNotServedAsImage guards the security boundary: SVG is an
+// active document, so it must NOT be served as image/svg+xml (it could script
+// against fur's origin via the CDN-allowing CSP). It falls through to the
+// inert syntax-highlighted code view instead.
+func TestHandleFileSVGNotServedAsImage(t *testing.T) {
+	s, dir := setupTestServer(t)
+	defer s.sse.Stop()
+
+	svg := `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`
+	if err := os.WriteFile(filepath.Join(dir, "evil.svg"), []byte(svg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest("GET", "/evil.svg", nil)
+	rec := httptest.NewRecorder()
+	s.handleFile(rec, req, "evil.svg")
+
+	if ct := rec.Header().Get("Content-Type"); strings.Contains(ct, "svg") {
+		t.Errorf("SVG served as %q; must not be served as an active image type", ct)
+	}
+	if !strings.Contains(rec.Header().Get("Content-Type"), "text/html") {
+		t.Errorf("SVG should fall through to the code view (text/html), got %q", rec.Header().Get("Content-Type"))
 	}
 }
 

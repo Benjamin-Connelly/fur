@@ -330,9 +330,15 @@ type codePageData struct {
 // image bytes (with the mapped Content-Type) instead of routing through the
 // syntax highlighter. Keeping it an explicit map — rather than deferring to
 // mime.TypeByExtension — bounds exactly what handleFile will emit as a
-// non-HTML body, which is a deliberate security boundary. SVG is safe to
-// serve here because the response CSP (script-src 'self', no 'unsafe-inline')
-// blocks inline/script execution, and SVGs loaded via <img> never script.
+// non-HTML body, which is a deliberate security boundary.
+//
+// SVG is intentionally excluded. An SVG is an active document: served as
+// image/svg+xml and navigated to directly, it executes script against fur's
+// origin. The response CSP does not save us — its script-src allows
+// cdn.jsdelivr.net and d3js.org, so a planted SVG could pull arbitrary JS from
+// those CDNs and read local files via /__api/document. SVGs fall through to
+// the (inert) syntax-highlighted code view instead; raster formats below
+// cannot carry script.
 var imageContentTypes = map[string]string{
 	".png":  "image/png",
 	".jpg":  "image/jpeg",
@@ -341,7 +347,6 @@ var imageContentTypes = map[string]string{
 	".webp": "image/webp",
 	".ico":  "image/x-icon",
 	".bmp":  "image/bmp",
-	".svg":  "image/svg+xml",
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request, relPath string) {
