@@ -1,74 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-labelledby="t d">
-  <title id="t">FUR — Further Reading</title>
-  <desc id="d">Ginger tabby cat in brass reading glasses perched on a stack of three books. Warm bookish palette: oxblood, forest green, brass, parchment.</desc>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
 
-  <!-- Book 1 (bottom, oxblood) -->
-  <rect x="8"  y="74" width="84" height="16" fill="#8B2635"/>
-  <rect x="8"  y="87" width="84" height="1.5" fill="#E8CF8D"/>
-  <rect x="18" y="78" width="38" height="1"   fill="#C9A961"/>
-  <rect x="18" y="82" width="28" height="1"   fill="#C9A961"/>
-
-  <!-- Book 2 (middle, forest green) -->
-  <rect x="12" y="58" width="76" height="16" fill="#2D5A3D"/>
-  <rect x="12" y="71" width="76" height="1.5" fill="#E8CF8D"/>
-  <rect x="22" y="62" width="32" height="1"   fill="#C9A961"/>
-  <rect x="22" y="66" width="26" height="1"   fill="#C9A961"/>
-
-  <!-- Book 3 (top, warm tan with forest-green text lines) -->
-  <rect x="18" y="42" width="64" height="16" fill="#D4A855"/>
-  <rect x="18" y="55" width="64" height="1.5" fill="#6B4F1D"/>
-  <rect x="26" y="46" width="28" height="1"   fill="#2D5A3D"/>
-  <rect x="26" y="50" width="22" height="1"   fill="#2D5A3D"/>
-
-  <!-- Oxblood bookmark ribbon dangling from top book -->
-  <rect x="74"    y="42" width="2.5" height="22" fill="#8B2635"/>
-  <polygon points="72,64 77,64 74.5,68" fill="#8B2635"/>
-
-  <!-- Cat head silhouette (ginger tabby) -->
-  <path d="
-    M 30 42
-    L 30 34
-    Q 30 30 34 30
-    L 38 18
-    L 44 32
-    L 56 32
-    L 62 18
-    L 66 30
-    Q 70 30 70 34
-    L 70 42
-    Z
-  " fill="#D97543"/>
-
-  <!-- Belly/muzzle (lighter ginger) -->
-  <path d="M 38 38 L 62 38 L 60 42 L 40 42 Z" fill="#F0D4A8"/>
-
-  <!-- Tabby stripe accents -->
-  <g stroke="#A84A1F" stroke-width="1.2" stroke-linecap="round" fill="none">
-    <path d="M 37 22 L 39 30"/>
-    <path d="M 41 26 L 42 32"/>
-    <path d="M 63 22 L 61 30"/>
-    <path d="M 59 26 L 58 32"/>
+<svg
+   version="1.1"
+   id="svg1"
+   width="1254"
+   height="1254"
+   viewBox="0 0 1254 1254"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.4.4 (1:1.4.4+202605061435+dcaf3e7d9e)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="0.45279645"
+     inkscape:cx="601.81568"
+     inkscape:cy="657.02812"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g1" />
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="Image"
+     id="g1">
+    <path
+       style="fill:#000000;stroke-width:1.01461"
+       d="M 6.5753403,637.68496 V 10.684935 H 633.57536 1260.5753 V 637.68496 1264.6849 H 633.57536 6.5753403 Z"
+       id="path10" />
+    <path
+       style="fill:#ffffff"
+       d="m 1018.375,553.27995 c 1.4851,-0.77274 3.8253,-2.60895 5.2003,-4.08046 l 2.5,-2.67548 0.2598,-146.25706 0.2599,-146.25706 -2.2679,-3.41248 c -3.3866,-5.09569 -10.0462,-8.18297 -16.1912,-7.50599 -8.71076,0.95964 -14.00426,4.56143 -32.08586,21.83193 -9.36391,8.94388 -52.89877,50.36633 -96.74413,92.0499 -43.84536,41.68357 -80.39647,77.09873 -81.2247,78.70034 -6.2723,12.12929 6.2744,25.84738 19.15963,20.94843 1.53763,-0.58461 5.50442,-3.62211 8.81509,-6.75 12.93532,-12.22117 101.50613,-96.14625 128.99385,-122.22785 38.77966,-36.79594 39.26816,-37.23633 40.47546,-36.49019 0.7244,0.44773 1.0506,39.62856 1.0517,126.33998 0,117.66773 0.1131,125.91312 1.75,129.17105 3.53816,7.04253 13.13826,10.2101 20.04806,6.61494 z"
+       id="path9" />
+    <path
+       style="fill:#ffffff"
+       d="m 264.53011,551.71714 c 6.39382,-4.55279 6.04523,3.23579 6.04523,-135.06963 0,-123.89759 0.0336,-126.09609 1.92454,-125.78212 1.7534,0.29113 24.16452,20.83092 75.55108,69.24255 10.46341,9.85766 36.71642,34.60766 58.34002,55 21.62359,20.39235 41.17651,38.3145 43.45092,39.827 12.84086,8.53926 28.39085,-4.34452 22.36723,-18.53212 -0.75142,-1.76983 -4.23892,-5.92351 -7.75,-9.23039 -3.51109,-3.30689 -29.32786,-27.60689 -57.37061,-54 -28.04276,-26.39312 -59.77075,-56.31249 -70.50665,-66.48749 -65.42559,-62.00741 -66.11852,-62.5796 -77.04573,-63.62185 -6.70752,-0.63977 -13.23618,2.30347 -16.71256,7.53432 l -2.26791,3.41248 0.25984,146.23264 c 0.25698,144.62946 0.28176,146.25729 2.25983,148.4807 5.79153,6.50986 14.75958,7.76131 21.45477,2.99391 z"
+       id="path8" />
+    <path
+       style="fill:#fd578e;fill-opacity:1"
+       d="m 904.74365,870.68494 c 4.14053,0 5.41473,-0.50738 8.59638,-3.42305 l 3.73531,-3.42304 0.26139,-126.69049 0.26139,-126.69049 -2.16386,-3.5012 c -3.80813,-6.16168 -4.63154,-6.27173 -46.92567,-6.27173 -32.94575,0 -38.59135,0.21845 -41.51636,1.60646 -9.88003,4.68839 -10.49819,20.27663 -1.03135,26.008 2.80851,1.70031 6.01242,1.93466 32.61446,2.38554 l 29.5,0.5 0.25467,103.89191 c 0.18615,75.93797 -0.0486,104.25733 -0.87245,105.25 -0.90136,1.08608 -6.86089,1.35884 -29.75466,1.36183 -26.58257,0.003 -28.85516,0.14251 -31.81374,1.94649 -7.87331,4.8007 -8.99027,15.90107 -2.34844,23.33893 l 2.86719,3.21084 27.83372,0.60337 c 15.30854,0.33186 31.84034,0.44436 36.73733,0.25 4.897,-0.19435 11.09111,-0.35337 13.76469,-0.35337 z"
+       id="path7" />
+    <path
+       style="fill:#52cbfd;fill-opacity:0.88627452"
+       d="m 439.01764,870.57926 c 11.03271,-3.06307 14.05632,-16.63099 5.5924,-25.09491 l -3.79941,-3.79941 h -29.4952 c -23.62821,0 -29.7194,-0.27014 -30.62231,-1.35809 -0.82385,-0.99267 -1.0586,-29.31203 -0.87245,-105.25 l 0.25467,-103.89191 31.17894,-0.5 c 29.51103,-0.47325 31.32655,-0.6103 33.93821,-2.56179 7.1714,-5.35863 8.93525,-13.57228 4.46711,-20.80187 -4.07838,-6.59895 -4.35489,-6.63634 -49.08426,-6.63634 -43.84053,0 -44.28164,0.0526 -48.5,5.78308 -1.97126,2.67788 -2.004,4.51328 -2.27809,127.71692 -0.15295,68.75 -0.0406,125.97782 0.24971,127.17293 0.84191,3.46613 5.41852,8.23304 8.86129,9.22977 4.65258,1.347 75.25416,1.33961 80.10939,-0.008 z"
+       id="path6" />
+    <path
+       style="fill:#ffffff"
+       d="m 734.1939,979.06161 c 5.31391,-2.5216 7.88144,-6.8793 7.88144,-13.3767 0,-4.2033 -0.56551,-6.2929 -2.39866,-8.8631 -4.5906,-6.4365 0.62087,-6.1372 -106.81922,-6.1331 -95.80738,0 -97.84794,0.044 -101.04126,1.9908 -10.00507,6.1002 -9.56118,21.0587 0.77907,26.2539 3.24184,1.6287 10.14411,1.7485 100.82894,1.75 87.74883,10e-4 97.68622,-0.1586 100.76969,-1.6218 z"
+       id="path1" />
   </g>
-
-  <!-- Inner ears (soft pink) -->
-  <polygon points="40,22 42,30 44,30" fill="#E8A8B8"/>
-  <polygon points="60,22 58,30 56,30" fill="#E8A8B8"/>
-
-  <!-- Brass round reading glasses -->
-  <circle cx="43" cy="38" r="4" fill="#F5ECD9"/>
-  <circle cx="57" cy="38" r="4" fill="#F5ECD9"/>
-  <circle cx="43" cy="38" r="4" fill="none" stroke="#C9A961" stroke-width="1.5"/>
-  <circle cx="57" cy="38" r="4" fill="none" stroke="#C9A961" stroke-width="1.5"/>
-  <line x1="47" y1="38" x2="53" y2="38" stroke="#C9A961" stroke-width="1.5"/>
-  <line x1="39.2" y1="38.3" x2="33" y2="36" stroke="#C9A961" stroke-width="1.2"/>
-  <line x1="60.8" y1="38.3" x2="67" y2="36" stroke="#C9A961" stroke-width="1.2"/>
-
-  <!-- Forest-green eyes with highlights -->
-  <circle cx="43" cy="38" r="1.5" fill="#2D5A3D"/>
-  <circle cx="57" cy="38" r="1.5" fill="#2D5A3D"/>
-  <circle cx="43.7" cy="37.3" r="0.5" fill="#F5ECD9"/>
-  <circle cx="57.7" cy="37.3" r="0.5" fill="#F5ECD9"/>
-
-  <!-- Oxblood nose -->
-  <polygon points="48,42 52,42 50,45" fill="#8B2635"/>
 </svg>
