@@ -4,12 +4,25 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # 14-day cooldown matches the supply-chain quarantine policy
+    # (CLAUDE.md / global rules): nothing is mergeable before it has aged
+    # 14 days, so don't surface PRs sooner.
     cooldown:
-      default-days: 7
+      default-days: 14
 
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
     cooldown:
-      default-days: 7
+      default-days: 14
+
+  # The browser E2E suite is a separate module (own go.mod) with a local
+  # replace on the parent. Without its own entry, root bumps drift e2e/go.sum
+  # and break the e2e CI job until `go mod tidy` is run there.
+  - package-ecosystem: "gomod"
+    directory: "/e2e"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
