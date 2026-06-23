@@ -181,7 +181,7 @@ TUI keybindings (press ? for full help):
 		// Check minimum terminal size
 		if w, h, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
 			if w < 80 || h < 24 {
-				return fmt.Errorf("terminal too small (%dx%d). Lookit requires at least 80x24", w, h)
+				return fmt.Errorf("terminal too small (%dx%d). fur requires at least 80x24", w, h)
 			}
 		}
 
@@ -1069,7 +1069,7 @@ func runRemote(target *remote.Target) error {
 	// Check minimum terminal size
 	if w, h, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
 		if w < 80 || h < 24 {
-			return fmt.Errorf("terminal too small (%dx%d). Lookit requires at least 80x24", w, h)
+			return fmt.Errorf("terminal too small (%dx%d). fur requires at least 80x24", w, h)
 		}
 	}
 

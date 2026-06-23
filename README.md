@@ -327,7 +327,7 @@ Contributions welcome. Open an issue or submit a PR.
 
 ## Acknowledgments
 
-Lookit exists because generous people write extraordinary software and give it away. We stand on the shoulders of giants, and we're deeply grateful to every maintainer, contributor, and community member behind these projects.
+fur exists because generous people write extraordinary software and give it away. We stand on the shoulders of giants, and we're deeply grateful to every maintainer, contributor, and community member behind these projects.
 
 **Inspiration**
 - [Glow](https://github.com/charmbracelet/glow) by Charmbracelet — the beautiful terminal markdown viewer that started this whole idea

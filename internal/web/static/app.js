@@ -1,10 +1,22 @@
 // Theme toggle
 (function() {
-  var STORAGE_KEY = 'lookit-theme';
+  var STORAGE_KEY = 'fur-theme';
+  var LEGACY_STORAGE_KEY = 'lookit-theme';
   var html = document.documentElement;
 
   function getStoredTheme() {
-    try { return localStorage.getItem(STORAGE_KEY); } catch(e) { return null; }
+    try {
+      var v = localStorage.getItem(STORAGE_KEY);
+      if (v) return v;
+      // One-time migration from the pre-rename key so existing users keep their choice.
+      var legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        localStorage.setItem(STORAGE_KEY, legacy);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        return legacy;
+      }
+      return null;
+    } catch(e) { return null; }
   }
 
   function setTheme(theme) {
