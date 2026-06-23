@@ -20,7 +20,8 @@ brew install Benjamin-Connelly/fur/fur        # latest release
 brew install --HEAD Benjamin-Connelly/fur/fur # build current master
 
 # From source (requires Go 1.25+)
-go install github.com/Benjamin-Connelly/fur/cmd/fur@latest
+go install github.com/Benjamin-Connelly/fur/cmd/fur@latest  # latest release
+go install github.com/Benjamin-Connelly/fur/cmd/fur@master  # current master
 
 # Or clone and build
 git clone https://github.com/Benjamin-Connelly/fur.git
