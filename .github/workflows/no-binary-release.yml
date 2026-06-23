@@ -1,0 +1,31 @@
+name: No binary releases
+
+# Tripwire: this repo must not publish compiled binaries / archives / installers
+# as GitHub Release assets until the project is trusted. GitHub's auto-generated
+# "Source code" tarballs are NOT counted (they live in tarball_url/zipball_url,
+# not in release.assets) — only manually uploaded assets trip this guard.
+# Policy of record: CLAUDE.md § Release Policy.
+
+on:
+  release:
+    types: [published, created, edited, released, prereleased]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if the release carries uploaded (non-source) assets
+        run: |
+          set -euo pipefail
+          count=$(jq '.release.assets | length' "$GITHUB_EVENT_PATH")
+          echo "Uploaded asset count: ${count}"
+          if [ "${count}" -gt 0 ]; then
+            echo "::error::Binary releases are disabled on this repo until it is trusted (see CLAUDE.md § Release Policy)."
+            echo "Offending assets:"
+            jq -r '.release.assets[] | "  - \(.name) (\(.content_type), \(.size) bytes)"' "$GITHUB_EVENT_PATH"
+            exit 1
+          fi
+          echo "OK: source-only release, no binary assets attached."

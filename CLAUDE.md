@@ -234,6 +234,32 @@ Hosaka and ryuk run the latest `origin/master` build of fur. The deploy script i
 
 **Manual trigger:** `bash scripts/dogfood.sh` any time.
 
+## Release Policy
+
+**No binary releases until the project is trusted. This is a hard rule.**
+
+Until explicitly lifted, this repo publishes **source only**. Do not attach
+compiled binaries, archives, installers, or any other build artifact to a
+GitHub Release, and do not add release-publishing automation (goreleaser,
+`action-gh-release`, `gh release upload`, etc.) that would do so.
+
+- **Why:** the project is pre-trust. A compromised or careless build that ships
+  a binary asset has a far larger blast radius than source — users run it
+  directly. Source-only keeps the supply-chain surface to "read the diff."
+- **Allowed:** cutting a `vX.Y.Z` tag and a source-only GitHub Release (the
+  auto-generated "Source code" tarballs are fine — they are not uploaded
+  assets). Homebrew/AUR/package distribution that builds from source on the
+  user's machine is also fine.
+- **Not allowed without the human lifting this rule:** any uploaded Release
+  asset, any CI step that compiles-and-uploads, any prebuilt-binary install path.
+- **Enforcement:** `.github/workflows/no-binary-release.yml` fails any Release
+  event that carries uploaded assets. The dogfood deploy (`scripts/dogfood.sh`)
+  is exempt — it scp's a locally-built binary to the user's own hosts and never
+  touches GitHub Releases.
+
+Lifting this rule is a human decision; record it here and remove the workflow
+guard in the same change.
+
 <!-- BEGIN FLEET STANZA v:1 -->
 ## Personal Fleet Context
 
