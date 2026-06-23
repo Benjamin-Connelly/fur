@@ -1,8 +1,6 @@
-<p align="center">
-  <img src=".github/design/assets/logo.png" alt="fur logo" width="160" height="160">
-</p>
+![fur logo](assets/logo.png)
 
-<h1 align="center">fur</h1>
+# fur
 
 **Dual-mode markdown navigator with inter-document link navigation.**
 
