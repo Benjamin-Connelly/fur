@@ -16,7 +16,8 @@ Zero config. TUI and web modes. Full-text search. Syntax highlighting for 50+ la
 
 ```bash
 # Homebrew (macOS/Linux)
-brew install Benjamin-Connelly/fur/fur
+brew install Benjamin-Connelly/fur/fur        # latest release
+brew install --HEAD Benjamin-Connelly/fur/fur # build current master
 
 # From source (requires Go 1.25+)
 go install github.com/Benjamin-Connelly/fur/cmd/fur@latest
