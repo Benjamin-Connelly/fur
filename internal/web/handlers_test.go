@@ -362,6 +362,73 @@ func TestHandleFileSVGNotServedAsImage(t *testing.T) {
 	}
 }
 
+// TestHandleAPISearchConfinesToServedRoot is the regression guard for the
+// Shannon black-box finding (2026-06-24): the Bleve fulltext index is a
+// persistent global cache (~/.cache/fur/index.bleve) that accumulates entries
+// from every root fur has ever served. handleAPISearch returned those hits
+// unfiltered, disclosing paths and content snippets from outside the current
+// served root — a cross-root information leak that bypassed the ValidatePath
+// boundary direct reads honor. Search results must be confined to the served
+// root (a hit whose path is absent from the in-memory index is out-of-root).
+func TestHandleAPISearchConfinesToServedRoot(t *testing.T) {
+	s, dir := setupTestServer(t)
+	defer s.sse.Stop()
+
+	ft, err := index.NewFulltextIndex("") // memory-only
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.idx.(*index.Index).Fulltext = ft
+
+	// In-root file present in the served tree (README.md → "# Hello\n\nWorld").
+	if err := ft.Update(filepath.Join(dir, "README.md"), "README.md"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stale cross-root entry: real content, but its path is not in the served
+	// root (simulating leftover content from a prior `fur serve <other-dir>`).
+	staleSrc := filepath.Join(t.TempDir(), "leak.md")
+	if err := os.WriteFile(staleSrc, []byte("# secret\nstaleleakmarker out-of-root content\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ft.Update(staleSrc, "infra/runbooks/staleleak.md"); err != nil {
+		t.Fatal(err)
+	}
+	if s.idx.Lookup("infra/runbooks/staleleak.md") != nil {
+		t.Fatal("precondition: stale path must not be in the served index")
+	}
+
+	// A term that only matches the stale doc must return nothing.
+	req := httptest.NewRequest("GET", "/__api/search?q=staleleakmarker", nil)
+	rec := httptest.NewRecorder()
+	s.handleAPISearch(rec, req)
+	var leaked []searchResult
+	if err := json.Unmarshal(rec.Body.Bytes(), &leaked); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	for _, r := range leaked {
+		t.Errorf("search leaked out-of-root entry: %q (content %q)", r.File, r.Content)
+	}
+
+	// Control: an in-root term still returns the in-root file.
+	req2 := httptest.NewRequest("GET", "/__api/search?q=Hello", nil)
+	rec2 := httptest.NewRecorder()
+	s.handleAPISearch(rec2, req2)
+	var got []searchResult
+	if err := json.Unmarshal(rec2.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	found := false
+	for _, r := range got {
+		if r.File == "README.md" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("in-root search regressed: README.md not returned for q=Hello (%d results)", len(got))
+	}
+}
+
 // --- handleAPIFiles tests ---
 
 func TestHandleAPIFilesReturnsJSON(t *testing.T) {
