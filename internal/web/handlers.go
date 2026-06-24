@@ -361,6 +361,10 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request, relPath stri
 	// resolve; the ETag middleware still wraps this for caching.
 	if ct, ok := imageContentTypes[strings.ToLower(filepath.Ext(relPath))]; ok {
 		w.Header().Set("Content-Type", ct)
+		// #nosec G705 -- not XSS: bytes are served with a non-HTML image/*
+		// Content-Type and the middleware's X-Content-Type-Options: nosniff, so
+		// the browser cannot interpret them as HTML. SVG (the only scriptable
+		// image type) is deliberately excluded from imageContentTypes.
 		w.Write(source)
 		return
 	}
