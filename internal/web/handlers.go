@@ -361,6 +361,10 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request, relPath stri
 	// resolve; the ETag middleware still wraps this for caching.
 	if ct, ok := imageContentTypes[strings.ToLower(filepath.Ext(relPath))]; ok {
 		w.Header().Set("Content-Type", ct)
+		// #nosec G705 -- not XSS: bytes are served with a non-HTML image/*
+		// Content-Type and the middleware's X-Content-Type-Options: nosniff, so
+		// the browser cannot interpret them as HTML. SVG (the only scriptable
+		// image type) is deliberately excluded from imageContentTypes.
 		w.Write(source)
 		return
 	}
@@ -433,6 +437,17 @@ func (s *Server) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			var results []searchResult
 			for _, br := range bleveResults {
+				// Confine results to the current served root. The Bleve index is a
+				// persistent global cache (~/.cache/fur/index.bleve) that accumulates
+				// entries from every root fur has ever served and is not scoped or
+				// cleared per-root, so a hit may be a stale entry from a different
+				// directory. Direct reads delegate to ValidatePath; search must honor
+				// the same boundary or it discloses paths and content snippets from
+				// outside the served tree. The in-memory index only holds the current
+				// root's files, so a nil Lookup means the hit is out-of-root.
+				if s.idx.Lookup(br.Path) == nil {
+					continue
+				}
 				content := ""
 				if len(br.Snippets) > 0 {
 					content = br.Snippets[0]
