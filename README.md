@@ -4,6 +4,8 @@
 
 **Dual-mode markdown navigator with inter-document link navigation.**
 
+[![CI](https://github.com/Benjamin-Connelly/fur/actions/workflows/ci.yml/badge.svg)](https://github.com/Benjamin-Connelly/fur/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 Zero config. TUI and web modes. Full-text search. Syntax highlighting for 50+ languages. Git-aware. Broken link detection. Backlinks. Interactive link graph.
