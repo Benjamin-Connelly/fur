@@ -2,6 +2,8 @@
 
 Thanks for your interest in contributing! Whether it's a bug fix, new feature, or documentation improvement, we appreciate the help.
 
+This project follows a [Code of Conduct](CODE_OF_CONDUCT.md) — by participating, you're expected to uphold it. Security issues go through [SECURITY.md](SECURITY.md), not public issues.
+
 ## Development Setup
 
 ```bash
