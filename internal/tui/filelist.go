@@ -361,7 +361,10 @@ func (m FileListModel) viewTree() string {
 		} else if node.entry.IsMarkdown {
 			icon = "  📝"
 		} else {
-			icon = "   "
+			// Every row needs an icon of the same cell width, else rows with an
+			// emoji (rendered double-width on most terminals) misalign against
+			// bare-space rows. A generic file glyph keeps the name column flush.
+			icon = "  📄"
 		}
 
 		line := fmt.Sprintf("%s%s %s", indent, icon, sanitize.Terminal(node.name))
@@ -436,7 +439,7 @@ func (m FileListModel) viewFiltered() string {
 
 	for i := m.offset; i < end; i++ {
 		entry := m.filtered[i]
-		icon := "  "
+		icon := "📄" // generic file; dirs/markdown override below
 		if entry.IsDir {
 			icon = "📁"
 		} else if entry.IsMarkdown {
