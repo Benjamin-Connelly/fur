@@ -341,11 +341,14 @@ func (m FileListModel) viewTree() string {
 		Bold(true)
 	dirStyle := lipgloss.NewStyle().
 		Foreground(m.ui.Dir).
+		Background(m.ui.Bg).
 		Bold(true)
 	mdStyle := lipgloss.NewStyle().
-		Foreground(m.ui.Markdown)
+		Foreground(m.ui.Markdown).
+		Background(m.ui.Bg)
 	normalStyle := lipgloss.NewStyle().
-		Foreground(m.ui.Text)
+		Foreground(m.ui.Text).
+		Background(m.ui.Bg)
 
 	for i := m.offset; i < end; i++ {
 		node := m.visible[i]
@@ -431,11 +434,14 @@ func (m FileListModel) viewFiltered() string {
 		Background(m.ui.Accent).
 		Bold(true)
 	normalStyle := lipgloss.NewStyle().
-		Foreground(m.ui.Text)
+		Foreground(m.ui.Text).
+		Background(m.ui.Bg)
 	dirStyle := lipgloss.NewStyle().
-		Foreground(m.ui.Dir)
+		Foreground(m.ui.Dir).
+		Background(m.ui.Bg)
 	mdStyle := lipgloss.NewStyle().
-		Foreground(m.ui.Markdown)
+		Foreground(m.ui.Markdown).
+		Background(m.ui.Bg)
 
 	for i := m.offset; i < end; i++ {
 		entry := m.filtered[i]

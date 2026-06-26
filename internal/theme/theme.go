@@ -51,6 +51,12 @@ type UI struct {
 	Dim      lipgloss.Color // muted text, indicators, unfocused labels
 	Border   lipgloss.Color // pane separators, horizontal rules
 	Text     lipgloss.Color // default foreground
+	// Bg is the base surface background. It is empty ("") on dark themes so
+	// the TUI inherits the terminal background; on light themes it is a real
+	// color that every content surface must paint, or the theme's dark text is
+	// invisible on a dark terminal. lipgloss treats an empty color as "no
+	// background", so applying it is a no-op for dark themes.
+	Bg lipgloss.Color
 
 	Dir      lipgloss.Color // directory entries in the file list
 	Markdown lipgloss.Color // markdown file entries
@@ -85,6 +91,7 @@ func uiFromPalette(p Palette) UI {
 		Dim:      lipgloss.Color(p.Subtle),
 		Border:   lipgloss.Color(p.Overlay),
 		Text:     lipgloss.Color(p.Text),
+		Bg:       lipgloss.Color(p.Bg),
 		Dir:      lipgloss.Color(p.Blue),
 		Markdown: lipgloss.Color(p.Green),
 		Filter:   lipgloss.Color(p.Orange),
@@ -114,9 +121,10 @@ func GlamourStyle(p Palette) ansi.StyleConfig {
 	return ansi.StyleConfig{
 		Document: ansi.StyleBlock{
 			StylePrimitive: ansi.StylePrimitive{
-				BlockPrefix: "\n",
-				BlockSuffix: "\n",
-				Color:       sp(p.Text),
+				BlockPrefix:     "\n",
+				BlockSuffix:     "\n",
+				Color:           sp(p.Text),
+				BackgroundColor: sp(p.Bg), // nil on dark themes; paints light themes
 			},
 			Margin: up(1),
 		},

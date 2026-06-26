@@ -104,3 +104,22 @@ func TestUIForPopulated(t *testing.T) {
 		t.Errorf("UIFor returned empty core colors: %+v", ui)
 	}
 }
+
+// TestLightThemePaintsBackground guards the light-theme fix: light themes must
+// expose a non-empty base Bg (and a glamour Document background) so the TUI
+// actually paints a light surface; otherwise their dark text is invisible on a
+// dark terminal. Dark themes leave Bg empty to inherit the terminal background.
+func TestLightThemePaintsBackground(t *testing.T) {
+	if light := UIFor("light"); light.Bg == "" {
+		t.Error("light theme UI.Bg is empty; light themes must paint a background")
+	}
+	if dark := UIFor("dark"); dark.Bg != "" {
+		t.Errorf("dark theme UI.Bg = %q, want empty (inherit terminal bg)", dark.Bg)
+	}
+	if bg := GlamourStyle(Resolve("light")).Document.BackgroundColor; bg == nil || *bg == "" {
+		t.Error("light theme glamour Document has no BackgroundColor")
+	}
+	if bg := GlamourStyle(Resolve("dark")).Document.BackgroundColor; bg != nil {
+		t.Errorf("dark theme glamour Document BackgroundColor = %v, want nil", *bg)
+	}
+}

@@ -429,6 +429,7 @@ func (m *Model) View() string {
 		}
 		style := lipgloss.NewStyle().
 			Foreground(dimColor).
+			Background(m.ui.Bg).
 			Width(width)
 		return style.Render(" " + name)
 	}
@@ -442,6 +443,7 @@ func (m *Model) View() string {
 			MaxWidth(width).
 			Height(height).
 			MaxHeight(height).
+			Background(m.ui.Bg).
 			Render(content)
 		return lipgloss.JoinVertical(lipgloss.Left, label, body)
 	}
