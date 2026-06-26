@@ -2,6 +2,8 @@ package index
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -67,8 +69,20 @@ type Index struct {
 }
 
 // BuildFulltext creates and populates a fulltext search index. If cacheDir
-// is empty, the index lives in memory only.
+// is empty, the index lives in memory only. Otherwise the on-disk index is
+// scoped to this served root (cacheDir/roots/<key>/index.bleve) so distinct
+// roots never share a Bleve store. A single shared store pooled the content
+// of every directory fur had ever served and was the cross-root disclosure
+// surface (lookit-4y0 fixed the search-result filter; lookit-c24 stops the
+// pooling at the storage layer).
 func (idx *Index) BuildFulltext(cacheDir string) error {
+	if cacheDir != "" {
+		// One-time migration: drop the legacy shared index at the old global
+		// path. It is a rebuildable cache, the per-root index below supersedes
+		// it, and removing it reclaims space and purges the pooled content.
+		_ = os.RemoveAll(filepath.Join(cacheDir, "index.bleve"))
+		cacheDir = filepath.Join(cacheDir, "roots", rootCacheKey(idx.root))
+	}
 	ft, err := NewFulltextIndex(cacheDir)
 	if err != nil {
 		return err
@@ -86,6 +100,18 @@ func (idx *Index) CloseFulltext() {
 	if idx.Fulltext != nil {
 		idx.Fulltext.Close()
 	}
+}
+
+// rootCacheKey derives a stable per-root cache subdirectory name from the
+// absolute, cleaned served-root path. A short hex digest keeps distinct roots
+// apart without exposing the path in the cache layout.
+func rootCacheKey(root string) string {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		abs = root
+	}
+	sum := sha256.Sum256([]byte(filepath.Clean(abs)))
+	return hex.EncodeToString(sum[:])[:16]
 }
 
 func (idx *Index) GetFulltext() *FulltextIndex {

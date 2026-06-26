@@ -209,6 +209,65 @@ func TestBuildFulltext_Integration(t *testing.T) {
 	}
 }
 
+// TestBuildFulltext_PerRootIsolation is the regression guard for lookit-c24:
+// distinct served roots must get distinct on-disk Bleve indexes (no shared
+// store), and the legacy shared index from older fur builds is purged. A
+// shared store pooled content across every served root and was the cross-root
+// disclosure surface.
+func TestBuildFulltext_PerRootIsolation(t *testing.T) {
+	cache := t.TempDir()
+
+	// A legacy shared index from an older fur, at the old global path.
+	legacy := filepath.Join(cache, "index.bleve")
+	if err := os.MkdirAll(legacy, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	rootA := t.TempDir()
+	os.WriteFile(filepath.Join(rootA, "a.md"), []byte("# A\nalphaunique content here\n"), 0o644)
+	rootB := t.TempDir()
+	os.WriteFile(filepath.Join(rootB, "b.md"), []byte("# B\nbetaunique content here\n"), 0o644)
+
+	idxA := New(rootA)
+	idxA.Build()
+	if err := idxA.BuildFulltext(cache); err != nil {
+		t.Fatalf("build A: %v", err)
+	}
+	defer idxA.CloseFulltext()
+	idxB := New(rootB)
+	idxB.Build()
+	if err := idxB.BuildFulltext(cache); err != nil {
+		t.Fatalf("build B: %v", err)
+	}
+	defer idxB.CloseFulltext()
+
+	// Legacy shared index removed.
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Error("legacy shared index should be removed on build")
+	}
+
+	// Two distinct per-root index directories.
+	entries, err := os.ReadDir(filepath.Join(cache, "roots"))
+	if err != nil {
+		t.Fatalf("read roots dir: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Errorf("expected 2 per-root index dirs, got %d", len(entries))
+	}
+
+	// Storage isolation: each index only holds its own root's content.
+	if r, _ := idxA.GetFulltext().Search("betaunique", 10); len(r) != 0 {
+		t.Errorf("root A index leaked root B content: %d hits", len(r))
+	}
+	if r, _ := idxB.GetFulltext().Search("alphaunique", 10); len(r) != 0 {
+		t.Errorf("root B index leaked root A content: %d hits", len(r))
+	}
+	// Sanity: each finds its own.
+	if r, _ := idxA.GetFulltext().Search("alphaunique", 10); len(r) == 0 {
+		t.Error("root A index missing its own content")
+	}
+}
+
 func TestSearchHighlights(t *testing.T) {
 	idx, _ := setupTestIndex(t)
 
