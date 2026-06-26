@@ -16,9 +16,9 @@ Zero config. TUI and web modes. Full-text search. Syntax highlighting for 50+ la
 
 ## Demo
 
-The TUI in action — fuzzy filter, link picker, history:
+Keyboard-driven navigation — fuzzy-filter to a file, follow inter-document links, jump back through history, and surface backlinks:
 
-![fur TUI demo](demo/fur-demo.gif)
+![fur — keyboard-driven navigation](assets/fur-hero.gif)
 
 ### Web mode
 
@@ -90,6 +90,18 @@ fur doctor                   # Environment diagnostics
 ### TUI Mode
 
 Split-pane layout: collapsible file tree (left) + rendered preview (right). Side panels for TOC, backlinks, bookmarks, and git info.
+
+**Full-text search** — `/` then `Tab` searches content across the whole tree (Bleve):
+
+![fur full-text search](assets/fur-search.gif)
+
+**Themes** — `Ctrl+T` cycles 19 built-in palettes; body, code, and chrome recolor together:
+
+![fur theme cycling](assets/fur-themes.gif)
+
+**Data previews** — CSV/TSV as aligned tables, JSON pretty-printed:
+
+![fur data previews](assets/fur-data.gif)
 
 - **Fuzzy search** — `/` to filter files instantly, Enter to freeze results
 - **Full-text search** — Tab toggles to content search (Bleve BM25 index with snippets)
