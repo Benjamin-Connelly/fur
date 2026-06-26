@@ -12,7 +12,23 @@ Zero config. TUI and web modes. Full-text search. Syntax highlighting for 50+ la
 
 ## Demo
 
-![fur demo](demo/fur-demo.gif)
+The TUI in action — fuzzy filter, link picker, history:
+
+![fur TUI demo](demo/fur-demo.gif)
+
+### Web mode
+
+`fur serve` turns the same tree into a live, themeable site — a table of contents, backlinks, search, an interactive link graph, and **inline image rendering**. The screenshots below show fur serving *Millions of Cats*, the public-domain picture book by Wanda Gág (1928):
+
+![fur web mode rendering the cover of Millions of Cats](assets/web-cover.webp)
+
+Illustrations render inline alongside the prose, with a contents / links / backlinks rail:
+
+![fur web mode rendering an inline illustration](assets/web-reading.webp)
+
+The link graph maps every document and the references between them — here, the picture book and its plates on the left, a docs tree on the right:
+
+![fur web mode interactive link graph](assets/web-graph.webp)
 
 ## Install
 
@@ -372,6 +388,10 @@ fur exists because generous people write extraordinary software and give it away
 - [clipboard](https://github.com/atotto/clipboard) — cross-platform clipboard access
 - [fsnotify](https://github.com/fsnotify/fsnotify) — cross-platform file system notifications
 - [x/term](https://pkg.go.dev/golang.org/x/term) — terminal size detection from the Go team
+
+**Demo content**
+- [*Millions of Cats*](https://www.gutenberg.org/ebooks/74181) by **Wanda Gág** (1928) — the public-domain picture book we render in the demo, a fitting muse for a tool named `fur`
+- [Project Gutenberg](https://www.gutenberg.org) — for digitizing and freely sharing the world's public-domain literature, illustrations and all
 
 Open source is a gift economy. If you use and enjoy any of these projects, consider starring their repos, sponsoring their maintainers, or contributing back. The ecosystem thrives when we pay it forward.
 
