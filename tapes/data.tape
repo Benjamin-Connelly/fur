@@ -1,4 +1,4 @@
-# fur — data previews: CSV table + JSON pretty-print. ~12s.
+# fur data previews: CSV table + JSON. ~12s.
 Output assets/fur-data.gif
 
 Set Shell "bash"
@@ -13,7 +13,7 @@ Set TypingSpeed 55ms
 Hide
 Type "mkdir -p /tmp/furbin && go build -o /tmp/furbin/fur ./cmd/fur && export PATH=/tmp/furbin:$PATH && clear"
 Enter
-Sleep 5s
+Sleep 7s
 Show
 Sleep 700ms
 Type "fur demo/"

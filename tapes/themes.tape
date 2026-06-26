@@ -1,4 +1,4 @@
-# fur — theme cycling (Ctrl+T). ~11s.
+# fur theme switching across dark palettes. ~14s.
 Output assets/fur-themes.gif
 
 Set Shell "bash"
@@ -13,28 +13,32 @@ Set TypingSpeed 55ms
 Hide
 Type "mkdir -p /tmp/furbin && go build -o /tmp/furbin/fur ./cmd/fur && export PATH=/tmp/furbin:$PATH && clear"
 Enter
-Sleep 5s
+Sleep 7s
 Show
 Sleep 700ms
 Type "fur demo/"
 Enter
-Sleep 1.5s
+Sleep 2.2s
 Type "/"
-Sleep 400ms
-Type "architecture"
-Sleep 900ms
+Sleep 300ms
+Type "field"
+Sleep 800ms
 Enter
-Sleep 600ms
+Sleep 500ms
 Enter
 Sleep 1.6s
-Ctrl+T
-Sleep 1.5s
-Ctrl+T
-Sleep 1.5s
-Ctrl+T
-Sleep 1.5s
-Ctrl+T
-Sleep 1.5s
+Type ":theme dracula"
+Enter
+Sleep 1.6s
+Type ":theme nord"
+Enter
+Sleep 1.6s
+Type ":theme gruvbox"
+Enter
+Sleep 1.6s
+Type ":theme tokyonight-night"
+Enter
+Sleep 1.8s
 Hide
 Type "q"
 Enter

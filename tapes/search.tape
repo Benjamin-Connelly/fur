@@ -1,4 +1,4 @@
-# fur — full-text search (/ then Tab for content mode). ~12s.
+# fur full-text search (/ then Tab). ~12s.
 Output assets/fur-search.gif
 
 Set Shell "bash"
@@ -13,20 +13,20 @@ Set TypingSpeed 55ms
 Hide
 Type "mkdir -p /tmp/furbin && go build -o /tmp/furbin/fur ./cmd/fur && export PATH=/tmp/furbin:$PATH && clear"
 Enter
-Sleep 5s
+Sleep 7s
 Show
 Sleep 700ms
 Type "fur demo/"
 Enter
-Sleep 2s
+Sleep 2.4s
 Type "/"
-Sleep 500ms
+Sleep 400ms
 Tab
 Sleep 600ms
-Type "mermaid"
+Type "trillions"
 Sleep 1.6s
 Enter
-Sleep 900ms
+Sleep 800ms
 Enter
 Sleep 2.6s
 Hide
