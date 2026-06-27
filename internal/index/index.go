@@ -354,7 +354,7 @@ func (idx *Index) ValidatePath(relPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("file not found")
 	}
-	if !withinRoot(idx.root, resolved) {
+	if !withinRoot(idx.resolvedRoot(), resolved) {
 		return "", fmt.Errorf("path escapes index root")
 	}
 	// Return the symlink-resolved path so callers open the same bytes that
@@ -368,6 +368,20 @@ func withinRoot(root, resolved string) bool {
 	return resolved == root || strings.HasPrefix(resolved, root+string(filepath.Separator))
 }
 
+// resolvedRoot returns the served root with its own symlinks resolved, so the
+// containment checks compare resolved-vs-resolved. When the served root is
+// itself reached through a symlink (e.g. ~/.claude/skills -> ~/dotfiles/...),
+// EvalSymlinks resolves a requested file to a path under the symlink TARGET;
+// comparing that to the raw root would look like an escape and 404 every file
+// even though the directory listing shows it. Falls back to the raw root if
+// resolution fails (e.g. a non-OS afero fs in tests).
+func (idx *Index) resolvedRoot() string {
+	if rr, err := filepath.EvalSymlinks(idx.root); err == nil {
+		return rr
+	}
+	return idx.root
+}
+
 // symlinkEscapes reports whether the symlink at path resolves to a target
 // outside the index root. A symlink that cannot be resolved (dangling, or a
 // resolution error) is treated as an escape so it is skipped rather than
@@ -378,7 +392,7 @@ func (idx *Index) symlinkEscapes(path string) bool {
 	if err != nil {
 		return true
 	}
-	return !withinRoot(idx.root, resolved)
+	return !withinRoot(idx.resolvedRoot(), resolved)
 }
 
 // AddFile adds a single file entry to the index without walking.

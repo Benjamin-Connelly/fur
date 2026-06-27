@@ -144,3 +144,35 @@ func TestValidatePath_RejectsSymlinkEscape(t *testing.T) {
 		t.Error("ValidatePath accepted a symlink escaping the root")
 	}
 }
+
+// TestValidatePath_SymlinkedRoot guards the case where the served root is
+// itself reached through a symlink (e.g. ~/.claude/skills -> ~/dotfiles/...).
+// EvalSymlinks resolves a requested file to a path under the symlink TARGET, so
+// comparing it to the raw root used to look like an escape and 404 every file
+// even though the directory listing showed it.
+func TestValidatePath_SymlinkedRoot(t *testing.T) {
+	// Mirror the real case: a symlinked PARENT (~/.claude/skills -> ~/dotfiles)
+	// with the served root a real directory reached through it.
+	real := t.TempDir()
+	sub := filepath.Join(real, "security-scan")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sub, "skill.md"), []byte("# skill\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "skills")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	idx := New(filepath.Join(link, "security-scan")) // root reached via the symlink
+	idx.Build()
+
+	if idx.Lookup("skill.md") == nil {
+		t.Fatal("skill.md should be indexed under a symlinked root")
+	}
+	if _, err := idx.ValidatePath("skill.md"); err != nil {
+		t.Errorf("ValidatePath should pass for a file under a symlinked root, got %v", err)
+	}
+}
