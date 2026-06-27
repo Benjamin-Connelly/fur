@@ -9,6 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	_ "golang.org/x/image/bmp"  // register BMP for DecodeConfig (info-card dims)
+	_ "golang.org/x/image/webp" // register WebP for DecodeConfig (info-card dims)
 )
 
 // ImageRenderer handles image file display in the TUI.
