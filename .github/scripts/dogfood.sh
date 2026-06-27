@@ -57,7 +57,7 @@ declare -a TO_DEPLOY=()
 ERRORS=0
 for host in "${HOSTS[@]}"; do
     installed=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$host" \
-        "$INSTALL_PATH version 2>/dev/null | awk '/^  commit:/ {print \$2}'" 2>/dev/null \
+        "$INSTALL_PATH version 2>/dev/null | awk '/commit:/ {print \$2}'" 2>/dev/null \
         || echo "unreachable")
     case "$installed" in
         unreachable)
@@ -128,7 +128,7 @@ for host in "${TO_DEPLOY[@]}"; do
         aborted=1
         continue
     fi
-    verify=$(ssh "$host" "$INSTALL_PATH version 2>/dev/null | awk '/^  commit:/ {print \$2}'" 2>/dev/null || echo "")
+    verify=$(ssh "$host" "$INSTALL_PATH version 2>/dev/null | awk '/commit:/ {print \$2}'" 2>/dev/null || echo "")
     if [[ "$verify" == "$COMMIT" ]]; then
         log "dogfood: $host now at $verify"
         deployed+=("$host")
