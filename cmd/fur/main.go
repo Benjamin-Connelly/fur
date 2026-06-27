@@ -601,10 +601,10 @@ var versionCmd = &cobra.Command{
 		fmt.Println(versionLogo(textOnly))
 		fmt.Println()
 		fmt.Printf("fur %s\n", version)
-		fmt.Printf("  commit:  %s\n", commit)
-		fmt.Printf("  built:   %s\n", date)
-		fmt.Printf("  go:      %s\n", runtime.Version())
-		fmt.Printf("  os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("commit:  %s\n", commit)
+		fmt.Printf("built:   %s\n", date)
+		fmt.Printf("go:      %s\n", runtime.Version())
+		fmt.Printf("os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 	},
 }
 
