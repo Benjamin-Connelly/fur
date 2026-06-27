@@ -30,3 +30,6 @@ artifacts/
 coverage.out
 .claude/
 .playwright-mcp/
+
+# transient web-capture intermediates (make capture-web converts to webp)
+docs/assets/web-*.png
