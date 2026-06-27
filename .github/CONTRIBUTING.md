@@ -69,4 +69,4 @@ go vet ./...           # Static analysis
 
 ## Project Structure
 
-See the [README](README.md) for full feature documentation and keybinding reference.
+See the [README](../README.md) for full feature documentation and keybinding reference.

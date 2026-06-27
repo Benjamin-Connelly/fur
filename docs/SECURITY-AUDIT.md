@@ -3,7 +3,7 @@
 > **Phase 2 deliverable for the `fur-audit` bead graph (root: `lookit-9py`).**
 > Findings, fixes, and regression tests across every external surface. Builds
 > on the Phase 0 ledger in [`SECURITY-INVENTORY.md`](SECURITY-INVENTORY.md);
-> see [`docs/audit-prompt.md`](docs/audit-prompt.md) for the charter and threat
+> see [`docs/audit-prompt.md`](audit-prompt.md) for the charter and threat
 > model.
 
 | Field | Value |
