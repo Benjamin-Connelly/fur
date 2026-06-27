@@ -219,11 +219,18 @@ func (s *Server) Start() error {
 		startURL = startURL + "/" + strings.TrimPrefix(s.initialFile, "/")
 	}
 
-	errCh := make(chan error, 1)
-	go func() {
-		fmt.Printf("fur serving %s\n", startURL)
-		errCh <- s.server.ListenAndServe()
-	}()
+	// Bind explicitly before announcing the URL or opening a browser. If the
+	// port is already taken (commonly a previous `fur serve` still running),
+	// fail loudly here instead of printing a misleading "serving" line and
+	// opening the browser against whatever already owns the port — which serves
+	// a different directory and 404s on the file we meant to show.
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("cannot bind %s: %w — is another fur already serving "+
+			"this port? stop it (e.g. pkill -f 'fur serve') or pass --port", addr, err)
+	}
+
+	fmt.Printf("fur serving %s\n", startURL)
 
 	// Open browser if requested, but skip when running over SSH
 	isSSH := os.Getenv("SSH_CLIENT") != "" || os.Getenv("SSH_CONNECTION") != ""
@@ -236,6 +243,9 @@ func (s *Server) Start() error {
 			_ = exec.Command("xdg-open", startURL).Start()
 		}()
 	}
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- s.server.Serve(ln) }()
 
 	select {
 	case err := <-errCh:

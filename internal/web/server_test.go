@@ -3,16 +3,50 @@ package web
 import (
 	"crypto/md5"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Benjamin-Connelly/fur/internal/config"
 	"github.com/Benjamin-Connelly/fur/internal/index"
 )
+
+// TestStartFailsLoudlyOnBusyPort guards the bind-first behavior: when the port
+// is already taken (commonly a previous `fur serve` still running), Start must
+// return a clear bind error instead of printing a "serving" line and opening a
+// browser against whatever already owns the port — which serves a different
+// directory and 404s.
+func TestStartFailsLoudlyOnBusyPort(t *testing.T) {
+	occupied, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer occupied.Close()
+
+	s, _ := setupTestServer(t)
+	s.cfg.Server.Host = "127.0.0.1"
+	s.cfg.Server.Port = occupied.Addr().(*net.TCPAddr).Port
+	s.cfg.Server.Open = false
+
+	errc := make(chan error, 1)
+	go func() { errc <- s.Start() }()
+	select {
+	case err := <-errc:
+		if err == nil {
+			t.Fatal("Start returned nil; expected a bind error on a busy port")
+		}
+		if !strings.Contains(err.Error(), "cannot bind") {
+			t.Errorf("error should explain the bind failure, got %q", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Start blocked instead of failing fast on a busy port")
+	}
+}
 
 // setupTestServer creates a Server backed by a temp directory with test files.
 func setupTestServer(t *testing.T) (*Server, string) {
