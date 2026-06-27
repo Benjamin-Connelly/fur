@@ -47,7 +47,7 @@ var pathAcceptingRoutes = []struct {
 // target lives outside is exactly what inline strings.Contains("..")
 // checks fail to detect.
 //
-// References: lookit-9py.4.9 (HARDEN_VPENFORCE); SECURITY-INVENTORY.md §15;
+// References: lookit-9py.4.9 (HARDEN_VPENFORCE); docs/SECURITY-INVENTORY.md §15;
 // bd memory "every-web-handler-accepting-a-path-shaped-input".
 func TestEveryWebHandlerDelegatesToValidatePath(t *testing.T) {
 	root := t.TempDir()

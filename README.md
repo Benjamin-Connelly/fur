@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/Benjamin-Connelly/fur/actions/workflows/ci.yml/badge.svg)](https://github.com/Benjamin-Connelly/fur/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 
 </div>
 

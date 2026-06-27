@@ -188,7 +188,7 @@ func Load(cfgFile string) (*Config, error) {
 // preferences are honored; server.*, git.*, remotes.*, root, and debug are
 // deliberately excluded so a hostile repo cannot pivot custom_css onto an
 // attacker-controlled stylesheet (Chain A), rebind the web listener, or
-// redirect remotes. See SECURITY-INVENTORY.md §15 and bd lookit-9py.3.5.
+// redirect remotes. See docs/SECURITY-INVENTORY.md §15 and bd lookit-9py.3.5.
 var projectConfigAllowlist = map[string]bool{
 	"theme":         true,
 	"keymap":        true,

@@ -1173,7 +1173,7 @@ func TestHandleAPIDocumentPathTraversal(t *testing.T) {
 // Fix: route the request through Index.ValidatePath, which calls
 // filepath.EvalSymlinks and rejects targets outside idx.Root().
 //
-// References: lookit-9py.3.15.1; SECURITY-INVENTORY.md §15 and §16; bd memory
+// References: lookit-9py.3.15.1; docs/SECURITY-INVENTORY.md §15 and §16; bd memory
 // "every-web-handler-accepting-a-path-shaped-input".
 func TestHandleAPIDocumentSymlinkEscapeKPOC(t *testing.T) {
 	root := t.TempDir()

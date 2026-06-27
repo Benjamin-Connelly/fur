@@ -21,7 +21,7 @@ co-located shell user, a directory adversary (browsing an attacker-controlled
 tree), a remote adversary during SSH browsing, a browser-side adversary in web
 mode, and crafted content (markdown, data files, hostile file/dir names).
 
-Hardening already in place (see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md) for
+Hardening already in place (see [`SECURITY-AUDIT.md`](../docs/SECURITY-AUDIT.md) for
 the full ledger and regression tests):
 
 - Per-project `.fur.{toml,yaml,yml}` is restricted to a display/UX allowlist —
