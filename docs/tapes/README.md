@@ -39,8 +39,8 @@ Notes:
   plus the Playwright/rod download caches, so no system Chromium is required
   (Ubuntu 24.04 ships only a snap, which chromedp can't drive). Override with
   `FUR_CHROME=/path/to/chrome`.
-- d3 is vendored (`internal/web/static/d3.v7.min.js`), so the graph renders
-  fully offline. Markdown pages with Mermaid diagrams still fetch Mermaid from
-  the jsdelivr CDN, so capturing one of those would need network.
+- Both d3 and Mermaid are vendored under `internal/web/static/`, so every page
+  — graph and Mermaid diagrams included — renders fully offline. No network is
+  needed to capture any of them.
 - The capture tool lives in the `e2e` module so its browser dependency never
   touches the main module.

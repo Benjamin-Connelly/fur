@@ -42,4 +42,6 @@
 </div>
 <div id="fur-livereload" data-relpath="{{.RelPath}}" hidden></div>
 {{end}}
+{{define "scripts"}}{{if .HasMermaid}}<script src="/__static/mermaid.min.js"></script>
+<script src="/__static/mermaid-init.js"></script>{{end}}{{end}}
 {{template "base" .}}

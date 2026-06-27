@@ -4,5 +4,11 @@
 // and disables click handlers / inline scripts, blocking the
 // Mermaid -> JS -> fetch-local smuggling path through a crafted ```mermaid
 // block in untrusted markdown.
-import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+//
+// Mermaid is vendored locally (mermaid.min.js, the self-contained UMD bundle),
+// loaded as a classic <script> just before this one, so it defines the global
+// `mermaid`. No CDN import — the page CSP is script-src 'self'. Both scripts
+// load only on markdown pages that actually contain a diagram (see the
+// "scripts" block override in markdown.html), so the 2.6MB bundle never loads
+// on the common no-diagram page.
 mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });

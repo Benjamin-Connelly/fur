@@ -225,6 +225,31 @@ func TestHandleMarkdownMermaidPostProcessed(t *testing.T) {
 	}
 }
 
+// TestHandleMarkdownMermaidConditionalLoad verifies the (2.6MB) mermaid bundle
+// loads only on pages that actually contain a diagram: README.md has one,
+// docs/guide.md does not.
+func TestHandleMarkdownMermaidConditionalLoad(t *testing.T) {
+	s, _ := setupTestServer(t)
+	defer s.sse.Stop()
+
+	render := func(path, rel string) string {
+		rec := httptest.NewRecorder()
+		s.handleMarkdown(rec, httptest.NewRequest("GET", path, nil), rel)
+		return rec.Body.String()
+	}
+
+	withDiagram := render("/README.md", "README.md")
+	if !strings.Contains(withDiagram, "/__static/mermaid.min.js") ||
+		!strings.Contains(withDiagram, "/__static/mermaid-init.js") {
+		t.Error("a page with a mermaid diagram must load the vendored mermaid scripts")
+	}
+
+	noDiagram := render("/docs/guide.md", "docs/guide.md")
+	if strings.Contains(noDiagram, "mermaid.min.js") {
+		t.Error("a page without a diagram must not load the 2.6MB mermaid bundle")
+	}
+}
+
 func TestHandleMarkdownIncludesBacklinks(t *testing.T) {
 	s, _ := setupTestServer(t)
 	defer s.sse.Stop()

@@ -230,6 +230,7 @@ type markdownPageData struct {
 	Headings     []tocHeading
 	Backlinks    []index.Link
 	ForwardLinks []index.Link
+	HasMermaid   bool // page contains a mermaid diagram → load the mermaid bundle
 }
 
 type tocHeading struct {
@@ -284,12 +285,16 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		forwardLinks = s.links.ForwardLinks(relPath)
 	}
 
-	// Replace mermaid fenced code blocks so mermaid.js renders them client-side
+	// Replace mermaid fenced code blocks so mermaid.js renders them client-side.
+	// hasMermaid drives conditional loading of the (2.6MB) mermaid bundle — it
+	// is included only when the page actually contains a diagram.
+	hasMermaid := false
 	rendered := mermaidBlockRe.ReplaceAllStringFunc(buf.String(), func(match string) string {
 		inner := mermaidBlockRe.FindStringSubmatch(match)
 		if len(inner) < 2 {
 			return match
 		}
+		hasMermaid = true
 		return `<pre class="mermaid">` + inner[1] + `</pre>`
 	})
 
@@ -307,6 +312,7 @@ func (s *Server) handleMarkdown(w http.ResponseWriter, r *http.Request, relPath 
 		Headings:     tocHeadings,
 		Backlinks:    backlinks,
 		ForwardLinks: forwardLinks,
+		HasMermaid:   hasMermaid,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -334,11 +340,13 @@ type codePageData struct {
 //
 // SVG is intentionally excluded. An SVG is an active document: served as
 // image/svg+xml and navigated to directly, it executes script against fur's
-// origin. The response CSP does not save us — its script-src still allows
-// cdn.jsdelivr.net (the Mermaid CDN), so a planted SVG could pull arbitrary JS
-// from there and read local files via /__api/document. SVGs fall through to
-// the (inert) syntax-highlighted code view instead; raster formats below
-// cannot carry script.
+// origin. script-src is now 'self' (no CDN, no 'unsafe-inline'), which blocks
+// inline and cross-origin script in a planted SVG — but SVG can still carry
+// other active surface (foreignObject HTML, CSS via the 'unsafe-inline'
+// style-src, external references), so it stays excluded pending a deliberate
+// review rather than being re-enabled implicitly. SVGs fall through to the
+// (inert) syntax-highlighted code view instead; raster formats below cannot
+// carry script.
 var imageContentTypes = map[string]string{
 	".png":  "image/png",
 	".jpg":  "image/jpeg",

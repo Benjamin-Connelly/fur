@@ -52,10 +52,11 @@ func TestCSPScriptSrcNoUnsafeInline(t *testing.T) {
 	if strings.Contains(scriptSrc, "'unsafe-eval'") {
 		t.Errorf("script-src allows 'unsafe-eval' (%q)", scriptSrc)
 	}
-	// D3 is vendored locally; the d3js.org CDN must no longer be allowlisted.
-	if strings.Contains(scriptSrc, "d3js.org") {
-		t.Errorf("script-src still allows d3js.org (%q); D3 is vendored at "+
-			"/__static/d3.v7.min.js", scriptSrc)
+	// Both libraries (D3, Mermaid) are vendored locally; script-src must be
+	// 'self' only — no CDN host of any kind.
+	if strings.Contains(scriptSrc, "d3js.org") || strings.Contains(scriptSrc, "jsdelivr") || strings.Contains(scriptSrc, "http") {
+		t.Errorf("script-src still allows an external host (%q); D3 and Mermaid "+
+			"are vendored under /__static, so script-src should be 'self' only", scriptSrc)
 	}
 }
 
@@ -124,7 +125,7 @@ func TestStaticScriptsServed(t *testing.T) {
 	s, _ := setupTestServer(t)
 	defer s.sse.Stop()
 
-	for _, name := range []string{"app.js", "livereload.js", "mermaid-init.js", "graph.js", "d3.v7.min.js"} {
+	for _, name := range []string{"app.js", "livereload.js", "mermaid-init.js", "graph.js", "d3.v7.min.js", "mermaid.min.js"} {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/__static/"+name, nil)
 		s.mux.ServeHTTP(rec, req)
