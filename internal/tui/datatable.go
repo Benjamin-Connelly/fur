@@ -70,11 +70,18 @@ func buildCSVTable(rows [][]string, height int) (table.Model, bool) {
 	if height < 3 {
 		height = 3
 	}
+	// Drop bold from the header and selected row: bold glyphs render fractionally
+	// wider in some fonts (and in vhs gif capture), which staggers otherwise
+	// pixel-perfect columns. Selection stays legible via its background.
+	st := table.DefaultStyles()
+	st.Header = st.Header.Bold(false)
+	st.Selected = st.Selected.Bold(false)
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithRows(trows),
 		table.WithFocused(true),
 		table.WithHeight(height),
+		table.WithStyles(st),
 	)
 	return t, true
 }
