@@ -334,9 +334,9 @@ type codePageData struct {
 //
 // SVG is intentionally excluded. An SVG is an active document: served as
 // image/svg+xml and navigated to directly, it executes script against fur's
-// origin. The response CSP does not save us — its script-src allows
-// cdn.jsdelivr.net and d3js.org, so a planted SVG could pull arbitrary JS from
-// those CDNs and read local files via /__api/document. SVGs fall through to
+// origin. The response CSP does not save us — its script-src still allows
+// cdn.jsdelivr.net (the Mermaid CDN), so a planted SVG could pull arbitrary JS
+// from there and read local files via /__api/document. SVGs fall through to
 // the (inert) syntax-highlighted code view instead; raster formats below
 // cannot carry script.
 var imageContentTypes = map[string]string{

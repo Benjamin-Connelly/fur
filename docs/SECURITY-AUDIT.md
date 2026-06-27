@@ -94,8 +94,10 @@ model. All are **Fixed** on `master` with a regression test.
   `style=` attributes remain in templates). CSS injection is lower-severity
   than script execution; nonce-based style CSP and the custom-CSS `@import`
   exfil surface are a follow-up.
-- **Mermaid/D3 load from CDNs** (`cdn.jsdelivr.net`, `d3js.org`) at floating
-  major versions. SRI-pinning or vendoring is a follow-up (charter §2.4); the
+- **Mermaid loads from a CDN** (`cdn.jsdelivr.net`) at a floating major
+  version. D3 is now vendored locally (`d3.v7.min.js`, v7.9.0, sha256 recorded
+  in `static.go`) and `d3js.org` is dropped from `script-src`; vendoring Mermaid
+  too would let `script-src` collapse to `'self'` (follow-up, charter §2.4). The
   strict `script-src` already blocks inline injection.
 - **`install.sh` is stale** (points at the pre-rename `lookit` repo) and
   **`SECURITY.md` is absent** — both flagged in Phase 0, tracked outside the
