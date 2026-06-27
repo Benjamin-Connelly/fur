@@ -214,7 +214,7 @@ bd close <id>         # Complete work
 
 ## Dogfooding Policy
 
-Hosaka and ryuk run the latest `origin/master` build of fur. The deploy script is `scripts/dogfood.sh`.
+Hosaka and ryuk run the latest `origin/master` build of fur. The deploy script is `.github/scripts/dogfood.sh`.
 
 **What the script does:**
 - Compares each host's installed commit (from `fur version`) against `origin/master`.
@@ -227,12 +227,12 @@ Hosaka and ryuk run the latest `origin/master` build of fur. The deploy script i
 - **Isolated build:** runs in a detached `origin/master` worktree so working-tree state never leaks into the binary.
 
 **Claude session-start behavior (human-gated, no auto-deploy):**
-1. After the standard git/beads init in this repo, run `bash scripts/dogfood.sh --check`.
+1. After the standard git/beads init in this repo, run `bash .github/scripts/dogfood.sh --check`.
 2. Exit code 0: hosts current — say nothing or one line ("dogfood: hosts current"), continue session.
-3. Exit code 2: drift exists — surface which hosts are behind and the target SHA, then use `AskUserQuestion` to confirm before running `bash scripts/dogfood.sh` to deploy. Never deploy without explicit confirmation.
+3. Exit code 2: drift exists — surface which hosts are behind and the target SHA, then use `AskUserQuestion` to confirm before running `bash .github/scripts/dogfood.sh` to deploy. Never deploy without explicit confirmation.
 4. Exit code 1: error talking to hosts — warn the user, continue session, don't retry on a loop.
 
-**Manual trigger:** `bash scripts/dogfood.sh` any time.
+**Manual trigger:** `bash .github/scripts/dogfood.sh` any time.
 
 ## Release Policy
 
@@ -253,7 +253,7 @@ GitHub Release, and do not add release-publishing automation (goreleaser,
 - **Not allowed without the human lifting this rule:** any uploaded Release
   asset, any CI step that compiles-and-uploads, any prebuilt-binary install path.
 - **Enforcement:** `.github/workflows/no-binary-release.yml` fails any Release
-  event that carries uploaded assets. The dogfood deploy (`scripts/dogfood.sh`)
+  event that carries uploaded assets. The dogfood deploy (`.github/scripts/dogfood.sh`)
   is exempt — it scp's a locally-built binary to the user's own hosts and never
   touches GitHub Releases.
 

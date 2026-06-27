@@ -22,12 +22,12 @@ test:
 	go test ./...
 
 man: build
-	./$(BIN) gen-man ./man/man1
+	./$(BIN) gen-man ./docs/man/man1
 
 install: build man
 	install -m 755 $(BIN) $(BINDIR)/
 	install -d $(MANDIR)/
-	install -m 644 man/man1/*.1 $(MANDIR)/
+	install -m 644 docs/man/man1/*.1 $(MANDIR)/
 
 clean:
 	rm -f $(BIN)

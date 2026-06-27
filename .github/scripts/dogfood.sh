@@ -7,16 +7,16 @@
 # fails, subsequent hosts are skipped to bound blast radius.
 #
 # Usage:
-#   bash scripts/dogfood.sh              # check + deploy
-#   bash scripts/dogfood.sh --check      # check only; exit 0=current, 2=drift, 1=error
-#   bash scripts/dogfood.sh --quiet      # suppress informational output
+#   bash .github/scripts/dogfood.sh              # check + deploy
+#   bash .github/scripts/dogfood.sh --check      # check only; exit 0=current, 2=drift, 1=error
+#   bash .github/scripts/dogfood.sh --quiet      # suppress informational output
 #
 # Rollback: each deploy preserves the previous binary at ~/go/bin/fur.prev.
 # To revert: ssh <host> 'mv ~/go/bin/fur.prev ~/go/bin/fur'.
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 # First host is the canary. Reorder if you want a different host to take the

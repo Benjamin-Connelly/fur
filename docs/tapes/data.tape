@@ -1,5 +1,5 @@
-# fur full-text search (/ then Tab). ~12s.
-Output assets/fur-search.gif
+# fur data previews: CSV table + JSON. ~12s.
+Output docs/assets/fur-data.gif
 
 Set Shell "bash"
 Set FontSize 20
@@ -16,17 +16,25 @@ Enter
 Sleep 7s
 Show
 Sleep 700ms
-Type "fur demo/"
+Type "fur docs/demo/"
 Enter
-Sleep 2.4s
+Sleep 1.5s
 Type "/"
 Sleep 400ms
-Tab
-Sleep 600ms
-Type "trillions"
-Sleep 1.6s
+Type "metrics"
+Sleep 900ms
 Enter
-Sleep 800ms
+Sleep 600ms
+Enter
+Sleep 2.6s
+Escape
+Sleep 300ms
+Type "/"
+Sleep 400ms
+Type "config"
+Sleep 900ms
+Enter
+Sleep 600ms
 Enter
 Sleep 2.6s
 Hide

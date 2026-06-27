@@ -1,5 +1,5 @@
 # fur hero: navigate + render the cat field guide. ~22s.
-Output assets/fur-hero.gif
+Output docs/assets/fur-hero.gif
 
 Set Shell "bash"
 Set FontSize 20
@@ -16,7 +16,7 @@ Enter
 Sleep 5s
 Show
 Sleep 700ms
-Type "fur demo/"
+Type "fur docs/demo/"
 Enter
 Sleep 1.8s
 Type "/"

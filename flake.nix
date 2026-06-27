@@ -35,7 +35,7 @@
               $out/bin/fur completion fish > fur.fish
               installShellCompletion fur.bash _fur fur.fish
 
-              installManPage man/man1/*.1
+              installManPage docs/man/man1/*.1
             '';
 
             nativeBuildInputs = [ pkgs.installShellCompletion ];

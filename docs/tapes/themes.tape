@@ -1,5 +1,5 @@
 # fur theme switching across dark palettes. ~14s.
-Output assets/fur-themes.gif
+Output docs/assets/fur-themes.gif
 
 Set Shell "bash"
 Set FontSize 20
@@ -16,7 +16,7 @@ Enter
 Sleep 7s
 Show
 Sleep 700ms
-Type "fur demo/"
+Type "fur docs/demo/"
 Enter
 Sleep 2.2s
 Type "/"

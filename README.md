@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="fur logo" width="180">
+<img src="docs/assets/logo.png" alt="fur logo" width="180">
 
 # fur
 
@@ -18,21 +18,21 @@ Zero config. TUI and web modes. Full-text search. Syntax highlighting for 50+ la
 
 Keyboard-driven navigation — fuzzy-filter to a file, follow inter-document links, jump back through history, and surface backlinks:
 
-![fur — keyboard-driven navigation](assets/fur-hero.gif)
+![fur — keyboard-driven navigation](docs/assets/fur-hero.gif)
 
 ### Web mode
 
 `fur serve` turns the same tree into a live, themeable site — a table of contents, backlinks, search, an interactive link graph, and **inline image rendering**. The screenshots below show fur serving *Millions of Cats*, the public-domain picture book by Wanda Gág (1928):
 
-![fur web mode rendering the cover of Millions of Cats](assets/web-cover.webp)
+![fur web mode rendering the cover of Millions of Cats](docs/assets/web-cover.webp)
 
 Illustrations render inline alongside the prose, with a contents / links / backlinks rail:
 
-![fur web mode rendering an inline illustration](assets/web-reading.webp)
+![fur web mode rendering an inline illustration](docs/assets/web-reading.webp)
 
 The link graph maps every document and the references between them — here, the picture book and its plates on the left, a docs tree on the right:
 
-![fur web mode interactive link graph](assets/web-graph.webp)
+![fur web mode interactive link graph](docs/assets/web-graph.webp)
 
 ## Install
 
@@ -93,15 +93,15 @@ Split-pane layout: collapsible file tree (left) + rendered preview (right). Side
 
 **Full-text search** — `/` then `Tab` searches content across the whole tree (Bleve):
 
-![fur full-text search](assets/fur-search.gif)
+![fur full-text search](docs/assets/fur-search.gif)
 
 **Themes** — `Ctrl+T` cycles 19 built-in palettes; body, code, and chrome recolor together:
 
-![fur theme cycling](assets/fur-themes.gif)
+![fur theme cycling](docs/assets/fur-themes.gif)
 
 **Data previews** — CSV/TSV as aligned tables, JSON pretty-printed:
 
-![fur data previews](assets/fur-data.gif)
+![fur data previews](docs/assets/fur-data.gif)
 
 - **Fuzzy search** — `/` to filter files instantly, Enter to freeze results
 - **Full-text search** — Tab toggles to content search (Bleve BM25 index with snippets)
