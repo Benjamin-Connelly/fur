@@ -363,11 +363,11 @@ func TestHandleFileServesImagesRaw(t *testing.T) {
 	}
 }
 
-// TestHandleFileSVGNotServedAsImage guards the security boundary: SVG is an
-// active document, so it must NOT be served as image/svg+xml (it could script
-// against fur's origin via the CDN-allowing CSP). It falls through to the
-// inert syntax-highlighted code view instead.
-func TestHandleFileSVGNotServedAsImage(t *testing.T) {
+// TestHandleFileSVGSandboxed guards the security boundary: SVG is an active
+// document, so when served as image/svg+xml it must carry a per-response
+// `sandbox` CSP (opaque origin, scripting disabled) so a planted <script> /
+// foreignObject cannot execute or reach fur's origin on direct navigation.
+func TestHandleFileSVGSandboxed(t *testing.T) {
 	s, dir := setupTestServer(t)
 	defer s.sse.Stop()
 
@@ -379,11 +379,19 @@ func TestHandleFileSVGNotServedAsImage(t *testing.T) {
 	rec := httptest.NewRecorder()
 	s.handleFile(rec, req, "evil.svg")
 
-	if ct := rec.Header().Get("Content-Type"); strings.Contains(ct, "svg") {
-		t.Errorf("SVG served as %q; must not be served as an active image type", ct)
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "image/svg+xml") {
+		t.Errorf("SVG Content-Type = %q, want image/svg+xml", ct)
 	}
-	if !strings.Contains(rec.Header().Get("Content-Type"), "text/html") {
-		t.Errorf("SVG should fall through to the code view (text/html), got %q", rec.Header().Get("Content-Type"))
+	csp := rec.Header().Get("Content-Security-Policy")
+	if !strings.Contains(csp, "sandbox") {
+		t.Errorf("SVG response CSP must contain sandbox, got %q", csp)
+	}
+	if !strings.Contains(csp, "default-src 'none'") {
+		t.Errorf("SVG response CSP must lock default-src to 'none', got %q", csp)
+	}
+	// The sandboxed CSP must not allow script execution.
+	if strings.Contains(csp, "script-src") && !strings.Contains(csp, "default-src 'none'") {
+		t.Errorf("SVG CSP unexpectedly relaxes script policy: %q", csp)
 	}
 }
 

@@ -336,17 +336,13 @@ type codePageData struct {
 // image bytes (with the mapped Content-Type) instead of routing through the
 // syntax highlighter. Keeping it an explicit map — rather than deferring to
 // mime.TypeByExtension — bounds exactly what handleFile will emit as a
-// non-HTML body, which is a deliberate security boundary.
+// non-HTML body, which is a deliberate security boundary. These are all raster
+// formats that cannot carry script.
 //
-// SVG is intentionally excluded. An SVG is an active document: served as
-// image/svg+xml and navigated to directly, it executes script against fur's
-// origin. script-src is now 'self' (no CDN, no 'unsafe-inline'), which blocks
-// inline and cross-origin script in a planted SVG — but SVG can still carry
-// other active surface (foreignObject HTML, CSS via the 'unsafe-inline'
-// style-src, external references), so it stays excluded pending a deliberate
-// review rather than being re-enabled implicitly. SVGs fall through to the
-// (inert) syntax-highlighted code view instead; raster formats below cannot
-// carry script.
+// SVG is handled separately in handleFile (it is an active document): it is
+// served as image/svg+xml but under a per-response `sandbox` CSP that gives it
+// an opaque origin with scripting disabled, so it renders as an image without
+// the XSS surface. It is therefore not in this raster-only map.
 var imageContentTypes = map[string]string{
 	".png":  "image/png",
 	".jpg":  "image/jpeg",
@@ -365,14 +361,33 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request, relPath stri
 		return
 	}
 
-	// Images are served as raw bytes so <img> references in rendered markdown
-	// resolve; the ETag middleware still wraps this for caching.
-	if ct, ok := imageContentTypes[strings.ToLower(filepath.Ext(relPath))]; ok {
+	ext := strings.ToLower(filepath.Ext(relPath))
+
+	// SVG is an active document (it can carry <script>, event handlers,
+	// <foreignObject>). It renders as an image via <img> (script-safe by spec),
+	// but navigating directly to the .svg URL loads it as a top-level document.
+	// Serve image/svg+xml, but override the response CSP with `sandbox` (opaque
+	// origin; scripts, forms and frames disabled) plus default-src 'none'.
+	// Combined with the global script-src 'self', this neutralizes every active
+	// vector on direct navigation; sandbox does not affect <img> embedding (it
+	// applies only to documents), so inline SVG images still render.
+	if ext == ".svg" {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox")
+		// #nosec G705 -- the per-response sandbox CSP gives the document an
+		// opaque origin with scripting disabled, so the SVG cannot execute or
+		// reach fur's origin even when opened directly.
+		w.Write(source)
+		return
+	}
+
+	// Other images are served as raw bytes so <img> references in rendered
+	// markdown resolve; the ETag middleware still wraps this for caching.
+	if ct, ok := imageContentTypes[ext]; ok {
 		w.Header().Set("Content-Type", ct)
 		// #nosec G705 -- not XSS: bytes are served with a non-HTML image/*
 		// Content-Type and the middleware's X-Content-Type-Options: nosniff, so
-		// the browser cannot interpret them as HTML. SVG (the only scriptable
-		// image type) is deliberately excluded from imageContentTypes.
+		// the browser cannot interpret them as HTML. (SVG is handled above.)
 		w.Write(source)
 		return
 	}
