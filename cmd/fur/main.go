@@ -598,6 +598,7 @@ var versionCmd = &cobra.Command{
 	Short: "Print version, build, and runtime information",
 	Run: func(cmd *cobra.Command, args []string) {
 		textOnly, _ := cmd.Flags().GetBool("text")
+		fmt.Print("\n\n")
 		fmt.Println(versionLogo(textOnly))
 		fmt.Println()
 		fmt.Printf("fur %s\n", version)
