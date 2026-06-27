@@ -11,7 +11,6 @@ Tracking open work for the documentation refresh. See [[architecture]] and [[qui
 ## Normal
 
 - [ ] Add CSV/JSON previewers to TUI #tui
-- [ ] Document MCP tool schemas #mcp
 - [ ] Write SSH remote browsing tutorial #remote
 
 ## Nice to have

@@ -31,7 +31,6 @@ go test ./...
 - `cmd/fur/main.go` — CLI entry point (Cobra commands)
 - `internal/tui/` — Bubble Tea TUI (split-pane, preview, keys, links, panels)
 - `internal/web/` — stdlib net/http server (Goldmark, SSE, go:embed)
-- `internal/mcp/` — MCP server for AI agent integration
 - `internal/index/` — File walker, fuzzy search, full-text search (Bleve), link graph, watcher
 - `internal/render/` — Glamour (TUI) and Chroma (syntax) wrappers, heading extraction, image protocols
 - `internal/git/` — go-git integration, permalink generation

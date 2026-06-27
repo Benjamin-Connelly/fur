@@ -1,7 +1,7 @@
 {
   "name": "fur",
   "version": "1.0.0",
-  "modes": ["tui", "web", "mcp"],
+  "modes": ["tui", "web"],
   "features": {
     "search": {
       "filename": "sahilm/fuzzy",
