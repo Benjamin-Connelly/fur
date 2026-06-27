@@ -14,6 +14,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"golang.org/x/term"
@@ -596,7 +597,8 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version, build, and runtime information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(ui.Banner())
+		textOnly, _ := cmd.Flags().GetBool("text")
+		fmt.Println(versionLogo(textOnly))
 		fmt.Println()
 		fmt.Printf("fur %s\n", version)
 		fmt.Printf("  commit:  %s\n", commit)
@@ -604,6 +606,24 @@ var versionCmd = &cobra.Command{
 		fmt.Printf("  go:      %s\n", runtime.Version())
 		fmt.Printf("  os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 	},
+}
+
+// versionLogo renders the actual logo image inline when stdout is a terminal
+// that supports an image protocol (Kitty/iTerm2); otherwise (or with --text) it
+// returns the ASCII banner. The tty check matters because image escape
+// sequences would corrupt piped or redirected output.
+func versionLogo(textOnly bool) string {
+	if !textOnly && term.IsTerminal(int(os.Stdout.Fd())) {
+		if p := render.DetectImageProtocol(); p != render.ImageProtocolNone {
+			fs := afero.NewMemMapFs()
+			if err := afero.WriteFile(fs, "logo.png", ui.LogoPNG(), 0o644); err == nil {
+				if img, err := render.RenderImageInline("logo.png", p, fs); err == nil && img != "" {
+					return strings.TrimRight(img, "\n")
+				}
+			}
+		}
+	}
+	return ui.Banner()
 }
 
 var configCmd = &cobra.Command{
@@ -932,6 +952,8 @@ func init() {
 	tasksCmd.Flags().Bool("pending", false, "show only unchecked tasks")
 
 	completionCmd.Flags().Bool("install", false, "auto-detect shell and install without prompts")
+
+	versionCmd.Flags().Bool("text", false, "force the ASCII banner instead of the inline logo image")
 
 	configInitCmd.Flags().Bool("force", false, "overwrite existing config (creates config.yaml.bak)")
 	configCmd.AddCommand(configInitCmd)
