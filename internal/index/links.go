@@ -51,8 +51,13 @@ func (g *LinkGraph) SetLinks(source string, links []Link) {
 	// Set new forward links
 	g.forward[source] = links
 
-	// Add new backlinks
+	// Add new backlinks. A file's links to its own #anchors (Source == Target,
+	// e.g. a table of contents) are intra-document navigation, not backlinks —
+	// they would otherwise make every doc appear in its own backlinks panel.
 	for _, link := range links {
+		if link.Source == link.Target {
+			continue
+		}
 		g.backward[link.Target] = append(g.backward[link.Target], link)
 	}
 }
@@ -66,12 +71,24 @@ func (g *LinkGraph) ForwardLinks(source string) []Link {
 	return result
 }
 
-// Backlinks returns all links pointing to the given file.
+// Backlinks returns the distinct links pointing to the given file. Multiple
+// links from the same source with the same text (e.g. a header link and a
+// "back to top" footer link) collapse to one entry, since they render
+// identically and read as duplicates.
 func (g *LinkGraph) Backlinks(target string) []Link {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	result := make([]Link, len(g.backward[target]))
-	copy(result, g.backward[target])
+	backlinks := g.backward[target]
+	result := make([]Link, 0, len(backlinks))
+	seen := make(map[string]bool, len(backlinks))
+	for _, l := range backlinks {
+		key := l.Source + "\x00" + l.Text
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		result = append(result, l)
+	}
 	return result
 }
 

@@ -29,6 +29,37 @@ func TestLinkGraph_SetAndGet(t *testing.T) {
 	}
 }
 
+func TestLinkGraph_BacklinksExcludeSelfAndDedup(t *testing.T) {
+	g := NewLinkGraph()
+
+	// guide.md has a table of contents (self-anchor links) plus is linked
+	// twice from breeds.md with identical text (header + footer).
+	g.SetLinks("guide.md", []Link{
+		{Source: "guide.md", Target: "guide.md", Text: "Anatomy", Fragment: "anatomy", Line: 5},
+		{Source: "guide.md", Target: "guide.md", Text: "Behavior", Fragment: "behavior", Line: 6},
+	})
+	g.SetLinks("breeds.md", []Link{
+		{Source: "breeds.md", Target: "guide.md", Text: "Field Guide", Line: 1},
+		{Source: "breeds.md", Target: "guide.md", Text: "Field Guide", Line: 20},
+		{Source: "breeds.md", Target: "guide.md", Text: "the full guide", Line: 25},
+	})
+
+	back := g.Backlinks("guide.md")
+	// Expect: no self-links, breeds.md/"Field Guide" collapsed to one, plus the
+	// distinct-text "the full guide" link. => 2 entries.
+	if len(back) != 2 {
+		t.Fatalf("expected 2 deduped non-self backlinks, got %d: %+v", len(back), back)
+	}
+	for _, b := range back {
+		if b.Source == b.Target {
+			t.Errorf("self-link leaked into backlinks: %+v", b)
+		}
+		if b.Source != "breeds.md" {
+			t.Errorf("unexpected backlink source %q", b.Source)
+		}
+	}
+}
+
 func TestLinkGraph_ReplaceLinks(t *testing.T) {
 	g := NewLinkGraph()
 
