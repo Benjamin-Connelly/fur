@@ -91,7 +91,7 @@ func uiFromPalette(p Palette) UI {
 		Dim:      lipgloss.Color(p.Subtle),
 		Border:   lipgloss.Color(p.Overlay),
 		Text:     lipgloss.Color(p.Text),
-		Bg:       lipgloss.Color(p.Bg),
+		Bg:       lipgloss.Color(lightBg(p)),
 		Dir:      lipgloss.Color(p.Blue),
 		Markdown: lipgloss.Color(p.Green),
 		Filter:   lipgloss.Color(p.Orange),
@@ -124,7 +124,7 @@ func GlamourStyle(p Palette) ansi.StyleConfig {
 				BlockPrefix:     "\n",
 				BlockSuffix:     "\n",
 				Color:           sp(p.Text),
-				BackgroundColor: sp(p.Bg), // nil on dark themes; paints light themes
+				BackgroundColor: sp(lightBg(p)), // painted on light themes only
 			},
 			Margin: up(1),
 		},
@@ -192,6 +192,19 @@ func GlamourStyle(p Palette) ansi.StyleConfig {
 		Table:                 ansi.StyleTable{StyleBlock: ansi.StyleBlock{StylePrimitive: ansi.StylePrimitive{}}},
 		DefinitionDescription: ansi.StylePrimitive{BlockPrefix: "\n🠶 "},
 	}
+}
+
+// lightBg returns the palette's base background, but only for light themes.
+// Dark themes render on the terminal's own (dark) background; painting a
+// per-block background there produces zebra striping wherever the palette's Bg
+// differs from the terminal's actual background (e.g. after switching themes at
+// runtime). Light themes must paint a base background or dark text would be
+// invisible on a dark terminal.
+func lightBg(p Palette) string {
+	if p.Dark {
+		return ""
+	}
+	return p.Bg
 }
 
 // sp returns a pointer to s, or nil if s is empty so glamour leaves the color unset.

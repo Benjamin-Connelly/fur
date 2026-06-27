@@ -122,4 +122,23 @@ func TestLightThemePaintsBackground(t *testing.T) {
 	if bg := GlamourStyle(Resolve("dark")).Document.BackgroundColor; bg != nil {
 		t.Errorf("dark theme glamour Document BackgroundColor = %v, want nil", *bg)
 	}
+
+	// Regression: NAMED dark themes (which, unlike the built-in "dark", carry an
+	// explicit palette Bg) must NOT paint a base background either — doing so
+	// striped the preview wherever the palette Bg differed from the terminal's
+	// actual background (e.g. after switching themes at runtime).
+	for _, name := range []string{"nord", "dracula", "gruvbox", "catppuccin-mocha", "rose-pine"} {
+		if ui := UIFor(name); ui.Bg != "" {
+			t.Errorf("dark theme %q UI.Bg = %q, want empty (no per-block paint)", name, ui.Bg)
+		}
+		if bg := GlamourStyle(Resolve(name)).Document.BackgroundColor; bg != nil {
+			t.Errorf("dark theme %q glamour Document BackgroundColor = %q, want nil", name, *bg)
+		}
+	}
+	// Named light themes must still paint, like the built-in "light".
+	for _, name := range []string{"catppuccin-latte", "gruvbox-light", "solarized-light"} {
+		if ui := UIFor(name); ui.Bg == "" {
+			t.Errorf("light theme %q UI.Bg is empty; light themes must paint a background", name)
+		}
+	}
 }
