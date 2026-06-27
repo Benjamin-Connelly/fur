@@ -30,7 +30,7 @@ Illustrations render inline alongside the prose, with a contents / links / backl
 
 ![fur web mode rendering an inline illustration](docs/assets/web-reading.webp)
 
-The link graph maps every document and the references between them — here, the picture book and its plates on the left, a docs tree on the right:
+The link graph maps every document and the references between them — here, *Millions of Cats* at the center with its plates radiating out, linked to the field guide and the breeds list:
 
 ![fur web mode interactive link graph](docs/assets/web-graph.webp)
 
@@ -95,7 +95,7 @@ Split-pane layout: collapsible file tree (left) + rendered preview (right). Side
 
 ![fur full-text search](docs/assets/fur-search.gif)
 
-**Themes** — `Ctrl+T` cycles 19 built-in palettes; body, code, and chrome recolor together:
+**Themes** — `:theme <name>` jumps to any of 19 built-in palettes (`Ctrl+T` cycles through them); body, code, and chrome recolor together:
 
 ![fur theme cycling](docs/assets/fur-themes.gif)
 

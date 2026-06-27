@@ -221,7 +221,7 @@ func (p CommandPalette) View() string {
 		s += cursor + cmd.Name + " - " + cmd.Description + "\n"
 	}
 	hintStyle := lipgloss.NewStyle().Foreground(p.ui.Dim)
-	s += hintStyle.Render("↑/↓:navigate  ctrl+u:clear  ctrl+w:del word  :N jump to line  enter:run  esc:close")
+	s += hintStyle.Render("↑/↓ navigate · enter run · esc close · type a number to jump to that line")
 	return s
 }
 
