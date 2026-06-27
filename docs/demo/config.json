@@ -1,23 +1,18 @@
 {
-  "name": "fur",
-  "version": "1.0.0",
-  "modes": ["tui", "web"],
-  "features": {
-    "search": {
-      "filename": "sahilm/fuzzy",
-      "fulltext": "blevesearch/bleve"
-    },
-    "render": {
-      "tui": "charmbracelet/glamour",
-      "web": "yuin/goldmark"
-    },
-    "highlight": "alecthomas/chroma",
-    "git": "go-git/go-git"
-  },
-  "server": {
-    "port": 7777,
-    "host": "localhost",
-    "live_reload": true
-  },
-  "themes": ["auto", "light", "dark", "ascii"]
+  "cattery": "Whisker Hollow",
+  "established": 2019,
+  "open": true,
+  "capacity": 24,
+  "residents": [
+    { "name": "Biscuit",  "breed": "Tabby",      "age": 3, "weight_kg": 4.2, "adopted": false, "tags": ["lap-cat", "warm-laptop"] },
+    { "name": "Mortimer", "breed": "Maine Coon", "age": 5, "weight_kg": 7.8, "adopted": false, "tags": ["floof", "thinks-its-a-dog"] },
+    { "name": "Nimbus",   "breed": "Sphynx",     "age": 2, "weight_kg": 3.4, "adopted": true,  "tags": ["hairless", "heat-seeker"] },
+    { "name": "Patches",  "breed": "Calico",     "age": 4, "weight_kg": 4.0, "adopted": false, "tags": ["tricolor", "chaos"] }
+  ],
+  "care": {
+    "meals_per_day": 2,
+    "litter_boxes": 6,
+    "vet": "Dr. Paws",
+    "feeding_window": { "morning": "07:00", "evening": "18:00" }
+  }
 }
