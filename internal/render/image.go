@@ -50,6 +50,14 @@ func DetectImageProtocol() ImageProtocol {
 // Only safe outside alt-screen (e.g., `fur cat`), NOT inside Bubble Tea.
 // An optional afero.Fs can be provided; if nil, the OS filesystem is used.
 func RenderImageInline(path string, protocol ImageProtocol, fsys ...afero.Fs) (string, error) {
+	return RenderImageInlineSized(path, protocol, 0, 0, fsys...)
+}
+
+// RenderImageInlineSized is like RenderImageInline but constrains the rendered
+// image to at most cols×rows terminal cells (0 leaves a dimension unconstrained
+// so the terminal scales it to preserve aspect ratio). Used to keep the version
+// logo a modest size rather than the image's full native pixel dimensions.
+func RenderImageInlineSized(path string, protocol ImageProtocol, cols, rows int, fsys ...afero.Fs) (string, error) {
 	fs := afero.NewOsFs()
 	if len(fsys) > 0 && fsys[0] != nil {
 		fs = fsys[0]
@@ -61,9 +69,9 @@ func RenderImageInline(path string, protocol ImageProtocol, fsys ...afero.Fs) (s
 
 	switch protocol {
 	case ImageProtocolKitty:
-		return renderKitty(data), nil
+		return renderKitty(data, cols, rows), nil
 	case ImageProtocolITerm2:
-		return renderITerm2(data, path), nil
+		return renderITerm2(data, path, cols, rows), nil
 	default:
 		return fmt.Sprintf("[image: %s — no inline image protocol detected]\n", filepath.Base(path)), nil
 	}
@@ -86,9 +94,16 @@ func toPNG(data []byte) []byte {
 	return buf.Bytes()
 }
 
-func renderKitty(data []byte) string {
+func renderKitty(data []byte, cols, rows int) string {
 	data = toPNG(data)
 	encoded := base64.StdEncoding.EncodeToString(data)
+	ctrl := "a=T,f=100"
+	if cols > 0 {
+		ctrl += fmt.Sprintf(",c=%d", cols)
+	}
+	if rows > 0 {
+		ctrl += fmt.Sprintf(",r=%d", rows)
+	}
 	var b strings.Builder
 	for i := 0; i < len(encoded); i += 4096 {
 		end := i + 4096
@@ -101,7 +116,7 @@ func renderKitty(data []byte) string {
 			more = 0
 		}
 		if i == 0 {
-			fmt.Fprintf(&b, "\033_Ga=T,f=100,m=%d;%s\033\\", more, chunk)
+			fmt.Fprintf(&b, "\033_G%s,m=%d;%s\033\\", ctrl, more, chunk)
 		} else {
 			fmt.Fprintf(&b, "\033_Gm=%d;%s\033\\", more, chunk)
 		}
@@ -110,9 +125,16 @@ func renderKitty(data []byte) string {
 	return b.String()
 }
 
-func renderITerm2(data []byte, path string) string {
+func renderITerm2(data []byte, path string, cols, rows int) string {
 	encoded := base64.StdEncoding.EncodeToString(data)
 	name := base64.StdEncoding.EncodeToString([]byte(filepath.Base(path)))
-	return fmt.Sprintf("\033]1337;File=name=%s;inline=1;width=auto;preserveAspectRatio=1:%s\a\n",
-		name, encoded)
+	size := "width=auto"
+	if cols > 0 {
+		size = fmt.Sprintf("width=%d", cols)
+	}
+	if rows > 0 {
+		size += fmt.Sprintf(";height=%d", rows)
+	}
+	return fmt.Sprintf("\033]1337;File=name=%s;inline=1;%s;preserveAspectRatio=1:%s\a\n",
+		name, size, encoded)
 }

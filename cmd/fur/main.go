@@ -617,7 +617,10 @@ func versionLogo(textOnly bool) string {
 		if p := render.DetectImageProtocol(); p != render.ImageProtocolNone {
 			fs := afero.NewMemMapFs()
 			if err := afero.WriteFile(fs, "logo.png", ui.LogoPNG(), 0o644); err == nil {
-				if img, err := render.RenderImageInline("logo.png", p, fs); err == nil && img != "" {
+				// Cap the height to a modest number of rows; the source PNG is
+				// 1254px and would otherwise render at full size and fill the
+				// screen. Width is left auto so the square mark stays square.
+				if img, err := render.RenderImageInlineSized("logo.png", p, 0, 12, fs); err == nil && img != "" {
 					return strings.TrimRight(img, "\n")
 				}
 			}

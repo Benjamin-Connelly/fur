@@ -129,7 +129,7 @@ func TestToPNG_InvalidData(t *testing.T) {
 
 func TestRenderKitty(t *testing.T) {
 	data := makePNG(t, 2, 2)
-	result := renderKitty(data)
+	result := renderKitty(data, 0, 0)
 
 	if !strings.HasPrefix(result, "\033_Ga=T,f=100,") {
 		t.Error("kitty output should start with APC graphics command")
@@ -155,7 +155,7 @@ func TestRenderKitty_Chunking(t *testing.T) {
 	for i := 4; i < len(fakeData); i++ {
 		fakeData[i] = byte(i % 251)
 	}
-	result := renderKitty(fakeData)
+	result := renderKitty(fakeData, 0, 0)
 
 	encoded := base64.StdEncoding.EncodeToString(fakeData)
 	if len(encoded) <= 4096 {
@@ -177,7 +177,7 @@ func TestRenderKitty_Chunking(t *testing.T) {
 func TestRenderITerm2(t *testing.T) {
 	data := makePNG(t, 2, 2)
 	path := "/tmp/test-image.png"
-	result := renderITerm2(data, path)
+	result := renderITerm2(data, path, 0, 0)
 
 	if !strings.HasPrefix(result, "\033]1337;File=") {
 		t.Error("iTerm2 output should start with OSC 1337 file sequence")
@@ -225,6 +225,34 @@ func TestRenderImageInline(t *testing.T) {
 				t.Errorf("expected output to contain %q", tt.contains)
 			}
 		})
+	}
+}
+
+func TestRenderImageInlineSized(t *testing.T) {
+	pngData := makePNG(t, 2, 2)
+	fs := afero.NewMemMapFs()
+	_ = afero.WriteFile(fs, "/img.png", pngData, 0644)
+
+	kitty, err := RenderImageInlineSized("/img.png", ImageProtocolKitty, 0, 12, fs)
+	if err != nil {
+		t.Fatalf("kitty: %v", err)
+	}
+	if !strings.Contains(kitty, "r=12") {
+		t.Errorf("kitty output should constrain rows (r=12), got %.60q", kitty)
+	}
+
+	iterm, err := RenderImageInlineSized("/img.png", ImageProtocolITerm2, 0, 12, fs)
+	if err != nil {
+		t.Fatalf("iterm2: %v", err)
+	}
+	if !strings.Contains(iterm, "height=12") {
+		t.Errorf("iterm2 output should constrain height, got %.80q", iterm)
+	}
+
+	// Unsized (0,0) must NOT inject size params — keeps `fur cat` at native size.
+	native, _ := RenderImageInlineSized("/img.png", ImageProtocolKitty, 0, 0, fs)
+	if strings.Contains(native, "r=") || strings.Contains(native, "c=") {
+		t.Errorf("unsized kitty render unexpectedly set a size: %.60q", native)
 	}
 }
 
